@@ -204,13 +204,13 @@ function MacroRing({ label, value, max, color, unit, ideal }) {
 }
 
 function SliderInput({ label, value, setValue, min, max, step, color, suffix = "", prefix = "", editable = false }) {
-  const pct = ((value - min) / (max - min)) * 100;
+  const pct = Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
   return (
     <div style={{ marginBottom: 22 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{label}</label>
         {editable ? (
-          <NumInput value={value} onChange={v => setValue(Math.max(min, Math.min(max, v || min)))} suffix={suffix} prefix={prefix} min={min} max={max} step={step} width={65} color={color} />
+          <NumInput value={value} onChange={v => setValue(v === "" ? min : v)} suffix={suffix} prefix={prefix} min={min} max={max} step={step} width={65} color={color} />
         ) : (
           <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 22, fontWeight: 700, color }}>{prefix}{value}<span style={{ fontSize: 13 }}>{suffix}</span></span>
         )}
@@ -225,12 +225,25 @@ function SliderInput({ label, value, setValue, min, max, step, color, suffix = "
 }
 
 function NumInput({ value, onChange, placeholder, suffix, prefix, min, max, step = 1, width = 70, color = "#22c55e" }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "7px 10px" }}>
       {prefix && <span style={{ fontSize: 14, color: "rgba(255,255,255,0.35)" }}>{prefix}</span>}
-      <input type="number" inputMode="decimal" value={value} placeholder={placeholder || "—"} min={min} max={max} step={step}
-        onChange={e => { const v = e.target.value; onChange(v === "" ? "" : +v); }}
-        onFocus={e => e.target.select()}
+      <input type="number" inputMode="decimal"
+        value={editing ? draft : (value ?? "")}
+        placeholder={placeholder || "—"} min={min} max={max} step={step}
+        onFocus={e => { setEditing(true); setDraft(value === "" || value == null ? "" : String(value)); e.target.select(); }}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={() => {
+          setEditing(false);
+          if (draft === "") { onChange(""); return; }
+          const num = parseFloat(draft);
+          if (isNaN(num)) { onChange(""); return; }
+          const lo = min != null ? min : -Infinity;
+          const hi = max != null ? max : Infinity;
+          onChange(Math.max(lo, Math.min(hi, num)));
+        }}
         style={{ width, background: "transparent", border: "none", outline: "none", color, fontFamily: "'Space Mono',monospace", fontSize: 17, fontWeight: 700, textAlign: "right" }} />
       {suffix && <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{suffix}</span>}
     </div>
@@ -341,6 +354,7 @@ export default function Home() {
   const bmiCol = bmi ? (bmi < 18.5 ? "#60a5fa" : bmi < 25 ? "#4ade80" : bmi < 30 ? "#fbbf24" : "#ef4444") : "#4ade80";
 
   useEffect(() => {
+    if (!weight) return;
     const bmr = calcBMR(weight, height || null, age || null, gender);
     const tdee = calcTDEE(bmr, activity, goal);
     setCalories(tdee);
@@ -477,7 +491,7 @@ export default function Home() {
           <div style={{ marginBottom: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>⚖️ 体重</label>
-              <StepperInput value={weight} onChange={v => setWeight(v === "" ? "" : Math.max(30, Math.min(200, v)))}
+              <StepperInput value={weight} onChange={setWeight}
                 min={30} max={200} inputStep={0.01} step={0.1} bigStep={0.1} suffix="kg" width={75} color="#22c55e" />
             </div>
           </div>
