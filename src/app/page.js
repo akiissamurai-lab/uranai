@@ -228,8 +228,9 @@ function NumInput({ value, onChange, placeholder, suffix, prefix, min, max, step
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "7px 10px" }}>
       {prefix && <span style={{ fontSize: 14, color: "rgba(255,255,255,0.35)" }}>{prefix}</span>}
-      <input type="number" inputMode="decimal" value={value} placeholder={placeholder} min={min} max={max} step={step}
+      <input type="number" inputMode="decimal" value={value} placeholder={placeholder || "—"} min={min} max={max} step={step}
         onChange={e => { const v = e.target.value; onChange(v === "" ? "" : +v); }}
+        onFocus={e => e.target.select()}
         style={{ width, background: "transparent", border: "none", outline: "none", color, fontFamily: "'Space Mono',monospace", fontSize: 17, fontWeight: 700, textAlign: "right" }} />
       {suffix && <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{suffix}</span>}
     </div>
@@ -284,17 +285,19 @@ function Pill({ active, onClick, children }) {
 function SectionCard({ num, title, summary, collapsed, onToggle, color = "#4ade80", bgColor = "rgba(34,197,94,0.15)", children }) {
   return (
     <div style={{
-      background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+      background: collapsed ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.03)",
+      border: collapsed ? "1px solid rgba(255,255,255,0.04)" : "1px solid rgba(255,255,255,0.06)",
       borderRadius: 20, padding: collapsed ? "14px 20px" : "22px 20px", marginBottom: 14,
-      animation: "fadeUp 0.4s ease-out", transition: "padding 0.3s",
+      animation: "fadeUp 0.4s ease-out", transition: "all 0.3s ease",
     }}>
       <div onClick={collapsed ? onToggle : undefined} style={{
         fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)", marginBottom: collapsed ? 0 : 14,
         display: "flex", alignItems: "center", gap: 6, cursor: collapsed ? "pointer" : "default",
+        minHeight: collapsed ? 24 : "auto",
       }}>
-        <span style={{ width: 22, height: 22, borderRadius: "50%", background: bgColor, color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>{num}</span>
-        {title}
-        {collapsed && <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{summary} ✏️</span>}
+        <span style={{ width: 22, height: 22, borderRadius: "50%", background: bgColor, color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{num}</span>
+        <span style={{ flexShrink: 0 }}>{title}</span>
+        {collapsed && <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary} ✏️</span>}
       </div>
       {!collapsed && children}
     </div>
@@ -415,7 +418,7 @@ export default function Home() {
     <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", fontFamily: "'DM Sans','Noto Sans JP',sans-serif", color: "white", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "fixed", top: -200, right: -200, width: 500, height: 500, background: "radial-gradient(circle,rgba(34,197,94,0.06)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
       <div style={{ position: "fixed", bottom: -150, left: -150, width: 400, height: 400, background: "radial-gradient(circle,rgba(59,130,246,0.05)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      {/* Fonts loaded via layout.js */}
 
       {/* Header */}
       <header style={{ padding: "18px 24px 10px", maxWidth: 480, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -558,10 +561,11 @@ export default function Home() {
           </div>
 
           {step === "profile" && (
-            <button onClick={() => setStep("params")} style={{
+            <button onClick={() => { setStep("params"); setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100); }} style={{
               width: "100%", padding: "14px", borderRadius: 14, border: "none", marginTop: 18,
               background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "white", fontSize: 15, fontWeight: 700,
               cursor: "pointer", boxShadow: "0 8px 32px rgba(34,197,94,0.25)", fontFamily: "'Noto Sans JP',sans-serif", letterSpacing: 1,
+              transition: "transform 0.15s, box-shadow 0.15s",
             }}>次へ →</button>
           )}
         </SectionCard>
@@ -569,7 +573,7 @@ export default function Home() {
         {/* STEP 2: PARAMS */}
         {(step === "params" || step === "result") && (
           <SectionCard num="2" title="予算 & 栄養目標" summary={`¥${budget} P${protein}g ${calories}kcal`}
-            collapsed={false} color="#60a5fa" bgColor="rgba(59,130,246,0.15)">
+            collapsed={step === "result"} onToggle={() => setStep("params")} color="#60a5fa" bgColor="rgba(59,130,246,0.15)">
 
             {calcBasis && (
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginBottom: 14, padding: "8px 12px", borderRadius: 8, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", lineHeight: 1.5 }}>
@@ -617,10 +621,11 @@ export default function Home() {
             )}
 
             <button onClick={handleGenerate} disabled={aiLoading || !weight} style={{
-              width: "100%", padding: "15px", borderRadius: 14, border: "none",
+              width: "100%", padding: "16px", borderRadius: 14, border: "none", minHeight: 52,
               background: (aiLoading || !weight) ? "rgba(34,197,94,0.3)" : "linear-gradient(135deg,#22c55e,#16a34a)",
-              color: "white", fontSize: 15, fontWeight: 700, cursor: (aiLoading || !weight) ? "not-allowed" : "pointer",
+              color: "white", fontSize: 16, fontWeight: 700, cursor: (aiLoading || !weight) ? "not-allowed" : "pointer",
               boxShadow: aiLoading ? "none" : "0 8px 32px rgba(34,197,94,0.3)", fontFamily: "'Noto Sans JP',sans-serif", letterSpacing: 1,
+              transition: "transform 0.15s, box-shadow 0.15s, opacity 0.2s",
             }}>
               {aiLoading ? <span>🧠 AI分析中 <TypingDots /></span> : "⚡ AIプランを生成"}
             </button>
@@ -808,13 +813,15 @@ export default function Home() {
             {/* Actions */}
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
               <button onClick={handleGenerate} disabled={aiLoading} style={{
-                flex: 1, padding: "13px", borderRadius: 13, border: "1px solid rgba(34,197,94,0.25)",
-                background: "rgba(34,197,94,0.06)", color: "#4ade80", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: aiLoading ? 0.5 : 1,
+                flex: 1, padding: "14px", borderRadius: 13, border: "1px solid rgba(34,197,94,0.25)",
+                background: "rgba(34,197,94,0.06)", color: "#4ade80", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: aiLoading ? 0.5 : 1,
+                minHeight: 48, transition: "all 0.15s",
               }}>🔄 再生成</button>
               <button onClick={handleShare} style={{
-                flex: 1, padding: "13px", borderRadius: 13, border: "1px solid rgba(255,255,255,0.1)",
+                flex: 1, padding: "14px", borderRadius: 13, border: "1px solid rgba(255,255,255,0.1)",
                 background: shareMsg ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)",
-                color: shareMsg ? "#4ade80" : "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
+                color: shareMsg ? "#4ade80" : "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
+                minHeight: 48,
               }}>{shareMsg || "📤 シェア"}</button>
             </div>
           </div>
@@ -822,15 +829,18 @@ export default function Home() {
       </main>
 
       <style>{`
+        html{scroll-behavior:smooth}
         @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
         @keyframes dotPulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
         @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-        input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.3),0 0 0 3px rgba(34,197,94,0.18);cursor:pointer}
-        input[type="range"]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;border:none;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.3);cursor:pointer}
+        input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.3),0 0 0 3px rgba(34,197,94,0.18);cursor:pointer}
+        input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;border:none;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.3);cursor:pointer}
         input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
         input[type="number"]{-moz-appearance:textfield}
-        *{box-sizing:border-box}body{margin:0}
+        *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+        button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+        button:active{transform:scale(0.97)}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
       `}</style>
     </div>
