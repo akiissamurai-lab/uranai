@@ -1,15 +1,16 @@
-import { ratelimit, getIP } from "@/lib/ratelimit";
+import { getRatelimit, getIP } from "@/lib/ratelimit";
 
 // プロンプトの最大文字数（安全マージン込み）
 const MAX_PROMPT_LENGTH = 5000;
 
 export async function POST(request) {
   // ── Rate Limit（最優先で判定）────────────────────────────────
-  // Upstash の環境変数が未設定の場合はスキップ（ローカル開発用）
-  if (process.env.UPSTASH_REDIS_REST_URL) {
+  // getRatelimit() は環境変数未設定なら null を返す（フォールスルー）
+  const limiter = getRatelimit();
+  if (limiter) {
     try {
       const ip = getIP(request);
-      const { success, limit, remaining, reset } = await ratelimit.limit(ip);
+      const { success, limit, remaining, reset } = await limiter.limit(ip);
 
       if (!success) {
         const retryAfter = Math.ceil((reset - Date.now()) / 1000);

@@ -1,12 +1,27 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-// 1分間に3回まで（スライディングウィンドウ方式）
-export const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(3, "60 s"),
-  prefix: "macro-builder",
-});
+// ── 遅延初期化（Lazy Init）─────────────────────────────────────
+// モジュール読み込み時に Redis.fromEnv() が走ると
+// 環境変数未設定の環境で API ルート全体がクラッシュする。
+// → 初回呼び出し時にだけインスタンスを生成する。
+let _ratelimit = null;
+
+export function getRatelimit() {
+  if (_ratelimit) return _ratelimit;
+
+  // 環境変数が揃っていない場合は null を返す（フォールスルー）
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return null;
+  }
+
+  _ratelimit = new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(3, "60 s"),
+    prefix: "macro-builder",
+  });
+  return _ratelimit;
+}
 
 /**
  * リクエストからIPアドレスを取得する。
