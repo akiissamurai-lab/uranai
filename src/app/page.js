@@ -236,6 +236,26 @@ function NumInput({ value, onChange, placeholder, suffix, prefix, min, max, step
   );
 }
 
+function StepperInput({ value, onChange, min, max, step, bigStep, suffix, color = "#22c55e", width = 75, inputStep }) {
+  const nudge = (delta) => {
+    const next = +(parseFloat(value || 0) + delta).toFixed(2);
+    onChange(Math.max(min, Math.min(max, next)));
+  };
+  const btnStyle = {
+    width: 34, height: 34, borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.6)",
+    fontSize: 18, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+    transition: "all 0.15s", lineHeight: 1,
+  };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <button onClick={() => nudge(-(bigStep || step))} style={btnStyle}>−</button>
+      <NumInput value={value} onChange={onChange} suffix={suffix} min={min} max={max} step={inputStep || step} width={width} color={color} />
+      <button onClick={() => nudge(bigStep || step)} style={btnStyle}>+</button>
+    </div>
+  );
+}
+
 function TypingDots() {
   return (
     <span style={{ display: "inline-flex", gap: 3, verticalAlign: "middle" }}>
@@ -283,7 +303,7 @@ function SectionCard({ num, title, summary, collapsed, onToggle, color = "#4ade8
 
 // ─── Main App ───────────────────────────────────────────────────
 export default function Home() {
-  const [weight, setWeight] = useState(65.0);
+  const [weight, setWeight] = useState(65.00);
   const [gender, setGender] = useState("male");
   const [goal, setGoal] = useState("reduce");
   const [activity, setActivity] = useState("moderate");
@@ -291,8 +311,7 @@ export default function Home() {
   const [bodyFat, setBodyFat] = useState("");
   const [age, setAge] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [showOptional, setShowOptional] = useState(false);
-  const [budget, setBudget] = useState(500);
+  const [budget, setBudget] = useState(2000);
   const [protein, setProtein] = useState(120);
   const [calories, setCalories] = useState(2000);
   const [excludedCats, setExcludedCats] = useState([]);
@@ -451,15 +470,13 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Weight */}
+          {/* Weight — 小数第2位対応、スライダー廃止 → ±ステッパー */}
           <div style={{ marginBottom: 18 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>⚖️ 体重</label>
-              <NumInput value={weight} onChange={v => setWeight(v === "" ? "" : Math.max(30, Math.min(200, v)))} suffix="kg" min={30} max={200} step={0.1} width={70} color="#22c55e" />
+              <StepperInput value={weight} onChange={v => setWeight(v === "" ? "" : Math.max(30, Math.min(200, v)))}
+                min={30} max={200} inputStep={0.01} step={0.1} bigStep={0.1} suffix="kg" width={75} color="#22c55e" />
             </div>
-            <input type="range" min={30} max={150} step={0.5} value={weight || 65}
-              onChange={e => setWeight(+(+e.target.value).toFixed(1))}
-              style={{ width: "100%", height: 5, borderRadius: 3, appearance: "none", background: `linear-gradient(to right,#22c55e ${(((weight || 65) - 30) / 120) * 100}%,rgba(255,255,255,0.06) ${(((weight || 65) - 30) / 120) * 100}%)`, cursor: "pointer", outline: "none" }} />
           </div>
 
           {/* Goal */}
@@ -497,52 +514,48 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Optional toggle */}
-          <button onClick={() => setShowOptional(!showOptional)} style={{
-            width: "100%", padding: "10px 14px", borderRadius: 11, cursor: "pointer",
-            border: "1px solid rgba(255,255,255,0.07)", background: showOptional ? "rgba(168,139,250,0.05)" : "rgba(255,255,255,0.02)",
-            color: showOptional ? "#c4b5fd" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 500,
-            display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s", marginBottom: showOptional ? 14 : 0,
+          {/* Optional section — 常時展開、任意であることを視覚的に伝える */}
+          <div style={{
+            marginTop: 8, padding: "14px 16px", borderRadius: 14,
+            background: "rgba(168,139,250,0.03)", border: "1px dashed rgba(168,139,250,0.15)",
           }}>
-            <span>📋 詳細（身長・体脂肪率・年齢・目標期限）</span>
-            <span style={{ fontSize: 10, transform: showOptional ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}>▼</span>
-          </button>
-
-          {showOptional && (
-            <div style={{ animation: "fadeUp 0.25s ease-out" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>📏 身長</label>
-                <NumInput value={height} onChange={setHeight} placeholder="170" suffix="cm" min={100} max={220} step={0.1} width={60} color="#60a5fa" />
-              </div>
-              {bmi && (
-                <div style={{ padding: "10px 14px", borderRadius: 11, marginBottom: 14, background: `${bmiCol}08`, border: `1px solid ${bmiCol}20`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>📊 BMI</span>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                    <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 18, fontWeight: 700, color: bmiCol }}>{bmi}</span>
-                    <span style={{ fontSize: 10, color: bmiCol, background: `${bmiCol}18`, padding: "2px 7px", borderRadius: 5 }}>{bmiCat}</span>
-                  </div>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>📉 体脂肪率</label>
-                <NumInput value={bodyFat} onChange={setBodyFat} placeholder="20" suffix="%" min={3} max={60} step={0.1} width={55} color="#f97316" />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🎂 年齢</label>
-                <NumInput value={age} onChange={setAge} placeholder="30" suffix="歳" min={10} max={100} step={1} width={50} color="#a78bfa" />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: daysLeft ? 8 : 0 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🗓️ 目標期限</label>
-                <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} min={new Date().toISOString().split("T")[0]}
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "7px 10px", color: deadline ? "#fbbf24" : "rgba(255,255,255,0.25)", fontFamily: "'Space Mono',monospace", fontSize: 13, outline: "none", colorScheme: "dark" }} />
-              </div>
-              {daysLeft > 0 && (
-                <div style={{ padding: "9px 14px", borderRadius: 10, marginTop: 6, background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.1)", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
-                  ⏳ 残り <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 15, fontWeight: 700, color: "#fbbf24" }}>{daysLeft}</span> 日
-                </div>
-              )}
+            <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(168,139,250,0.7)", marginBottom: 14 }}>
+              💡 より正確な分析のためのオプション（任意）
             </div>
-          )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>📏 身長</label>
+              <NumInput value={height} onChange={setHeight} placeholder="170" suffix="cm" min={100} max={220} step={0.1} width={60} color="#60a5fa" />
+            </div>
+            {bmi && (
+              <div style={{ padding: "10px 14px", borderRadius: 11, marginBottom: 14, background: `${bmiCol}08`, border: `1px solid ${bmiCol}20`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>📊 BMI</span>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 18, fontWeight: 700, color: bmiCol }}>{bmi}</span>
+                  <span style={{ fontSize: 10, color: bmiCol, background: `${bmiCol}18`, padding: "2px 7px", borderRadius: 5 }}>{bmiCat}</span>
+                </div>
+              </div>
+            )}
+            {/* 体脂肪率 — 小数第1位対応、±ステッパー */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>📉 体脂肪率</label>
+              <StepperInput value={bodyFat} onChange={setBodyFat}
+                min={3} max={60} inputStep={0.1} step={0.1} bigStep={0.1} suffix="%" width={55} color="#f97316" />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🎂 年齢</label>
+              <NumInput value={age} onChange={setAge} placeholder="30" suffix="歳" min={10} max={100} step={1} width={50} color="#a78bfa" />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: daysLeft ? 8 : 0 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🗓️ 目標期限</label>
+              <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} min={new Date().toISOString().split("T")[0]}
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "7px 10px", color: deadline ? "#fbbf24" : "rgba(255,255,255,0.25)", fontFamily: "'Space Mono',monospace", fontSize: 13, outline: "none", colorScheme: "dark" }} />
+            </div>
+            {daysLeft > 0 && (
+              <div style={{ padding: "9px 14px", borderRadius: 10, marginTop: 6, background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.1)", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
+                ⏳ 残り <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 15, fontWeight: 700, color: "#fbbf24" }}>{daysLeft}</span> 日
+              </div>
+            )}
+          </div>
 
           {step === "profile" && (
             <button onClick={() => setStep("params")} style={{
@@ -564,7 +577,7 @@ export default function Home() {
               </div>
             )}
 
-            <SliderInput label="🪙 食費予算/日" value={budget} setValue={setBudget} min={200} max={1500} step={10} color="#22c55e" prefix="¥" editable />
+            <SliderInput label="🪙 食費予算/日" value={budget} setValue={setBudget} min={200} max={5000} step={50} color="#22c55e" prefix="¥" editable />
             <SliderInput label="🥩 目標タンパク質" value={protein} setValue={setProtein} min={50} max={250} step={5} color="#f97316" suffix="g" editable />
             <SliderInput label="🔥 目標カロリー" value={calories} setValue={setCalories} min={1000} max={4000} step={50} color="#3b82f6" suffix="kcal" editable />
 
