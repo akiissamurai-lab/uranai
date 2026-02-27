@@ -114,6 +114,7 @@ async function fetchAIAdvice(profile, plan, signal) {
     `目的: ${profile.goal}`, `性別: ${profile.gender}`, `体重: ${profile.weight}kg`,
     profile.height && `身長: ${profile.height}cm`, profile.bmi && `BMI: ${profile.bmi}`,
     profile.bodyFat && `体脂肪率: ${profile.bodyFat}%`, profile.age && `年齢: ${profile.age}歳`,
+    profile.goalWeight && `目標体重: ${profile.goalWeight}kg`,
     `活動: ${profile.activity}`, `予算: ¥${profile.budget}/日`,
     `目標P: ${profile.protein}g / Cal: ${profile.calories}kcal`,
     profile.deadline && `期限: ${profile.deadline}`,
@@ -263,9 +264,9 @@ function StepperInput({ value, onChange, min, max, step, bigStep, suffix, color 
   };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <button onClick={() => nudge(-(bigStep || step))} style={btnStyle}>−</button>
+      <button onClick={() => nudge(-(bigStep || step))} style={btnStyle} aria-label="減らす">−</button>
       <NumInput value={value} onChange={onChange} suffix={suffix} min={min} max={max} step={inputStep || step} width={width} color={color} />
-      <button onClick={() => nudge(bigStep || step)} style={btnStyle}>+</button>
+      <button onClick={() => nudge(bigStep || step)} style={btnStyle} aria-label="増やす">+</button>
     </div>
   );
 }
@@ -327,6 +328,8 @@ export default function Home() {
   const [bodyFat, setBodyFat] = useState("");
   const [age, setAge] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [goalWeight, setGoalWeight] = useState("");
+  const [errors, setErrors] = useState({});
   const [budget, setBudget] = useState(2000);
   const [protein, setProtein] = useState(120);
   const [calories, setCalories] = useState(2000);
@@ -373,7 +376,21 @@ export default function Home() {
 
   const daysLeft = deadline ? Math.max(0, Math.ceil((new Date(deadline) - new Date()) / 86400000)) : null;
 
+  const validate = useCallback(() => {
+    const errs = {};
+    if (!weight || weight < 30 || weight > 200) errs.weight = "体重を30〜200kgの範囲で入力してください";
+    if (goalWeight !== "" && (goalWeight < 20 || goalWeight > 200)) errs.goalWeight = "目標体重を20〜200kgの範囲で入力";
+    if (bodyFat !== "" && (bodyFat < 3 || bodyFat > 60)) errs.bodyFat = "体脂肪率を3〜60%の範囲で入力";
+    if (age !== "" && (age < 10 || age > 120)) errs.age = "年齢を10〜120歳の範囲で入力";
+    if (height !== "" && (height < 100 || height > 220)) errs.height = "身長を100〜220cmの範囲で入力";
+    if (goalWeight && weight && goal === "reduce" && goalWeight >= weight) errs.goalWeight = "減量目標: 現在の体重より低く設定";
+    if (goalWeight && weight && goal === "bulk" && goalWeight <= weight) errs.goalWeight = "増量目標: 現在の体重より高く設定";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }, [weight, goalWeight, bodyFat, age, height, goal]);
+
   const handleGenerate = useCallback(async () => {
+    if (!validate()) return;
     if (abortRef.current) abortRef.current.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -392,6 +409,7 @@ export default function Home() {
         goal: { reduce: "減量", bulk: "増量", maintain: "維持" }[goal],
         gender: gender === "female" ? "女性" : "男性",
         weight, height: height || null, bmi: bmi || null, bodyFat: bodyFat || null,
+        goalWeight: goalWeight || null,
         age: age || null, activity: { low: "低い", moderate: "普通", high: "高い" }[activity],
         budget, protein, calories, exclusions: excl || null,
         deadline: deadline && daysLeft ? `${deadline}（残り${daysLeft}日）` : null,
@@ -402,7 +420,7 @@ export default function Home() {
     } finally {
       if (!ctrl.signal.aborted) setAiLoading(false);
     }
-  }, [budget, protein, calories, excludedIds, excludedCats, goal, weight, activity, height, bodyFat, age, deadline, bmi, daysLeft, gender]);
+  }, [budget, protein, calories, excludedIds, excludedCats, goal, weight, activity, height, bodyFat, age, deadline, bmi, daysLeft, gender, validate, goalWeight]);
 
   const handleShare = () => {
     if (!result) return;
@@ -423,6 +441,7 @@ export default function Home() {
     gender === "female" ? "♀" : "♂", `${weight}kg`,
     height ? `${height}cm` : null, bmi ? `BMI${bmi}` : null,
     bodyFat ? `BF${bodyFat}%` : null, age ? `${age}歳` : null,
+    goalWeight ? `→${goalWeight}kg` : null,
     ({ reduce: "減量", bulk: "増量", maintain: "維持" })[goal],
   ].filter(Boolean).join(" ");
 
@@ -477,7 +496,7 @@ export default function Home() {
             <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 8 }}>👤 性別</label>
             <div style={{ display: "flex", gap: 8 }}>
               {[{ id: "male", label: "男性", emoji: "♂️" }, { id: "female", label: "女性", emoji: "♀️" }].map(g => (
-                <button key={g.id} onClick={() => setGender(g.id)} style={{
+                <button key={g.id} onClick={() => setGender(g.id)} aria-label={`性別: ${g.label}`} aria-pressed={gender === g.id} role="radio" style={{
                   flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", textAlign: "center", transition: "all 0.2s",
                   border: gender === g.id ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.08)",
                   background: gender === g.id ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.02)",
@@ -494,6 +513,7 @@ export default function Home() {
               <StepperInput value={weight} onChange={setWeight}
                 min={30} max={200} inputStep={0.01} step={0.1} bigStep={0.1} suffix="kg" width={75} color="#22c55e" />
             </div>
+            {errors.weight && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4, textAlign: "right" }}>{errors.weight}</div>}
           </div>
 
           {/* Goal */}
@@ -501,7 +521,7 @@ export default function Home() {
             <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 8 }}>🎯 目的</label>
             <div style={{ display: "flex", gap: 8 }}>
               {[{ id: "reduce", label: "減量", emoji: "🔥", desc: "体脂肪を落とす" }, { id: "maintain", label: "維持", emoji: "⚖️", desc: "現状キープ" }, { id: "bulk", label: "増量", emoji: "💪", desc: "筋肉をつける" }].map(g => (
-                <button key={g.id} onClick={() => setGoal(g.id)} style={{
+                <button key={g.id} onClick={() => { setGoal(g.id); setErrors(p => ({ ...p, goalWeight: undefined })); }} aria-label={`目的: ${g.label} - ${g.desc}`} aria-pressed={goal === g.id} role="radio" style={{
                   flex: 1, padding: "11px 6px", borderRadius: 12, cursor: "pointer", textAlign: "center", transition: "all 0.2s",
                   border: goal === g.id ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.08)",
                   background: goal === g.id ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.02)",
@@ -519,7 +539,7 @@ export default function Home() {
             <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 8 }}>🏃 活動レベル</label>
             <div style={{ display: "flex", gap: 8 }}>
               {[{ id: "low", label: "低い", desc: "デスクワーク" }, { id: "moderate", label: "普通", desc: "週2-3回運動" }, { id: "high", label: "高い", desc: "毎日運動" }].map(a => (
-                <button key={a.id} onClick={() => setActivity(a.id)} style={{
+                <button key={a.id} onClick={() => setActivity(a.id)} aria-label={`活動レベル: ${a.label} - ${a.desc}`} aria-pressed={activity === a.id} role="radio" style={{
                   flex: 1, padding: "9px 6px", borderRadius: 10, cursor: "pointer", textAlign: "center", transition: "all 0.2s",
                   border: activity === a.id ? "1px solid rgba(59,130,246,0.5)" : "1px solid rgba(255,255,255,0.08)",
                   background: activity === a.id ? "rgba(59,130,246,0.1)" : "rgba(255,255,255,0.02)",
@@ -543,6 +563,7 @@ export default function Home() {
               <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>📏 身長</label>
               <NumInput value={height} onChange={setHeight} placeholder="170" suffix="cm" min={100} max={220} step={0.1} width={60} color="#60a5fa" />
             </div>
+            {errors.height && <div style={{ fontSize: 11, color: "#ef4444", marginTop: -10, marginBottom: 10, textAlign: "right" }}>{errors.height}</div>}
             {bmi && (
               <div style={{ padding: "10px 14px", borderRadius: 11, marginBottom: 14, background: `${bmiCol}08`, border: `1px solid ${bmiCol}20`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>📊 BMI</span>
@@ -558,24 +579,44 @@ export default function Home() {
               <StepperInput value={bodyFat} onChange={setBodyFat}
                 min={3} max={60} inputStep={0.1} step={0.1} bigStep={0.1} suffix="%" width={55} color="#f97316" />
             </div>
+            {errors.bodyFat && <div style={{ fontSize: 11, color: "#ef4444", marginTop: -10, marginBottom: 10, textAlign: "right" }}>{errors.bodyFat}</div>}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🎂 年齢</label>
-              <NumInput value={age} onChange={setAge} placeholder="30" suffix="歳" min={10} max={100} step={1} width={50} color="#a78bfa" />
+              <NumInput value={age} onChange={setAge} placeholder="30" suffix="歳" min={10} max={120} step={1} width={50} color="#a78bfa" />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: daysLeft ? 8 : 0 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🗓️ 目標期限</label>
-              <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} min={new Date().toISOString().split("T")[0]}
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "7px 10px", color: deadline ? "#fbbf24" : "rgba(255,255,255,0.25)", fontFamily: "'Space Mono',monospace", fontSize: 13, outline: "none", colorScheme: "dark" }} />
-            </div>
-            {daysLeft > 0 && (
-              <div style={{ padding: "9px 14px", borderRadius: 10, marginTop: 6, background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.1)", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
-                ⏳ 残り <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 15, fontWeight: 700, color: "#fbbf24" }}>{daysLeft}</span> 日
+            {errors.age && <div style={{ fontSize: 11, color: "#ef4444", marginTop: -10, marginBottom: 10, textAlign: "right" }}>{errors.age}</div>}
+
+            {/* ── 目標体重 & 期限 ── */}
+            <div style={{ marginTop: 4, marginBottom: 10, padding: "12px 14px", borderRadius: 12, background: "rgba(251,191,36,0.03)", border: "1px solid rgba(251,191,36,0.1)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🎯 目標体重</label>
+                <StepperInput value={goalWeight} onChange={setGoalWeight}
+                  min={20} max={200} inputStep={0.1} step={0.5} bigStep={1} suffix="kg" width={70} color="#fbbf24" />
               </div>
-            )}
+              {errors.goalWeight && <div style={{ fontSize: 11, color: "#ef4444", marginTop: -8, marginBottom: 8, textAlign: "right" }}>{errors.goalWeight}</div>}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: daysLeft ? 8 : 0 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🗓️ 目標期限</label>
+                <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} min={new Date().toISOString().split("T")[0]}
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "7px 10px", color: deadline ? "#fbbf24" : "rgba(255,255,255,0.25)", fontFamily: "'Space Mono',monospace", fontSize: 13, outline: "none", colorScheme: "dark" }} />
+              </div>
+              {daysLeft > 0 && (
+                <div style={{ padding: "9px 14px", borderRadius: 10, marginTop: 6, background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.1)", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
+                  ⏳ 残り <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 15, fontWeight: 700, color: "#fbbf24" }}>{daysLeft}</span> 日
+                  {goalWeight && weight && daysLeft > 0 && (() => {
+                    const diff = goalWeight - weight;
+                    const weeklyKg = (diff / daysLeft * 7).toFixed(2);
+                    return <span style={{ marginLeft: 8, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>({weeklyKg > 0 ? "+" : ""}{weeklyKg}kg/週ペース)</span>;
+                  })()}
+                </div>
+              )}
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", lineHeight: 1.6, marginTop: 10 }}>
+                💡 目標体重と期限を設定すると、AIが1日あたりの最適なカロリー増減ペースを正確に逆算します
+              </div>
+            </div>
           </div>
 
           {step === "profile" && (
-            <button onClick={() => { setStep("params"); setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100); }} style={{
+            <button onClick={() => { if (!validate()) return; setStep("params"); setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100); }} style={{
               width: "100%", padding: "14px", borderRadius: 14, border: "none", marginTop: 18,
               background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "white", fontSize: 15, fontWeight: 700,
               cursor: "pointer", boxShadow: "0 8px 32px rgba(34,197,94,0.25)", fontFamily: "'Noto Sans JP',sans-serif", letterSpacing: 1,
@@ -855,6 +896,8 @@ export default function Home() {
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
         button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
         button:active{transform:scale(0.97)}
+        button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid rgba(74,222,128,0.6);outline-offset:2px;border-radius:8px}
+        [role="radio"]:focus-visible{outline:2px solid rgba(74,222,128,0.6);outline-offset:2px}
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
       `}</style>
     </div>
