@@ -38,8 +38,9 @@ export async function POST(request) {
   // ── APIキー確認 ──────────────────────────────────────────────
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === "ここにAPIキーを入力") {
+    console.error("ANTHROPIC_API_KEY is missing or placeholder");
     return Response.json(
-      { error: "ANTHROPIC_API_KEY が設定されていません。.env.local を確認してください。" },
+      { error: "ANTHROPIC_API_KEY が未設定です。Vercel の Settings → Environment Variables を確認してください。" },
       { status: 500 }
     );
   }
@@ -82,9 +83,18 @@ export async function POST(request) {
 
     if (!res.ok) {
       const errBody = await res.text();
+      console.error(`Anthropic API error ${res.status}:`, errBody);
+      // Anthropic のエラー詳細をクライアントに返す
+      let detail = "";
+      try {
+        const parsed = JSON.parse(errBody);
+        detail = parsed.error?.message || errBody;
+      } catch {
+        detail = errBody;
+      }
       return Response.json(
-        { error: `Anthropic API error: ${res.status}` },
-        { status: res.status }
+        { error: `Anthropic API error (${res.status}): ${detail}` },
+        { status: 502 }   // 外部APIエラーは 502 で返す（Anthropic の status をそのまま返さない）
       );
     }
 
