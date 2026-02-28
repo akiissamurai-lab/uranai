@@ -105,11 +105,19 @@ export default function RoutinesPage() {
   };
 
   if (loading) {
+    const sk = { background: "rgba(255,255,255,0.04)", borderRadius: 12, animation: "shimmer 1.5s ease-in-out infinite" };
     return (
       <div style={S.page}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>読み込み中...</p>
-        </div>
+        <header style={S.header}>
+          <div style={{ ...sk, width: 60, height: 36, borderRadius: 10 }} />
+          <div style={{ ...sk, width: 100, height: 24, borderRadius: 8 }} />
+        </header>
+        <main style={S.main}>
+          {[1,2,3,4].map(i => (
+            <div key={i} style={{ ...sk, height: 72, borderRadius: 18, marginBottom: 10, animationDelay: `${i * 0.12}s` }} />
+          ))}
+        </main>
+        <style>{`@keyframes shimmer { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }`}</style>
       </div>
     );
   }

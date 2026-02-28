@@ -20,8 +20,8 @@ const BODY_PART_LABELS = {
   cardio: { label: "有酸素", color: "#22d3ee" },
 };
 
-const tooltipLabels = { weight: "朝", weightNight: "夜", bodyFat: "体脂肪(朝)", bodyFatNight: "体脂肪(夜)" };
-const tooltipUnits = { weight: "kg", weightNight: "kg", bodyFat: "%", bodyFatNight: "%" };
+const tooltipLabels = { weight: "朝", weightNight: "夜", weightMA7: "7日平均", bodyFat: "体脂肪(朝)", bodyFatNight: "体脂肪(夜)" };
+const tooltipUnits = { weight: "kg", weightNight: "kg", weightMA7: "kg", bodyFat: "%", bodyFatNight: "%" };
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -155,6 +155,13 @@ export default function ProgressPage() {
     bodyFatNight: m.body_fat_night != null ? Number(m.body_fat_night) : null,
   }));
 
+  // 7-day moving average
+  const chartDataWithMA = chartData.map((d, i) => {
+    const win = chartData.slice(Math.max(0, i - 6), i + 1);
+    const ws = win.filter(w => w.weight != null).map(w => w.weight);
+    return { ...d, weightMA7: ws.length >= 3 ? +(ws.reduce((a, b) => a + b, 0) / ws.length).toFixed(2) : null };
+  });
+
   const morningWeights = chartData.filter(d => d.weight != null).map(d => d.weight);
   const nightWeights = chartData.filter(d => d.weightNight != null).map(d => d.weightNight);
   const fats = chartData.filter(d => d.bodyFat != null).map(d => d.bodyFat);
@@ -164,6 +171,27 @@ export default function ProgressPage() {
   const fMin = fats.length ? Math.floor(Math.min(...fats) - 2) : 5;
   const fMax = fats.length ? Math.ceil(Math.max(...fats) + 2) : 30;
   const hasNightWeight = nightWeights.length > 0;
+
+  // Goal prediction
+  const goalPrediction = (() => {
+    if (!goalWeight || morningWeights.length < 3) return null;
+    const latestW = morningWeights[morningWeights.length - 1];
+    const remaining = +(latestW - goalWeight).toFixed(1);
+    const recentData = chartData.filter(d => d.weight != null).slice(-14);
+    if (recentData.length < 3) return null;
+    const n = recentData.length;
+    const xMean = (n - 1) / 2;
+    const yMean = recentData.reduce((s, d) => s + d.weight, 0) / n;
+    const num = recentData.reduce((s, d, i) => s + (i - xMean) * (d.weight - yMean), 0);
+    const den = recentData.reduce((s, _, i) => s + (i - xMean) ** 2, 0);
+    const slope = den !== 0 ? num / den : 0;
+    const weeklyRate = +(slope * 7).toFixed(2);
+    const movingToward = (remaining > 0 && slope < -0.01) || (remaining < 0 && slope > 0.01);
+    if (!movingToward || Math.abs(slope) < 0.01) return { remaining: Math.abs(remaining), weekly: weeklyRate, eta: null };
+    const days = Math.abs(remaining / slope);
+    const eta = new Date(); eta.setDate(eta.getDate() + Math.round(days));
+    return { remaining: Math.abs(remaining), weekly: weeklyRate, eta: `${eta.getFullYear()}年${eta.getMonth() + 1}月` };
+  })();
 
   // Training stats
   const trainingWeekCount = (() => {
@@ -192,11 +220,38 @@ export default function ProgressPage() {
   const fatDiff = latest?.body_fat && prev?.body_fat ? (Number(latest.body_fat) - Number(prev.body_fat)).toFixed(1) : null;
 
   if (loading) {
+    const sk = { background: "rgba(255,255,255,0.04)", borderRadius: 12, animation: "shimmer 1.5s ease-in-out infinite" };
     return (
       <div style={S.page}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>読み込み中...</p>
-        </div>
+        <div style={S.orb1} /><div style={S.orb2} />
+        <header style={S.header}>
+          <div style={{ ...sk, width: 60, height: 36, borderRadius: 10 }} />
+          <div style={{ ...sk, width: 50, height: 24, borderRadius: 8 }} />
+        </header>
+        <main style={S.main}>
+          {/* Form card skeleton */}
+          <div style={{ ...S.card, padding: "24px 20px" }}>
+            <div style={{ ...sk, height: 40, borderRadius: 10, marginBottom: 18 }} />
+            <div style={{ ...sk, height: 36, marginBottom: 18 }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+              <div style={{ ...sk, height: 64 }} />
+              <div style={{ ...sk, height: 64 }} />
+            </div>
+            <div style={{ ...sk, height: 48, borderRadius: 14 }} />
+          </div>
+          {/* Stats row skeleton */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
+            <div style={{ ...sk, flex: 1, height: 80, borderRadius: 18 }} />
+            <div style={{ ...sk, flex: 1, height: 80, borderRadius: 18 }} />
+            <div style={{ ...sk, flex: 1, height: 80, borderRadius: 18 }} />
+          </div>
+          {/* Chart skeleton */}
+          <div style={{ ...S.card, padding: "24px 20px" }}>
+            <div style={{ ...sk, height: 36, borderRadius: 10, marginBottom: 16 }} />
+            <div style={{ ...sk, height: 220 }} />
+          </div>
+        </main>
+        <style>{`@keyframes shimmer { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }`}</style>
       </div>
     );
   }
@@ -340,6 +395,27 @@ export default function ProgressPage() {
           </div>
         )}
 
+        {/* ─── GOAL PREDICTION ─── */}
+        {goalPrediction && (
+          <div style={{ ...S.card, padding: "18px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(168,139,250,0.1)", border: "1px solid rgba(168,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: 20 }}>🎯</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>目標まで</span>
+                <span style={{ fontSize: 22, fontWeight: 700, color: "#a78bfa", fontFamily: "'Space Mono',monospace" }}>{goalPrediction.remaining}</span>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>kg</span>
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
+                {goalPrediction.eta
+                  ? <>週 <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{Math.abs(goalPrediction.weekly).toFixed(1)}</span>kgペース → <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{goalPrediction.eta}頃</span></>
+                  : goalPrediction.weekly === 0 ? "データが増えると予測が表示されます" : "現在のペースでは目標に近づいていません"}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ─── EMPTY STATE ─── */}
         {metrics.length === 0 && (
           <div style={{ ...S.card, textAlign: "center", padding: "40px 20px" }}>
@@ -369,7 +445,7 @@ export default function ProgressPage() {
 
             <div style={{ width: "100%", height: 260 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+                <ComposedChart data={chartDataWithMA} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#4ade80" stopOpacity={0.15} />
@@ -390,6 +466,8 @@ export default function ProgressPage() {
                   <Line yAxisId="left" type="monotone" dataKey="weight" stroke="#4ade80" strokeWidth={2.5}
                     dot={{ r: 4, fill: "#4ade80", stroke: "#0a0a0f", strokeWidth: 2 }}
                     activeDot={{ r: 7, fill: "#4ade80", stroke: "rgba(74,222,128,0.3)", strokeWidth: 4 }} connectNulls />
+                  <Line yAxisId="left" type="monotone" dataKey="weightMA7" stroke="rgba(74,222,128,0.35)" strokeWidth={2.5}
+                    dot={false} activeDot={false} connectNulls strokeDasharray="0" />
                   {hasNightWeight && (
                     <Line yAxisId="left" type="monotone" dataKey="weightNight" stroke="#f59e0b" strokeWidth={2}
                       dot={{ r: 3, fill: "#f59e0b", stroke: "#0a0a0f", strokeWidth: 2 }}
@@ -409,6 +487,10 @@ export default function ProgressPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <div style={{ width: 14, height: 3, background: "#4ade80", borderRadius: 2 }} />
                 <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>朝</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div style={{ width: 14, height: 3, background: "rgba(74,222,128,0.35)", borderRadius: 2 }} />
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>7日平均</span>
               </div>
               {hasNightWeight && (
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>

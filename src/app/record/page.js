@@ -515,11 +515,35 @@ export default function RecordPage() {
   const filteredLogs = activeMealIndex === null ? logs : logs.filter((l) => l.meal_index === activeMealIndex);
 
   if (loading) {
+    const sk = { background: "rgba(255,255,255,0.04)", borderRadius: 12, animation: "shimmer 1.5s ease-in-out infinite" };
     return (
       <div style={S.page}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>読み込み中...</p>
-        </div>
+        <div style={S.orb1} /><div style={S.orb2} />
+        <header style={S.header}>
+          <div style={{ ...sk, width: 60, height: 36, borderRadius: 10 }} />
+          <div style={{ ...sk, width: 50, height: 24, borderRadius: 8 }} />
+        </header>
+        <main style={S.main}>
+          {/* Date picker skeleton */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <div style={{ ...sk, width: 36, height: 36, borderRadius: 10 }} />
+            <div style={{ ...sk, flex: 1, height: 40 }} />
+            <div style={{ ...sk, width: 36, height: 36, borderRadius: 10 }} />
+          </div>
+          {/* Mini dashboard skeleton */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+            {[1,2,3,4].map(i => <div key={i} style={{ ...sk, flex: 1, height: 50, borderRadius: 10 }} />)}
+          </div>
+          {/* Meal section tabs skeleton */}
+          <div style={{ ...sk, height: 36, borderRadius: 10, marginBottom: 16 }} />
+          {/* Log items skeleton */}
+          {[1,2,3].map(i => (
+            <div key={i} style={{ ...sk, height: 64, borderRadius: 16, marginBottom: 10, animationDelay: `${i * 0.15}s` }} />
+          ))}
+          {/* Form skeleton */}
+          <div style={{ ...sk, height: 160, borderRadius: 22, marginTop: 16 }} />
+        </main>
+        <style>{`@keyframes shimmer { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }`}</style>
       </div>
     );
   }

@@ -202,11 +202,25 @@ export default function SettingsPage() {
   };
 
   if (loading) {
+    const sk = { background: "rgba(255,255,255,0.04)", borderRadius: 12, animation: "shimmer 1.5s ease-in-out infinite" };
     return (
       <div style={styles.page}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>読み込み中...</p>
-        </div>
+        <div style={styles.orb1} /><div style={styles.orb2} />
+        <header style={styles.header}>
+          <div style={{ ...sk, width: 60, height: 36, borderRadius: 10 }} />
+          <div style={{ ...sk, width: 50, height: 24, borderRadius: 8 }} />
+        </header>
+        <main style={styles.main}>
+          {/* Settings fields skeleton */}
+          {[1,2,3].map(i => (
+            <div key={i} style={{ ...sk, height: 80, borderRadius: 22, marginBottom: 18, animationDelay: `${i * 0.12}s` }} />
+          ))}
+          {/* PFC accordion skeleton */}
+          <div style={{ ...sk, height: 56, borderRadius: 22, marginBottom: 18, animationDelay: "0.36s" }} />
+          {/* Save button skeleton */}
+          <div style={{ ...sk, height: 54, borderRadius: 14, marginTop: 8 }} />
+        </main>
+        <style>{`@keyframes shimmer { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }`}</style>
       </div>
     );
   }
