@@ -5,35 +5,44 @@ import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage, migrateAllLocalData, loadMealLogs, saveMealLog } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile, loadLocalMealLogs } from "@/lib/local-db";
 import AuthGate from "@/components/AuthGate";
-import { PieChart, Pie, Cell } from "recharts";
 
-// ─── PFC ドーナツチャート ───
+// ─── PFC ドーナツチャート（純SVG — 軽量＆確実）───
 function MacroDonut({ label, current, goal, color, bgColor, unit }) {
   const pct = goal > 0 ? Math.min(current / goal, 1.5) : 0;
-  const displayPct = Math.min(pct, 1); // バーは100%で止める
-  const data = [
-    { value: displayPct * 100 },
-    { value: (1 - displayPct) * 100 },
-  ];
+  const displayPct = Math.min(pct, 1);
   const isOver = pct > 1;
+  const activeColor = isOver ? "#ef4444" : color;
+
+  // SVG circle パラメータ
+  const size = 80;
+  const strokeW = 8;
+  const radius = (size - strokeW) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - displayPct);
+
   return (
     <div style={{ textAlign: "center", flex: 1, minWidth: 0 }}>
-      <div style={{ width: 80, height: 80, margin: "0 auto", position: "relative" }}>
-        <PieChart width={80} height={80}>
-          <Pie data={data} innerRadius={28} outerRadius={36} startAngle={90} endAngle={-270}
-               dataKey="value" stroke="none" cornerRadius={4} isAnimationActive={false}>
-            <Cell fill={isOver ? "#ef4444" : color} />
-            <Cell fill={bgColor} />
-          </Pie>
-        </PieChart>
+      <div style={{ width: size, height: size, margin: "0 auto", position: "relative" }}>
+        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+          {/* 背景リング */}
+          <circle cx={size / 2} cy={size / 2} r={radius}
+            fill="none" stroke={bgColor} strokeWidth={strokeW} />
+          {/* 進捗リング */}
+          <circle cx={size / 2} cy={size / 2} r={radius}
+            fill="none" stroke={activeColor} strokeWidth={strokeW}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+            style={{ transition: "stroke-dashoffset 0.6s ease" }} />
+        </svg>
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: isOver ? "#ef4444" : color, fontFamily: "'Space Mono',monospace", lineHeight: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: activeColor, fontFamily: "'Space Mono',monospace", lineHeight: 1 }}>
             {Math.round(pct * 100)}
             <span style={{ fontSize: 9, fontWeight: 600 }}>%</span>
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 10, fontWeight: 600, color: isOver ? "#ef4444" : color, marginTop: 4 }}>{label}</div>
+      <div style={{ fontSize: 10, fontWeight: 600, color: activeColor, marginTop: 4 }}>{label}</div>
       <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>
         {Math.round(current)}/{goal}{unit}
       </div>
