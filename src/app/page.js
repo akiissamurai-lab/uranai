@@ -5,6 +5,181 @@ import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage, migrateAllLocalData, loadMealLogs, saveMealLog } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile, loadLocalMealLogs } from "@/lib/local-db";
 import AuthGate from "@/components/AuthGate";
+import html2canvas from "html2canvas";
+
+// ─── SNSシェア画像生成 ───
+function buildShareCardDOM(todayTotals, profileGoals) {
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+
+  // PFC達成率
+  const pPct = profileGoals?.protein_goal ? Math.round(Math.min(todayTotals.protein / profileGoals.protein_goal, 1.5) * 100) : null;
+  const fPct = profileGoals?.fat_goal ? Math.round(Math.min(todayTotals.fat / profileGoals.fat_goal, 1.5) * 100) : null;
+  const cPct = profileGoals?.carbs_goal ? Math.round(Math.min(todayTotals.carbs / profileGoals.carbs_goal, 1.5) * 100) : null;
+  const avgPct = [pPct, fPct, cPct].filter(v => v != null);
+  const avg = avgPct.length ? Math.round(avgPct.reduce((a, b) => a + b, 0) / avgPct.length) : 0;
+
+  // キャッチコピー選定
+  const catchCopy = avg >= 100 ? "今日も完璧なPFC達成！🔥" : avg >= 80 ? "目標にかなり近づいてる！💪" : avg >= 50 ? "着実に積み上げ中！📈" : "今日もマクロ飯スタート！🍽️";
+
+  // 予算
+  const budgetTotal = profileGoals?.budget || 0;
+  const budgetSpent = todayTotals.price || 0;
+  const budgetRemaining = budgetTotal - budgetSpent;
+  const budgetPct = budgetTotal > 0 ? Math.min(budgetSpent / budgetTotal, 1) : 0;
+  const budgetBarColor = budgetPct < 0.7 ? "#22c55e" : budgetPct < 0.9 ? "#eab308" : "#ef4444";
+
+  // SVGドーナツ生成ヘルパー
+  function donutSVG(pct, color, bgColor) {
+    const size = 72, strokeW = 7, r = (size - strokeW) / 2;
+    const c = 2 * Math.PI * r;
+    const disp = Math.min(pct / 100, 1);
+    const off = c * (1 - disp);
+    const isOver = pct > 100;
+    const col = isOver ? "#ef4444" : color;
+    return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
+      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${bgColor}" stroke-width="${strokeW}"/>
+      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${col}" stroke-width="${strokeW}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
+    </svg>`;
+  }
+
+  // PFCドーナツHTML
+  const pfcItems = [
+    profileGoals?.protein_goal && { label: "タンパク質", pct: pPct, cur: Math.round(todayTotals.protein), goal: profileGoals.protein_goal, unit: "g", color: "#ef4444", bg: "#fef2f2" },
+    profileGoals?.fat_goal && { label: "脂質", pct: fPct, cur: Math.round(todayTotals.fat), goal: profileGoals.fat_goal, unit: "g", color: "#eab308", bg: "#fefce8" },
+    profileGoals?.carbs_goal && { label: "炭水化物", pct: cPct, cur: Math.round(todayTotals.carbs), goal: profileGoals.carbs_goal, unit: "g", color: "#3b82f6", bg: "#eff6ff" },
+  ].filter(Boolean);
+
+  const pfcHTML = pfcItems.map(item => `
+    <div style="text-align:center;flex:1">
+      <div style="width:72px;height:72px;margin:0 auto;position:relative">
+        ${donutSVG(item.pct, item.color, item.bg)}
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:800;color:${item.pct > 100 ? "#ef4444" : item.color};font-family:'Space Mono',monospace">${item.pct}%</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:${item.color};margin-top:4px">${item.label}</div>
+      <div style="font-size:9px;color:#94a3b8">${item.cur}/${item.goal}${item.unit}</div>
+    </div>
+  `).join("");
+
+  // 予算ゲージHTML
+  const budgetHTML = budgetTotal > 0 ? `
+    <div style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <span style="font-size:11px;color:#64748b">💰 今日の予算</span>
+        <span style="font-size:14px;font-weight:700;color:${budgetRemaining >= 0 ? "#22c55e" : "#ef4444"};font-family:'Space Mono',monospace">
+          ${budgetRemaining >= 0 ? `残り ¥${Math.round(budgetRemaining).toLocaleString()}` : `¥${Math.abs(Math.round(budgetRemaining)).toLocaleString()} 超過`}
+        </span>
+      </div>
+      <div style="height:8px;border-radius:4px;background:#f1f5f9;overflow:hidden">
+        <div style="height:100%;width:${Math.min(budgetPct * 100, 100)}%;border-radius:4px;background:${budgetBarColor}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:3px">
+        <span style="font-size:9px;color:#cbd5e1">¥0</span>
+        <span style="font-size:9px;color:#cbd5e1">¥${budgetTotal.toLocaleString()}</span>
+      </div>
+    </div>
+  ` : "";
+
+  // カードDOM構築
+  const container = document.createElement("div");
+  container.style.cssText = "position:fixed;left:-9999px;top:0;z-index:-1";
+  container.innerHTML = `
+    <div style="width:400px;background:linear-gradient(145deg,#ffffff 0%,#f8fafc 50%,#f0fdf4 100%);border-radius:28px;padding:32px 28px 24px;font-family:'DM Sans','Noto Sans JP','Hiragino Sans',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.12)">
+      <!-- ヘッダー -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(34,197,94,0.3)">💪</div>
+        <div>
+          <div style="font-size:15px;font-weight:800;background:linear-gradient(135deg,#22c55e,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent">マクロ飯ビルダー</div>
+          <div style="font-size:8px;color:#94a3b8;letter-spacing:2px;text-transform:uppercase">AI Macro × Budget Optimizer</div>
+        </div>
+      </div>
+
+      <!-- 日付 + キャッチ -->
+      <div style="margin:14px 0 18px;text-align:center">
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">${dateStr}のマクロ飯記録</div>
+        <div style="font-size:18px;font-weight:800;color:#1e293b">${catchCopy}</div>
+      </div>
+
+      <!-- 進捗カード -->
+      <div style="background:rgba(255,255,255,0.8);border:1px solid #e2e8f0;border-radius:20px;padding:20px 16px">
+        <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:14px;display:flex;align-items:center;gap:5px">
+          <span style="font-size:14px">📊</span> 今日の進捗
+        </div>
+        ${pfcItems.length > 0 ? `<div style="display:flex;gap:8px;justify-content:center">${pfcHTML}</div>` : ""}
+        ${budgetHTML}
+      </div>
+
+      <!-- フッター -->
+      <div style="margin-top:16px;text-align:center">
+        <div style="font-size:9px;color:#cbd5e1;letter-spacing:1px">#マクロ飯ビルダー #ボディメイク #節約飯</div>
+      </div>
+    </div>
+  `;
+  return container;
+}
+
+async function generateShareImage(todayTotals, profileGoals) {
+  const container = buildShareCardDOM(todayTotals, profileGoals);
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container.firstElementChild, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+      logging: false,
+    });
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/png", 1.0);
+    });
+  } finally {
+    document.body.removeChild(container);
+  }
+}
+
+async function handleShareImage(todayTotals, profileGoals, setShareStatus) {
+  setShareStatus("generating");
+  try {
+    const blob = await generateShareImage(todayTotals, profileGoals);
+    if (!blob) { setShareStatus("error"); return; }
+
+    const file = new File([blob], "macro-meal-today.png", { type: "image/png" });
+    const budgetStr = profileGoals?.budget ? `予算${profileGoals.budget}円` : "";
+    const shareText = `${budgetStr}で、PFCバランス完璧なルーティン飯を達成しました！ #マクロ飯ビルダー #ボディメイク #節約`;
+
+    // Web Share API（画像対応チェック）
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: "今日のマクロ飯達成！",
+        text: shareText,
+        files: [file],
+      });
+      setShareStatus("shared");
+    } else {
+      // フォールバック: 画像ダウンロード
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "macro-meal-today.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setShareStatus("downloaded");
+    }
+  } catch (err) {
+    // ユーザーがシェアをキャンセルした場合
+    if (err.name === "AbortError") {
+      setShareStatus(null);
+    } else {
+      console.error("Share failed:", err);
+      setShareStatus("error");
+    }
+  }
+
+  setTimeout(() => setShareStatus(null), 3000);
+}
 
 // ─── PFC ドーナツチャート（純SVG — 軽量＆確実）───
 function MacroDonut({ label, current, goal, color, bgColor, unit }) {
@@ -554,6 +729,7 @@ export default function Home() {
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [shareMsg, setShareMsg] = useState("");
+  const [shareStatus, setShareStatus] = useState(null); // null | "generating" | "shared" | "downloaded" | "error"
   const [calcBasis, setCalcBasis] = useState("");
   const resultRef = useRef(null);
   const abortRef = useRef(null);
@@ -1184,6 +1360,40 @@ export default function Home() {
             {profileGoals.budget && (
               <BudgetGauge spent={todayTotals.price} total={profileGoals.budget} />
             )}
+
+            {/* シェアボタン */}
+            <button
+              onClick={() => handleShareImage(todayTotals, profileGoals, setShareStatus)}
+              disabled={shareStatus === "generating"}
+              style={{
+                width: "100%",
+                marginTop: 16,
+                padding: "11px 0",
+                borderRadius: 12,
+                border: "none",
+                background: shareStatus === "shared" || shareStatus === "downloaded"
+                  ? "rgba(34,197,94,0.15)"
+                  : shareStatus === "error"
+                    ? "rgba(239,68,68,0.1)"
+                    : "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(236,72,153,0.12))",
+                color: shareStatus === "shared" || shareStatus === "downloaded"
+                  ? "#4ade80"
+                  : shareStatus === "error"
+                    ? "#f87171"
+                    : "#f97316",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: shareStatus === "generating" ? "wait" : "pointer",
+                transition: "all 0.2s",
+                letterSpacing: 0.3,
+              }}
+            >
+              {shareStatus === "generating" ? "⏳ 画像を生成中..."
+                : shareStatus === "shared" ? "✅ シェアしました！"
+                : shareStatus === "downloaded" ? "✅ 画像を保存しました！"
+                : shareStatus === "error" ? "⚠️ エラーが発生しました"
+                : "🔥 今日の成果をドヤる（SNSシェア）"}
+            </button>
           </div>
         )}
 
