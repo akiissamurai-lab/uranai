@@ -20,19 +20,19 @@ export async function saveProfile(supabase, userId, data) {
     .upsert(
       {
         id: userId,
-        weight: data.weight || null,
-        height: data.height || null,
-        age: data.age || null,
-        body_fat: data.bodyFat || null,
+        weight: data.weight ?? null,
+        height: data.height ?? null,
+        age: data.age ?? null,
+        body_fat: data.bodyFat ?? null,
         gender: data.gender || null,
         goal: data.goal || null,
         activity: data.activity || null,
-        goal_weight: data.goalWeight || null,
-        budget: data.budget || null,
-        protein_goal: data.proteinGoal || null,
-        fat_goal: data.fatGoal || null,
-        carbs_goal: data.carbsGoal || null,
-        meal_count: data.mealCount || null,
+        goal_weight: data.goalWeight ?? null,
+        budget: data.budget ?? null,
+        protein_goal: data.proteinGoal ?? null,
+        fat_goal: data.fatGoal ?? null,
+        carbs_goal: data.carbsGoal ?? null,
+        meal_count: data.mealCount ?? null,
       },
       { onConflict: "id" }
     );
@@ -96,11 +96,11 @@ export async function saveMealLog(supabase, userId, log) {
     user_id: userId,
     date: log.date,
     meal_name: log.mealName,
-    price: log.price || null,
-    protein: log.protein || null,
-    fat: log.fat || null,
-    carbs: log.carbs || null,
-    meal_index: log.mealIndex || null,
+    price: log.price ?? null,
+    protein: log.protein ?? null,
+    fat: log.fat ?? null,
+    carbs: log.carbs ?? null,
+    meal_index: log.mealIndex ?? null,
   }).select().single();
 
   if (error) {
@@ -267,7 +267,7 @@ export async function migrateAllLocalData(supabase, userId) {
       for (const tl of local.trainingLogs) {
         const cloudTLs = await loadTrainingLogsByDate(supabase, userId, tl.date);
         const isDup = cloudTLs.some(
-          (c) => JSON.stringify(c.body_parts?.sort()) === JSON.stringify(tl.body_parts?.sort()) && c.intensity === tl.intensity
+          (c) => JSON.stringify([...(c.body_parts || [])].sort()) === JSON.stringify([...(tl.body_parts || [])].sort()) && c.intensity === tl.intensity
         );
         if (isDup) continue;
         const saved = await saveTrainingLog(supabase, userId, {
@@ -342,10 +342,10 @@ export async function saveRoutineMeal(supabase, userId, meal) {
     user_id: userId,
     meal_name: meal.mealName,
     emoji: meal.emoji || "#4ade80",
-    price: meal.price || null,
-    protein: meal.protein || null,
-    fat: meal.fat || null,
-    carbs: meal.carbs || null,
+    price: meal.price ?? null,
+    protein: meal.protein ?? null,
+    fat: meal.fat ?? null,
+    carbs: meal.carbs ?? null,
   }).select().single();
 
   if (error) {
@@ -405,11 +405,11 @@ export async function saveBodyMetric(supabase, userId, { date, weight, bodyFat, 
       {
         user_id: userId,
         date,
-        weight: weight || null,
-        body_fat: bodyFat || null,
+        weight: weight ?? null,
+        body_fat: bodyFat ?? null,
         notes: notes || null,
-        weight_night: weightNight || null,
-        body_fat_night: bodyFatNight || null,
+        weight_night: weightNight ?? null,
+        body_fat_night: bodyFatNight ?? null,
       },
       { onConflict: "user_id,date" }
     );
@@ -447,8 +447,8 @@ export async function saveTrainingLog(supabase, userId, log) {
     user_id: userId,
     date: log.date,
     body_parts: log.bodyParts,
-    intensity: log.intensity || null,
-    duration_minutes: log.durationMinutes || null,
+    intensity: log.intensity ?? null,
+    duration_minutes: log.durationMinutes ?? null,
     notes: log.notes || null,
   }).select().single();
 

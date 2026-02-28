@@ -75,6 +75,11 @@ export async function POST(request) {
     .eq("user_id", user.id)
     .order("sort_order", { ascending: true });
 
+  // Meal logs & Training logs (直近7日間)
+  const mealSince = new Date();
+  mealSince.setDate(mealSince.getDate() - 7);
+  const mealSinceStr = mealSince.toISOString().slice(0, 10);
+
   // Training logs (直近7日間)
   const { data: trainingLogs } = await supabase
     .from("training_logs")
@@ -83,11 +88,6 @@ export async function POST(request) {
     .gte("date", mealSinceStr)
     .order("date", { ascending: true })
     .order("created_at", { ascending: true });
-
-  // Meal logs (直近7日間の実際の食事記録)
-  const mealSince = new Date();
-  mealSince.setDate(mealSince.getDate() - 7);
-  const mealSinceStr = mealSince.toISOString().slice(0, 10);
 
   const { data: mealLogs } = await supabase
     .from("meal_logs")

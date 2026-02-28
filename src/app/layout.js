@@ -2,6 +2,7 @@ import "./globals.css";
 import { Inter, Noto_Sans_JP, Space_Mono } from "next/font/google";
 import SupabaseErrorBoundary from "@/components/SupabaseErrorBoundary";
 import BottomNav from "@/components/BottomNav";
+import TermsGate from "@/components/TermsModal";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -42,6 +43,7 @@ export default function RootLayout({ children }) {
     <html lang="ja" className={`${inter.variable} ${notoSansJP.variable} ${spaceMono.variable}`}>
       <body style={{ margin: 0 }}>
         <SupabaseErrorBoundary>
+          <TermsGate />
           {children}
           <BottomNav />
         </SupabaseErrorBoundary>

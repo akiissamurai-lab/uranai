@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap, UtensilsCrossed } from "lucide-react";
+import { Target, Wallet, Zap, UtensilsCrossed, ScrollText } from "lucide-react";
+import { TermsViewer } from "@/components/TermsModal";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function SettingsPage() {
   const [fatGoal, setFatGoal] = useState("");
   const [carbsGoal, setCarbsGoal] = useState("");
   const [mealCount, setMealCount] = useState(3);
+  const [showTerms, setShowTerms] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -248,7 +250,31 @@ export default function SettingsPage() {
             {saving ? "保存中..." : "保存する"}
           </button>
         </form>
+
+        {/* 利用規約リンク */}
+        <div style={{ marginTop: 24, textAlign: "center", paddingBottom: 8 }}>
+          <button
+            onClick={() => setShowTerms(true)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.3)",
+              fontSize: 12,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 16px",
+            }}
+          >
+            <ScrollText size={13} strokeWidth={1.5} />
+            利用規約を確認する
+          </button>
+        </div>
       </main>
+
+      {/* 利用規約モーダル */}
+      {showTerms && <TermsViewer onClose={() => setShowTerms(false)} />}
 
       {/* Toast */}
       {toast && (
