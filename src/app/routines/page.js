@@ -37,7 +37,9 @@ export default function RoutinesPage() {
 
   // Auth (ゲストも許可) + load data
   useEffect(() => {
+    const authTimeout = setTimeout(() => { setRoutines(loadLocalRoutineMeals()); setLoading(false); }, 5000);
     supabase.auth.getUser().then(async ({ data: { user } }) => {
+      clearTimeout(authTimeout);
       setUser(user); // null = ゲスト
       if (user) {
         const data = await loadRoutineMeals(supabase, user.id);
@@ -46,7 +48,8 @@ export default function RoutinesPage() {
         setRoutines(loadLocalRoutineMeals());
       }
       setLoading(false);
-    }).catch(() => { setRoutines(loadLocalRoutineMeals()); setLoading(false); });
+    }).catch(() => { clearTimeout(authTimeout); setRoutines(loadLocalRoutineMeals()); setLoading(false); });
+    return () => clearTimeout(authTimeout);
   }, [supabase]);
 
   const showToast = (type, msg) => {

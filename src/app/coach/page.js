@@ -27,7 +27,9 @@ export default function CoachPage() {
 
   // Auth (ゲストはプレミアムウォール表示)
   useEffect(() => {
+    const authTimeout = setTimeout(() => { setLoading(false); }, 5000);
     supabase.auth.getUser().then(async ({ data: { user } }) => {
+      clearTimeout(authTimeout);
       setUser(user); // null = ゲスト
       if (user) {
         const p = await loadProfile(supabase, user.id);
@@ -36,7 +38,8 @@ export default function CoachPage() {
         setHasMetrics(m && m.length > 0);
       }
       setLoading(false);
-    }).catch(() => { setLoading(false); });
+    }).catch(() => { clearTimeout(authTimeout); setLoading(false); });
+    return () => clearTimeout(authTimeout);
   }, [supabase]);
 
   const handleAuthChange = useCallback((authUser) => {

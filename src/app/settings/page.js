@@ -28,7 +28,13 @@ export default function SettingsPage() {
   const [legalTab, setLegalTab] = useState(null); // null = closed, "terms" | "privacy"
 
   useEffect(() => {
+    const authTimeout = setTimeout(() => {
+      const p = loadLocalProfile();
+      if (p) { setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? ""); setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? ""); setMealCount(p.meal_count ?? 3); }
+      setLoading(false);
+    }, 5000);
     supabase.auth.getUser().then(async ({ data: { user } }) => {
+      clearTimeout(authTimeout);
       setUser(user); // null = ゲスト
 
       let profile;
@@ -47,10 +53,12 @@ export default function SettingsPage() {
       }
       setLoading(false);
     }).catch(() => {
+      clearTimeout(authTimeout);
       const p = loadLocalProfile();
       if (p) { setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? ""); setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? ""); setMealCount(p.meal_count ?? 3); }
       setLoading(false);
     });
+    return () => clearTimeout(authTimeout);
   }, [supabase]);
 
   const showToast = (type, msg) => {

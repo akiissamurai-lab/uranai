@@ -110,10 +110,13 @@ export default function RecordPage() {
   const [trainingOpen, setTrainingOpen] = useState(false);
 
   useEffect(() => {
+    const authTimeout = setTimeout(() => { setLoading(false); }, 5000);
     supabase.auth.getUser().then(({ data: { user } }) => {
+      clearTimeout(authTimeout);
       setUser(user); // null = ゲスト
       setLoading(false);
-    }).catch(() => { setLoading(false); });
+    }).catch(() => { clearTimeout(authTimeout); setLoading(false); });
+    return () => clearTimeout(authTimeout);
   }, [supabase]);
 
   // Load routines
@@ -962,9 +965,17 @@ export default function RecordPage() {
               ))}
             </div>
           ) : (
-            <p style={{ textAlign: "center", color: "rgba(255,255,255,0.25)", fontSize: 13, marginTop: 32 }}>
-              {activeMealIndex !== null ? `${activeMealIndex}食目の記録はまだありません` : "まだ記録がありません"}
-            </p>
+            <div style={{ textAlign: "center", padding: "32px 16px" }}>
+              <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
+                <UtensilsCrossed size={32} strokeWidth={1.5} color="rgba(255,255,255,0.15)" />
+              </div>
+              <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, margin: "0 0 6px", fontWeight: 600 }}>
+                {activeMealIndex !== null ? `${activeMealIndex}食目の記録はまだありません` : "今日の記録はまだありません"}
+              </p>
+              <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, margin: 0 }}>
+                上のルーティン飯をタップするか、下の手動入力で最初の記録を追加しましょう
+              </p>
+            </div>
           );
         })()}
       </main>

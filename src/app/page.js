@@ -763,12 +763,19 @@ export default function Home() {
 
   // 初回auth check（AuthGateとは独立して即座にチェック）
   useEffect(() => {
+    // タイムアウト保護: 5秒以内にauth確認できなければゲストモードへ
+    const authTimeout = setTimeout(() => {
+      if (!authChecked) setAuthChecked(true);
+    }, 5000);
+
     supabase.auth.getUser().then(({ data: { user: u } }) => {
+      clearTimeout(authTimeout);
       if (!authChecked) {
         setUser(u || null);
         setAuthChecked(true);
       }
     }).catch(() => {
+      clearTimeout(authTimeout);
       // ネットワークエラー等: ゲストとして扱う
       if (!authChecked) setAuthChecked(true);
     });

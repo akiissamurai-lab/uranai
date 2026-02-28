@@ -89,10 +89,13 @@ export default function ProgressPage() {
 
   // Auth (ゲストも許可)
   useEffect(() => {
+    const authTimeout = setTimeout(() => { setLoading(false); }, 5000);
     supabase.auth.getUser().then(({ data: { user } }) => {
+      clearTimeout(authTimeout);
       setUser(user); // null = ゲスト
       setLoading(false);
-    }).catch(() => { setLoading(false); });
+    }).catch(() => { clearTimeout(authTimeout); setLoading(false); });
+    return () => clearTimeout(authTimeout);
   }, [supabase]);
 
   // 目標体重の読み込み
@@ -313,6 +316,31 @@ export default function ProgressPage() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {metrics.length === 0 && (
+          <div style={{ ...S.card, textAlign: "center", padding: "40px 20px" }}>
+            <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
+              <Scale size={36} strokeWidth={1.5} color="rgba(255,255,255,0.15)" />
+            </div>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.5)", margin: "0 0 8px" }}>
+              体重を記録するとグラフが表示されます
+            </p>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "0 0 16px", lineHeight: 1.6 }}>
+              下のフォームから最初の体重を入力してみましょう。
+              <br />2日以上の記録で推移グラフが見られます。
+            </p>
+            <a href="#form" style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "8px 16px", borderRadius: 10,
+              background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)",
+              color: "#4ade80", fontSize: 12, fontWeight: 600, textDecoration: "none",
+            }}>
+              <PenLine size={12} strokeWidth={1.5} />
+              体重を入力する
+            </a>
           </div>
         )}
 
@@ -563,7 +591,7 @@ export default function ProgressPage() {
         )}
 
         {/* Input form */}
-        <form onSubmit={handleSubmit} style={S.card}>
+        <form id="form" onSubmit={handleSubmit} style={S.card}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", gap: 6 }}><PenLine size={14} strokeWidth={1.5} />記録する</div>
             <div style={{ display: "flex", gap: 0, background: "rgba(255,255,255,0.04)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden" }}>
