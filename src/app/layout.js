@@ -1,5 +1,6 @@
 import "./globals.css";
 import SupabaseErrorBoundary from "@/components/SupabaseErrorBoundary";
+import BottomNav from "@/components/BottomNav";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,10 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body style={{ margin: 0 }}>
-        <SupabaseErrorBoundary>{children}</SupabaseErrorBoundary>
+        <SupabaseErrorBoundary>
+          {children}
+          <BottomNav />
+        </SupabaseErrorBoundary>
       </body>
     </html>
   );

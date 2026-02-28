@@ -1278,40 +1278,16 @@ export default function Home() {
             <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
           </div>
         </header>
-        <nav style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 6px", overflowX: "auto", WebkitOverflowScrolling: "touch", display: "flex", gap: 6, scrollbarWidth: "none" }}>
-            {history.length > 0 && (
-              <button onClick={() => setShowHistory(!showHistory)} style={{
-                padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
-                background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
-                color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap", flexShrink: 0,
-              }}>📜 履歴</button>
-            )}
-            <a href="/record" style={{
-              padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(34,197,94,0.3)",
-              background: "rgba(34,197,94,0.1)", color: "#4ade80", fontSize: 11,
-              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
-            }}>📝 記録</a>
-            <a href="/progress" style={{
-              padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(96,165,250,0.3)",
-              background: "rgba(96,165,250,0.1)", color: "#60a5fa", fontSize: 11,
-              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
-            }}>📊 推移</a>
-            <a href="/routines" style={{
-              padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(250,204,21,0.3)",
-              background: "rgba(250,204,21,0.1)", color: "#facc15", fontSize: 11,
-              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
-            }}>📋 ルーティン</a>
-            <a href="/coach" style={{
-              padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(139,92,246,0.3)",
-              background: "rgba(139,92,246,0.1)", color: "#a78bfa", fontSize: 11,
-              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
-            }}>🤖 コーチ</a>
-            <a href="/settings" style={{
+        {/* 履歴ボタン（ログイン済み＆履歴ありのみ） */}
+        {user && history.length > 0 && (
+          <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 6px" }}>
+            <button onClick={() => setShowHistory(!showHistory)} style={{
               padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
-              background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 11,
-              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
-            }}>⚙️</a>
-        </nav>
+              background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
+              color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
+            }}>📜 履歴</button>
+          </div>
+        )}
         </>
       )}
 
