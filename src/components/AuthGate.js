@@ -246,7 +246,9 @@ export default function AuthGate({ supabase, onAuthChange }) {
           {/* 送信完了 */}
           {status === "sent" ? (
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>📧</div>
+              <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a0e0a0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </div>
               <p style={{ color: "#a0e0a0", fontSize: 13, margin: 0 }}>
                 {mode === "signup"
                   ? "確認メールを送信しました"

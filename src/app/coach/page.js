@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, loadBodyMetrics } from "@/lib/db";
 import AuthGate from "@/components/AuthGate";
+import { Lock, CheckCircle, Bot, Settings, BarChart3, Target, ShoppingCart, Lightbulb, UtensilsCrossed, RefreshCw } from "lucide-react";
 
 export default function CoachPage() {
   const router = useRouter();
@@ -40,7 +41,6 @@ export default function CoachPage() {
 
   const handleAuthChange = useCallback((authUser) => {
     if (authUser) {
-      // ログインしたらページ再読み込みしてデータを取得
       window.location.reload();
     }
   }, []);
@@ -55,7 +55,6 @@ export default function CoachPage() {
   const handleAnalyze = useCallback(async () => {
     if (analyzing) return;
 
-    // Cancel previous
     if (abortRef.current) abortRef.current.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -105,9 +104,8 @@ export default function CoachPage() {
     });
 
     setApplying(false);
-    showToast("success", "新しい目標を適用しました！");
+    showToast("success", "目標を適用しました");
 
-    // Update local profile state
     setProfile((prev) => ({
       ...prev,
       protein_goal: result.newMacros.protein,
@@ -143,17 +141,19 @@ export default function CoachPage() {
             border: "1px solid rgba(139,92,246,0.25)",
             borderRadius: 24, padding: "40px 24px", textAlign: "center",
           }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+            <div style={{ marginBottom: 12, display: "flex", justifyContent: "center" }}>
+              <Lock size={48} strokeWidth={1.5} color="rgba(167,139,250,0.6)" />
+            </div>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: "rgba(255,255,255,0.85)", margin: "0 0 8px" }}>
-              AI専属トレーナーを解放しよう
+              AIコーチを利用する
             </h2>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", margin: "0 0 20px", lineHeight: 1.7 }}>
-              無料アカウントを作成するだけで、AIがあなたの体重推移・PFC・予算を分析し、最適な買い物リストまで自動生成します
+              無料アカウントを作成すると、体重推移・PFC・予算をAIが分析し、買い物リストまで自動生成します
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center", marginBottom: 20 }}>
               {["体重推移のAI分析", "PFC目標の自動調整", "コスパ最強の買い物リスト"].map((t) => (
                 <div key={t} style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ color: "#a78bfa" }}>✓</span> {t}
+                  <CheckCircle size={12} strokeWidth={1.5} color="#a78bfa" /> {t}
                 </div>
               ))}
             </div>
@@ -166,7 +166,8 @@ export default function CoachPage() {
     );
   }
 
-  const statusColor = result?.statusEmoji === "🟢" ? "#4ade80" : result?.statusEmoji === "🟡" ? "#facc15" : "#f87171";
+  const statusColor = result?.status === "順調" ? "#4ade80"
+    : result?.status === "停滞気味" ? "#facc15" : "#f87171";
 
   return (
     <div style={S.page}>
@@ -183,13 +184,17 @@ export default function CoachPage() {
         {/* Prerequisites check */}
         {!canAnalyze && !loading && (
           <div style={{ ...S.card, textAlign: "center", padding: "30px 20px" }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>🤖</div>
+            <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}>
+              <Bot size={32} strokeWidth={1.5} color="rgba(255,255,255,0.3)" />
+            </div>
             {(!profile || (!profile.protein_goal && !profile.budget)) && (
               <>
                 <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: "0 0 8px" }}>
                   PFC目標や予算を設定してからAI分析を利用できます
                 </p>
-                <a href="/settings" style={S.linkBtn}>⚙️ 設定ページへ →</a>
+                <a href="/settings" style={S.linkBtn}>
+                  <Settings size={12} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />設定ページへ
+                </a>
               </>
             )}
             {profile && (profile.protein_goal || profile.budget) && !hasMetrics && (
@@ -197,7 +202,9 @@ export default function CoachPage() {
                 <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: "0 0 8px" }}>
                   体重を記録してからAI分析を利用できます
                 </p>
-                <a href="/progress" style={S.linkBtn}>📊 体重記録ページへ →</a>
+                <a href="/progress" style={S.linkBtn}>
+                  <BarChart3 size={12} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />体重記録ページへ
+                </a>
               </>
             )}
           </div>
@@ -206,9 +213,9 @@ export default function CoachPage() {
         {/* Analyze button */}
         {canAnalyze && !analyzing && (
           <button onClick={handleAnalyze} style={S.analyzeBtn}>
-            <span style={{ fontSize: 24 }}>🤖</span>
-            <span style={{ fontSize: 14, fontWeight: 700 }}>今週の進捗をAIに分析させる</span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>体重推移 × 目標 × 予算を総合判定</span>
+            <Bot size={24} strokeWidth={1.5} />
+            <span style={{ fontSize: 14, fontWeight: 700 }}>週次レポートを生成</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>体重・目標・予算を分析</span>
           </button>
         )}
 
@@ -221,10 +228,10 @@ export default function CoachPage() {
               <span style={{ ...S.pulseDot, animationDelay: "0.4s" }} />
             </div>
             <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginTop: 16 }}>
-              AIが分析中...
+              分析中...
             </p>
             <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)" }}>
-              体重推移・PFC・予算を総合評価しています
+              データを分析しています
             </p>
           </div>
         )}
@@ -245,11 +252,11 @@ export default function CoachPage() {
             {/* Status card */}
             <div style={{ ...S.card, borderColor: `${statusColor}33` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 32 }}>{result.statusEmoji}</span>
+                <span style={{ width: 12, height: 12, borderRadius: "50%", background: statusColor, display: "inline-block", flexShrink: 0, boxShadow: `0 0 8px ${statusColor}40` }} />
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: statusColor }}>{result.status}</div>
                   {result.weightTrend && (
-                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'Space Mono',monospace" }}>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "var(--font-mono)" }}>
                       週間変化: {result.weightTrend.weeklyChange > 0 ? "+" : ""}{result.weightTrend.weeklyChange}kg
                     </div>
                   )}
@@ -263,8 +270,8 @@ export default function CoachPage() {
             {/* New macros card */}
             {result.newMacros && (
               <div style={S.card}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 12 }}>
-                  🎯 AIが提案する新しい目標
+                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Target size={14} strokeWidth={1.5} />推奨マクロ目標
                 </div>
                 {result.macroReason && (
                   <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: "0 0 12px", lineHeight: 1.6 }}>
@@ -274,35 +281,34 @@ export default function CoachPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
                   <div style={S.macroCell}>
                     <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>P</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: "#f87171", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: "#f87171", fontFamily: "var(--font-mono)" }}>
                       {result.newMacros.protein}
                     </span>
                     <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>g</span>
                   </div>
                   <div style={S.macroCell}>
                     <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>F</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: "#facc15", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: "#facc15", fontFamily: "var(--font-mono)" }}>
                       {result.newMacros.fat}
                     </span>
                     <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>g</span>
                   </div>
                   <div style={S.macroCell}>
                     <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>C</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: "#60a5fa", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: "#60a5fa", fontFamily: "var(--font-mono)" }}>
                       {result.newMacros.carbs}
                     </span>
                     <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>g</span>
                   </div>
                   <div style={S.macroCell}>
                     <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>予算</span>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
                       ¥{result.newMacros.budget}
                     </span>
                     <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>/日</span>
                   </div>
                 </div>
 
-                {/* Compare with current */}
                 {profile && (
                   <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginBottom: 12, textAlign: "center" }}>
                     現在: P{profile.protein_goal || "?"}g F{profile.fat_goal || "?"}g C{profile.carbs_goal || "?"}g / ¥{profile.budget || "?"}
@@ -314,7 +320,7 @@ export default function CoachPage() {
                   opacity: applying ? 0.6 : 1,
                   cursor: applying ? "not-allowed" : "pointer",
                 }}>
-                  {applying ? "適用中..." : "✅ この目標をプロフィールに適用"}
+                  {applying ? "適用中..." : "この目標を適用"}
                 </button>
               </div>
             )}
@@ -322,8 +328,8 @@ export default function CoachPage() {
             {/* Grocery list card */}
             {result.groceryList && result.groceryList.length > 0 && (
               <div style={S.card}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 12 }}>
-                  🛒 今週のコスパ最強・買い物リスト
+                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                  <ShoppingCart size={14} strokeWidth={1.5} />週間買い物リスト
                 </div>
                 {result.groceryList.map((item, i) => (
                   <div key={i} style={S.groceryRow}>
@@ -333,7 +339,7 @@ export default function CoachPage() {
                         {item.amount}{item.note ? ` — ${item.note}` : ""}
                       </div>
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace", flexShrink: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#4ade80", fontFamily: "var(--font-mono)", flexShrink: 0 }}>
                       ¥{Number(item.estPrice).toLocaleString()}
                     </span>
                   </div>
@@ -341,7 +347,7 @@ export default function CoachPage() {
                 {result.weeklyTotal && (
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10, marginTop: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>合計（1週間分）</span>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
                       ¥{Number(result.weeklyTotal).toLocaleString()}
                     </span>
                   </div>
@@ -352,8 +358,8 @@ export default function CoachPage() {
             {/* Advice card */}
             {(result.advice || result.mealTip) && (
               <div style={{ ...S.card, background: "rgba(96,165,250,0.05)", border: "1px solid rgba(96,165,250,0.12)" }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 8 }}>
-                  💡 AIからのアドバイス
+                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Lightbulb size={14} strokeWidth={1.5} />改善ポイント
                 </div>
                 {result.advice && (
                   <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: "0 0 8px", lineHeight: 1.7 }}>
@@ -361,8 +367,8 @@ export default function CoachPage() {
                   </p>
                 )}
                 {result.mealTip && (
-                  <p style={{ fontSize: 12, color: "rgba(96,165,250,0.7)", margin: 0, lineHeight: 1.6 }}>
-                    🍽 {result.mealTip}
+                  <p style={{ fontSize: 12, color: "rgba(96,165,250,0.7)", margin: 0, lineHeight: 1.6, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <UtensilsCrossed size={12} strokeWidth={1.5} style={{ flexShrink: 0, marginTop: 2 }} />{result.mealTip}
                   </p>
                 )}
               </div>
@@ -370,7 +376,7 @@ export default function CoachPage() {
 
             {/* Re-analyze button */}
             <button onClick={handleAnalyze} style={S.reAnalyzeBtn}>
-              🔄 再分析する
+              <RefreshCw size={12} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />再分析
             </button>
           </>
         )}
@@ -425,7 +431,7 @@ function profileToSaveData(p) {
 }
 
 const S = {
-  page: { minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", fontFamily: "'DM Sans','Noto Sans JP',sans-serif", color: "white", position: "relative", overflow: "hidden" },
+  page: { minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", color: "white", position: "relative", overflow: "hidden" },
   orb1: { position: "fixed", top: -200, right: -200, width: 500, height: 500, background: "radial-gradient(circle,rgba(96,165,250,0.06)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" },
   orb2: { position: "fixed", bottom: -150, left: -150, width: 400, height: 400, background: "radial-gradient(circle,rgba(34,197,94,0.05)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" },
   header: { padding: "18px 24px 10px", maxWidth: 480, margin: "0 auto", display: "flex", alignItems: "center", gap: 12 },

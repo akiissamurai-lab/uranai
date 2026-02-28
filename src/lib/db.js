@@ -316,7 +316,7 @@ export async function saveRoutineMeal(supabase, userId, meal) {
   const { data, error } = await supabase.from("routine_meals").insert({
     user_id: userId,
     meal_name: meal.mealName,
-    emoji: meal.emoji || "🍱",
+    emoji: meal.emoji || "#4ade80",
     price: meal.price || null,
     protein: meal.protein || null,
     fat: meal.fat || null,

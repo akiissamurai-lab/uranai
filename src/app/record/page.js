@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals } from "@/lib/db";
 import { saveLocalMealLog, loadLocalMealLogs, deleteLocalMealLog, loadLocalRoutineMeals, loadLocalProfile } from "@/lib/local-db";
+import { BarChart3, Wallet, Zap, UtensilsCrossed, Plus } from "lucide-react";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -148,7 +149,7 @@ export default function RecordPage() {
     setSaving(false);
 
     if (saved) {
-      showToast("success", "記録しました！");
+      showToast("success", "記録完了");
       setLogs((prev) => [...prev, saved]);
       setMealName("");
       setPrice("");
@@ -175,7 +176,7 @@ export default function RecordPage() {
     setSavingRoutineId(routine.id);
     const logData = {
       date,
-      mealName: `${routine.emoji || "🍱"} ${routine.meal_name}`,
+      mealName: routine.meal_name,
       price: routine.price != null ? Number(routine.price) : null,
       protein: routine.protein != null ? Number(routine.protein) : null,
       fat: routine.fat != null ? Number(routine.fat) : null,
@@ -190,7 +191,7 @@ export default function RecordPage() {
     }
     setSavingRoutineId(null);
     if (saved) {
-      showToast("success", `${routine.meal_name} を記録しました！`);
+      showToast("success", `${routine.meal_name} 記録完了`);
       setLogs((prev) => [...prev, saved]);
     } else {
       showToast("error", "記録に失敗しました");
@@ -253,14 +254,14 @@ export default function RecordPage() {
         {showDashboard && (
           <div style={S.dashboard}>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 12, fontWeight: 600 }}>
-              📊 今日の進捗
+              <BarChart3 size={14} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />今日の進捗
             </div>
 
             {/* Budget bar */}
             {goals.budget && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>💰 食費</span>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", display: "flex", alignItems: "center", gap: 4 }}><Wallet size={12} strokeWidth={1.5} />食費</span>
                   <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
                     ¥{totals.price.toLocaleString()} / ¥{goals.budget.toLocaleString()}
                   </span>
@@ -298,7 +299,7 @@ export default function RecordPage() {
         {routines.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 600 }}>⚡ マイルーティン飯</span>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Zap size={12} strokeWidth={1.5} />マイルーティン</span>
               <a href="/routines" style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>管理 →</a>
             </div>
             <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
@@ -315,7 +316,9 @@ export default function RecordPage() {
                       cursor: savingRoutineId ? "not-allowed" : "pointer",
                     }}
                   >
-                    <span style={{ fontSize: 22 }}>{r.emoji || "🍱"}</span>
+                    <span style={{ width: 28, height: 28, borderRadius: 8, background: (r.emoji && r.emoji.startsWith("#")) ? r.emoji : "#4ade80", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <UtensilsCrossed size={14} strokeWidth={1.5} color="white" />
+                    </span>
                     <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.8)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 80 }}>
                       {isSaving ? "記録中..." : r.meal_name}
                     </span>
@@ -332,7 +335,7 @@ export default function RecordPage() {
               })}
               {/* Add more button */}
               <a href="/routines" style={S.routineAdd}>
-                <span style={{ fontSize: 20 }}>＋</span>
+                <Plus size={18} strokeWidth={1.5} color="rgba(255,255,255,0.3)" />
                 <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>追加</span>
               </a>
             </div>
@@ -342,7 +345,7 @@ export default function RecordPage() {
         {routines.length === 0 && (
           <a href="/routines" style={{ display: "block", textDecoration: "none", ...S.card, textAlign: "center", padding: "14px 18px", marginBottom: 14 }}>
             <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
-              ⚡ 定番メニューを登録して、ワンタップで記録しよう →
+              ルーティンを登録すると素早く記録できます
             </span>
           </a>
         )}
@@ -364,7 +367,7 @@ export default function RecordPage() {
 
           <div style={S.gridRow}>
             <div style={S.fieldWrap}>
-              <label style={S.fieldLabel}>💰 金額</label>
+              <label style={S.fieldLabel}>金額</label>
               <div style={S.numWrap}>
                 <input type="number" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="—" min="0" style={S.numInput} />
                 <span style={S.unit}>円</span>
@@ -490,7 +493,7 @@ export default function RecordPage() {
 }
 
 const S = {
-  page: { minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", fontFamily: "'DM Sans','Noto Sans JP',sans-serif", color: "white", position: "relative", overflow: "hidden" },
+  page: { minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", color: "white", position: "relative", overflow: "hidden" },
   orb1: { position: "fixed", top: -200, right: -200, width: 500, height: 500, background: "radial-gradient(circle,rgba(34,197,94,0.06)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" },
   orb2: { position: "fixed", bottom: -150, left: -150, width: 400, height: 400, background: "radial-gradient(circle,rgba(59,130,246,0.05)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" },
   header: { padding: "18px 24px 10px", maxWidth: 480, margin: "0 auto", display: "flex", alignItems: "center", gap: 12 },

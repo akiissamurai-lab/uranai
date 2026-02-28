@@ -6,6 +6,13 @@ import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocal
 import { loadLocalProfile, saveLocalProfile, loadLocalMealLogs } from "@/lib/local-db";
 import AuthGate from "@/components/AuthGate";
 import html2canvas from "html2canvas";
+import {
+  BarChart3, Wallet, Target, Zap, PenLine, Scale, Bot, Lightbulb,
+  RefreshCw, TrendingUp, UtensilsCrossed, Activity, User, Ruler,
+  CalendarDays, Percent, Calculator, Settings, Flame, Dumbbell,
+  Share2, ClipboardList,
+  AlertTriangle, CheckCircle, Calendar
+} from "lucide-react";
 
 // ─── SNSシェア画像生成 ───
 function buildShareCardDOM(todayTotals, profileGoals) {
@@ -20,7 +27,7 @@ function buildShareCardDOM(todayTotals, profileGoals) {
   const avg = avgPct.length ? Math.round(avgPct.reduce((a, b) => a + b, 0) / avgPct.length) : 0;
 
   // キャッチコピー選定
-  const catchCopy = avg >= 100 ? "今日も完璧なPFC達成！🔥" : avg >= 80 ? "目標にかなり近づいてる！💪" : avg >= 50 ? "着実に積み上げ中！📈" : "今日もマクロ飯スタート！🍽️";
+  const catchCopy = avg >= 100 ? "PFC達成率 100%" : avg >= 80 ? "目標まであと少し" : avg >= 50 ? "順調に推移中" : "今日の記録を開始";
 
   // 予算
   const budgetTotal = profileGoals?.budget || 0;
@@ -54,7 +61,7 @@ function buildShareCardDOM(todayTotals, profileGoals) {
     <div style="text-align:center;flex:1">
       <div style="width:72px;height:72px;margin:0 auto;position:relative">
         ${donutSVG(item.pct, item.color, item.bg)}
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:800;color:${item.pct > 100 ? "#ef4444" : item.color};font-family:'Space Mono',monospace">${item.pct}%</div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:800;color:${item.pct > 100 ? "#ef4444" : item.color};font-family:'Inter','Space Mono',monospace">${item.pct}%</div>
       </div>
       <div style="font-size:11px;font-weight:700;color:${item.color};margin-top:4px">${item.label}</div>
       <div style="font-size:9px;color:#94a3b8">${item.cur}/${item.goal}${item.unit}</div>
@@ -65,8 +72,8 @@ function buildShareCardDOM(todayTotals, profileGoals) {
   const budgetHTML = budgetTotal > 0 ? `
     <div style="margin-top:16px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-        <span style="font-size:11px;color:#64748b">💰 今日の予算</span>
-        <span style="font-size:14px;font-weight:700;color:${budgetRemaining >= 0 ? "#22c55e" : "#ef4444"};font-family:'Space Mono',monospace">
+        <span style="font-size:11px;color:#64748b">今日の予算</span>
+        <span style="font-size:14px;font-weight:700;color:${budgetRemaining >= 0 ? "#22c55e" : "#ef4444"};font-family:'Inter','Space Mono',monospace">
           ${budgetRemaining >= 0 ? `残り ¥${Math.round(budgetRemaining).toLocaleString()}` : `¥${Math.abs(Math.round(budgetRemaining)).toLocaleString()} 超過`}
         </span>
       </div>
@@ -84,10 +91,10 @@ function buildShareCardDOM(todayTotals, profileGoals) {
   const container = document.createElement("div");
   container.style.cssText = "position:fixed;left:-9999px;top:0;z-index:-1";
   container.innerHTML = `
-    <div style="width:400px;background:linear-gradient(145deg,#ffffff 0%,#f8fafc 50%,#f0fdf4 100%);border-radius:28px;padding:32px 28px 24px;font-family:'DM Sans','Noto Sans JP','Hiragino Sans',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.12)">
+    <div style="width:400px;background:linear-gradient(145deg,#ffffff 0%,#f8fafc 50%,#f0fdf4 100%);border-radius:28px;padding:32px 28px 24px;font-family:'Inter','Noto Sans JP','Hiragino Sans',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.12)">
       <!-- ヘッダー -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(34,197,94,0.3)">💪</div>
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;box-shadow:0 4px 12px rgba(34,197,94,0.3)">M</div>
         <div>
           <div style="font-size:15px;font-weight:800;background:linear-gradient(135deg,#22c55e,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent">マクロ飯ビルダー</div>
           <div style="font-size:8px;color:#94a3b8;letter-spacing:2px;text-transform:uppercase">AI Macro × Budget Optimizer</div>
@@ -103,7 +110,7 @@ function buildShareCardDOM(todayTotals, profileGoals) {
       <!-- 進捗カード -->
       <div style="background:rgba(255,255,255,0.8);border:1px solid #e2e8f0;border-radius:20px;padding:20px 16px">
         <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:14px;display:flex;align-items:center;gap:5px">
-          <span style="font-size:14px">📊</span> 今日の進捗
+          今日の進捗
         </div>
         ${pfcItems.length > 0 ? `<div style="display:flex;gap:8px;justify-content:center">${pfcHTML}</div>` : ""}
         ${budgetHTML}
@@ -146,12 +153,12 @@ async function handleShareImage(todayTotals, profileGoals, setShareStatus) {
 
     const file = new File([blob], "macro-meal-today.png", { type: "image/png" });
     const budgetStr = profileGoals?.budget ? `予算${profileGoals.budget}円` : "";
-    const shareText = `${budgetStr}で、PFCバランス完璧なルーティン飯を達成しました！ #マクロ飯ビルダー #ボディメイク #節約`;
+    const shareText = `${budgetStr}でPFCバランスを達成。 #マクロ飯ビルダー #ボディメイク`;
 
     // Web Share API（画像対応チェック）
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
-        title: "今日のマクロ飯達成！",
+        title: "今日のマクロ飯記録",
         text: shareText,
         files: [file],
       });
@@ -211,7 +218,7 @@ function MacroDonut({ label, current, goal, color, bgColor, unit }) {
             style={{ transition: "stroke-dashoffset 0.6s ease" }} />
         </svg>
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: activeColor, fontFamily: "'Space Mono',monospace", lineHeight: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: activeColor, fontFamily: "var(--font-mono)", lineHeight: 1 }}>
             {Math.round(pct * 100)}
             <span style={{ fontSize: 9, fontWeight: 600 }}>%</span>
           </div>
@@ -238,8 +245,8 @@ function BudgetGauge({ spent, total }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>💰 今日の予算</span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: remaining >= 0 ? "#4ade80" : "#f87171", fontFamily: "'Space Mono',monospace" }}>
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", display: "inline-flex", alignItems: "center", gap: 4 }}><Wallet size={12} strokeWidth={1.5} /> 今日の予算</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: remaining >= 0 ? "#4ade80" : "#f87171", fontFamily: "var(--font-mono)" }}>
           {remaining >= 0 ? `残り ¥${Math.round(remaining).toLocaleString()}` : `¥${Math.abs(Math.round(remaining)).toLocaleString()} 超過`}
         </span>
       </div>
@@ -285,7 +292,7 @@ const FOOD_DB = [
 ];
 
 const CAT_LABELS = { meat: "肉類", fish: "魚介", egg: "卵", soy: "大豆", dairy: "乳製品", grain: "穀物", veg: "野菜", fruit: "果物", supp: "サプリ" };
-const CAT_EMOJI = { meat: "🥩", fish: "🐟", egg: "🥚", soy: "🫘", dairy: "🥛", grain: "🌾", veg: "🥦", fruit: "🍌", supp: "💊" };
+const CAT_COLOR = { meat: "#ef4444", fish: "#3b82f6", egg: "#f59e0b", soy: "#84cc16", dairy: "#e5e7eb", grain: "#d97706", veg: "#22c55e", fruit: "#f472b6", supp: "#a78bfa" };
 
 // ─── Improved Solver: category diversity + controlled randomness ─
 function solveMealPlan(budget, targetProtein, targetCal, excludedIds, catExclusions) {
@@ -430,7 +437,7 @@ ${items}
 6. ${season}の旬食材があれば優先して提案
 
 ## 必ず以下のJSON形式のみで返答。前後にテキストを一切付けないでください。
-{"personalMessage":"2-3文のパーソナルメッセージ（性別・年齢・BMI・体脂肪率・期限すべて考慮）","meals":[{"timing":"朝食","name":"料理名","emoji":"絵文字","ingredients":"食材","recipe":"3ステップ以内","macros":"P:○g F:○g C:○g ○kcal","estCost":"約○円"},{"timing":"昼食","name":"...","emoji":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"},{"timing":"夕食","name":"...","emoji":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"},{"timing":"間食","name":"...","emoji":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"}],"dailyCostTotal":"約○円（目安）","weeklyTip":"週間戦略2-3文（業務スーパーやドラッグストアでの買い方含む）","warning":"注意点またはnull","productTips":"年齢・性別に合わせたおすすめ商品アドバイス1-2文"}`;
+{"personalMessage":"2-3文のパーソナルメッセージ（性別・年齢・BMI・体脂肪率・期限すべて考慮）","meals":[{"timing":"朝食","name":"料理名","ingredients":"食材","recipe":"3ステップ以内","macros":"P:○g F:○g C:○g ○kcal","estCost":"約○円"},{"timing":"昼食","name":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"},{"timing":"夕食","name":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"},{"timing":"間食","name":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"}],"dailyCostTotal":"約○円（目安）","weeklyTip":"週間戦略2-3文（業務スーパーやドラッグストアでの買い方含む）","warning":"注意点またはnull","productTips":"年齢・性別に合わせたおすすめ商品アドバイス1-2文"}`;
 
   const res = await fetch("/api/macro", {
     method: "POST",
@@ -443,7 +450,7 @@ ${items}
     const errData = await res.json().catch(() => ({}));
     if (res.status === 429) {
       const retry = errData.retryAfter || 60;
-      throw new Error(`⏳ 利用制限中です。${retry}秒後にお試しください（1分間に3回まで）`);
+      throw new Error(`利用制限中です。${retry}秒後にお試しください`);
     }
     throw new Error(errData.error || `API error: ${res.status}`);
   }
@@ -514,7 +521,7 @@ ${pfcLine || "PFC目標: 未設定"}
 8. 日本のスーパーで手に入る食材のみ使用（季節の旬食材があれば優先）
 
 ## 必ず以下のJSON形式のみで返答。前後にテキストを一切付けないでください。
-{"mealName":"料理名","emoji":"絵文字1つ","price":金額数値(目安),"protein":タンパク質g数値,"fat":脂質g数値,"carbs":炭水化物g数値,"recipe":"簡潔なレシピ（3ステップ以内）","reason":"この食事を提案する理由（予算・PFC根拠を含む1文）","priceBreakdown":"食材内訳: ○○約△円+○○約△円+調味料約△円=合計約△円"}`;
+{"mealName":"料理名","price":金額数値(目安),"protein":タンパク質g数値,"fat":脂質g数値,"carbs":炭水化物g数値,"recipe":"簡潔なレシピ（3ステップ以内）","reason":"この食事を提案する理由（予算・PFC根拠を含む1文）","priceBreakdown":"食材内訳: ○○約△円+○○約△円+調味料約△円=合計約△円"}`;
 
   const res = await fetch("/api/macro", {
     method: "POST",
@@ -577,8 +584,8 @@ function MacroRing({ label, value, max, color, unit, ideal }) {
         <circle cx="40" cy="40" r={r} fill="none" stroke={color} strokeWidth="7"
           strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
           transform="rotate(-90 40 40)" style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
-        <text x="40" y="36" textAnchor="middle" fill="white" fontSize="15" fontWeight="700" fontFamily="'DM Sans',sans-serif">{Math.round(value)}</text>
-        <text x="40" y="49" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="9" fontFamily="'DM Sans',sans-serif">{unit}</text>
+        <text x="40" y="36" textAnchor="middle" fill="white" fontSize="15" fontWeight="700" fontFamily="var(--font-sans)">{Math.round(value)}</text>
+        <text x="40" y="49" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="9" fontFamily="var(--font-sans)">{unit}</text>
       </svg>
       <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, marginTop: -4 }}>{label}</div>
       {ideal && <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>目標 {ideal}{unit}</div>}
@@ -595,7 +602,7 @@ function SliderInput({ label, value, setValue, min, max, step, color, suffix = "
         {editable ? (
           <NumInput value={value} onChange={v => setValue(v === "" ? min : v)} suffix={suffix} prefix={prefix} min={min} max={max} step={step} width={65} color={color} />
         ) : (
-          <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 22, fontWeight: 700, color }}>{prefix}{value}<span style={{ fontSize: 13 }}>{suffix}</span></span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color }}>{prefix}{value}<span style={{ fontSize: 13 }}>{suffix}</span></span>
         )}
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={e => setValue(+e.target.value)}
@@ -628,7 +635,7 @@ function NumInput({ value, onChange, placeholder, suffix, prefix, min, max, step
           const hi = max != null ? max : Infinity;
           onChange(Math.max(lo, Math.min(hi, num)));
         }}
-        style={{ width, background: "transparent", border: "none", outline: "none", color, fontFamily: "'Space Mono',monospace", fontSize: 17, fontWeight: 700, textAlign: "right" }} />
+        style={{ width, background: "transparent", border: "none", outline: "none", color, fontFamily: "var(--font-mono)", fontSize: 17, fontWeight: 700, textAlign: "right" }} />
       {suffix && <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{suffix}</span>}
     </div>
   );
@@ -674,7 +681,7 @@ function Pill({ active, onClick, children }) {
       padding: "7px 13px", borderRadius: 10, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all 0.2s",
       border: active ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.1)",
       background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.03)",
-      color: active ? "#4ade80" : "rgba(255,255,255,0.45)", fontFamily: "'Noto Sans JP',sans-serif",
+      color: active ? "#4ade80" : "rgba(255,255,255,0.45)",
     }}>{children}</button>
   );
 }
@@ -694,7 +701,7 @@ function SectionCard({ num, title, summary, collapsed, onToggle, color = "#4ade8
       }}>
         <span style={{ width: 22, height: 22, borderRadius: "50%", background: bgColor, color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{num}</span>
         <span style={{ flexShrink: 0 }}>{title}</span>
-        {collapsed && <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary} ✏️</span>}
+        {collapsed && <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</span>}
       </div>
       {!collapsed && children}
     </div>
@@ -992,7 +999,7 @@ export default function Home() {
     const todayStr = new Date().toISOString().slice(0, 10);
     const saved = await saveMealLog(supabase, user.id, {
       date: todayStr,
-      mealName: `${aiSuggest.emoji || ""} ${aiSuggest.mealName}`.trim(),
+      mealName: aiSuggest.mealName,
       price: aiSuggest.price || null,
       protein: aiSuggest.protein || null,
       fat: aiSuggest.fat || null,
@@ -1073,14 +1080,14 @@ export default function Home() {
   const handleShare = () => {
     if (!result) return;
     const text = [
-      `🍗 マクロ飯ビルダー結果`,
+      `マクロ飯ビルダー結果`,
       `予算: ¥${budget}/日 → ¥${Math.round(result.totals.cost)}使用`,
       `P:${Math.round(result.totals.protein)}g F:${Math.round(result.totals.fat)}g C:${Math.round(result.totals.carbs)}g ${Math.round(result.totals.cal)}kcal`,
-      `📋 買い物リスト:`,
+      `買い物リスト:`,
       ...result.items.map(i => `  ${i.name} ×${i.servings} (¥${i.cost * i.servings})`),
-      `\n💪 マクロ飯ビルダーで最適化`,
+      `\nマクロ飯ビルダーで最適化`,
     ].join("\n");
-    navigator.clipboard.writeText(text).then(() => { setShareMsg("✅ コピーしました！"); setTimeout(() => setShareMsg(""), 2000); });
+    navigator.clipboard.writeText(text).then(() => { setShareMsg("コピー完了"); setTimeout(() => setShareMsg(""), 2000); });
   };
 
   const ppYen = result ? (result.totals.protein / result.totals.cost * 100).toFixed(1) : 0;
@@ -1101,8 +1108,8 @@ export default function Home() {
   // auth確認中はローディング画面を表示（フラッシュ防止）
   if (!authChecked) {
     return (
-      <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", fontFamily: "'DM Sans','Noto Sans JP',sans-serif", color: "white", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 30px rgba(34,197,94,0.3)", marginBottom: 16, animation: "pulse 1.5s ease-in-out infinite" }}>💪</div>
+      <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", color: "white", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 30px rgba(34,197,94,0.3)", marginBottom: 16, animation: "pulse 1.5s ease-in-out infinite" }}><Activity size={24} strokeWidth={1.5} color="white" /></div>
         <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>読み込み中...</p>
         <style>{`@keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.7; } }`}</style>
       </div>
@@ -1110,7 +1117,7 @@ export default function Home() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", fontFamily: "'DM Sans','Noto Sans JP',sans-serif", color: "white", position: "relative", overflow: "hidden" }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", color: "white", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "fixed", top: -200, right: -200, width: 500, height: 500, background: "radial-gradient(circle,rgba(34,197,94,0.06)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
       <div style={{ position: "fixed", bottom: -150, left: -150, width: 400, height: 400, background: "radial-gradient(circle,rgba(59,130,246,0.05)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
 
@@ -1135,7 +1142,7 @@ export default function Home() {
             {/* Logo + Login */}
             <div className="mb-8 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-700 text-xl shadow-lg shadow-green-500/30">💪</div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-700 shadow-lg shadow-green-500/30"><Activity size={20} strokeWidth={1.5} color="white" /></div>
                 <div className="text-left">
                   <div className="bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-lg font-bold text-transparent">マクロ飯ビルダー</div>
                   <div className="text-[9px] uppercase tracking-widest text-white/30">AI Macro × Budget Optimizer</div>
@@ -1169,7 +1176,7 @@ export default function Home() {
             {/* CTA */}
             <a href="/record" className="group relative mb-4 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-[1.03] hover:shadow-green-500/40 active:scale-[0.97]">
               <span className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-400 to-emerald-500 opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-50" />
-              <span className="relative">🔥 今すぐ無料で始める</span>
+              <span className="relative">今すぐ無料で始める</span>
             </a>
             <p className="text-[11px] text-white/25">アカウント登録なしですべての記録機能が使えます</p>
 
@@ -1195,7 +1202,7 @@ export default function Home() {
               {/* Card 1 */}
               <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm transition-all duration-300 hover:border-green-500/20 hover:bg-white/[0.05]">
                 <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10 text-2xl">⚡</div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10"><Zap size={22} strokeWidth={1.5} color="#4ade80" /></div>
                   <div>
                     <h3 className="text-[14px] font-bold text-white/85">入力摩擦ゼロ</h3>
                     <p className="text-[11px] text-green-400/60">Zero Friction Input</p>
@@ -1209,7 +1216,7 @@ export default function Home() {
               {/* Card 2 */}
               <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm transition-all duration-300 hover:border-blue-500/20 hover:bg-white/[0.05]">
                 <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 text-2xl">🧮</div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10"><Calculator size={22} strokeWidth={1.5} color="#60a5fa" /></div>
                   <div>
                     <h3 className="text-[14px] font-bold text-white/85">Budget Optimizer</h3>
                     <p className="text-[11px] text-blue-400/60">コスパ最強の食材プラン</p>
@@ -1223,9 +1230,9 @@ export default function Home() {
               {/* Card 3 */}
               <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm transition-all duration-300 hover:border-violet-500/20 hover:bg-white/[0.05]">
                 <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/10 text-2xl">🤖</div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/10"><Bot size={22} strokeWidth={1.5} color="#c084fc" /></div>
                   <div>
-                    <h3 className="text-[14px] font-bold text-white/85">AI専属トレーナー</h3>
+                    <h3 className="text-[14px] font-bold text-white/85">AIコーチ</h3>
                     <p className="text-[11px] text-violet-400/60">Autopilot Coach</p>
                   </div>
                 </div>
@@ -1238,17 +1245,17 @@ export default function Home() {
             {/* Social proof */}
             <div className="mt-8 flex items-center justify-center gap-6 text-center">
               <div>
-                <div className="text-xl font-bold text-green-400" style={{ fontFamily: "'Space Mono',monospace" }}>20+</div>
+                <div className="text-xl font-bold text-green-400" style={{ fontFamily: "var(--font-mono)" }}>20+</div>
                 <div className="text-[10px] text-white/30">食材データベース</div>
               </div>
               <div className="h-8 w-px bg-white/10" />
               <div>
-                <div className="text-xl font-bold text-blue-400" style={{ fontFamily: "'Space Mono',monospace" }}>¥0</div>
+                <div className="text-xl font-bold text-blue-400" style={{ fontFamily: "var(--font-mono)" }}>¥0</div>
                 <div className="text-[10px] text-white/30">完全無料</div>
               </div>
               <div className="h-8 w-px bg-white/10" />
               <div>
-                <div className="text-xl font-bold text-violet-400" style={{ fontFamily: "'Space Mono',monospace" }}>AI</div>
+                <div className="text-xl font-bold text-violet-400" style={{ fontFamily: "var(--font-mono)" }}>AI</div>
                 <div className="text-[10px] text-white/30">Claude搭載</div>
               </div>
             </div>
@@ -1268,7 +1275,7 @@ export default function Home() {
         <>
         <header style={{ padding: "18px 24px 10px", maxWidth: 480, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: "0 4px 20px rgba(34,197,94,0.3)" }}>💪</div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(34,197,94,0.3)" }}><Activity size={18} strokeWidth={1.5} color="white" /></div>
             <div>
               <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, background: "linear-gradient(135deg,#22c55e,#4ade80)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>マクロ飯ビルダー</h1>
               <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: 0, letterSpacing: 1.5, textTransform: "uppercase" }}>AI Macro × Budget Optimizer</p>
@@ -1285,7 +1292,7 @@ export default function Home() {
               padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
               background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
               color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
-            }}>📜 履歴</button>
+            }}>履歴</button>
           </div>
         )}
         </>
@@ -1296,14 +1303,14 @@ export default function Home() {
         {/* History panel (ログイン済みのみ) */}
         {user && showHistory && history.length > 0 && (
           <div style={{ background: "rgba(168,139,250,0.05)", border: "1px solid rgba(168,139,250,0.12)", borderRadius: 16, padding: "14px 16px", marginBottom: 14, animation: "fadeUp 0.3s ease-out" }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#c4b5fd", marginBottom: 10 }}>📜 過去のプラン</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#c4b5fd", marginBottom: 10 }}>過去のプラン</div>
             {history.slice(0, 5).map((h, i) => (
               <div key={h.id || i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < Math.min(history.length, 5) - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", fontSize: 12 }}>
                 <span style={{ color: "rgba(255,255,255,0.4)" }}>{h.date}</span>
                 <span style={{ color: "rgba(255,255,255,0.6)" }}>
                   {h.budget ? `¥${Number(h.budget).toLocaleString()}` : ""}
                 </span>
-                <span style={{ fontFamily: "'Space Mono',monospace", color: "#4ade80" }}>P{h.protein}g ¥{h.cost}</span>
+                <span style={{ fontFamily: "var(--font-mono)", color: "#4ade80" }}>P{h.protein}g ¥{h.cost}</span>
               </div>
             ))}
           </div>
@@ -1320,7 +1327,7 @@ export default function Home() {
             animation: "fadeUp 0.4s ease-out",
           }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.7)", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 16 }}>📊</span> 今日の進捗
+              <BarChart3 size={16} strokeWidth={1.5} color="rgba(255,255,255,0.7)" /> 今日の進捗
             </div>
 
             {/* PFC ドーナツ3連 */}
@@ -1364,11 +1371,11 @@ export default function Home() {
                 letterSpacing: 0.3,
               }}
             >
-              {shareStatus === "generating" ? "⏳ 画像を生成中..."
-                : shareStatus === "shared" ? "✅ シェアしました！"
-                : shareStatus === "downloaded" ? "✅ 画像を保存しました！"
-                : shareStatus === "error" ? "⚠️ エラーが発生しました"
-                : "🔥 今日の成果をドヤる（SNSシェア）"}
+              {shareStatus === "generating" ? "生成中..."
+                : shareStatus === "shared" ? "シェア完了"
+                : shareStatus === "downloaded" ? "保存完了"
+                : shareStatus === "error" ? "エラーが発生しました"
+                : "シェアする"}
             </button>
           </div>
         )}
@@ -1382,7 +1389,7 @@ export default function Home() {
             animation: "fadeUp 0.4s ease-out",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <span style={{ fontSize: 22 }}>🤖</span>
+              <Bot size={22} strokeWidth={1.5} color="#c084fc" />
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>AIメニュー提案</div>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>今日の残り予算・PFCに合った一食を提案</div>
@@ -1396,21 +1403,21 @@ export default function Home() {
                   padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600,
                   background: remainingBudget > 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
                   color: remainingBudget > 0 ? "#4ade80" : "#f87171",
-                  fontFamily: "'Space Mono',monospace",
+                  fontFamily: "var(--font-mono)",
                 }}>残¥{Math.round(remainingBudget).toLocaleString()}</span>
               )}
               {remainingProtein !== null && (
-                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(248,113,113,0.12)", color: "#f87171", fontFamily: "'Space Mono',monospace" }}>
+                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(248,113,113,0.12)", color: "#f87171", fontFamily: "var(--font-mono)" }}>
                   P残{Math.round(remainingProtein)}g
                 </span>
               )}
               {remainingFat !== null && (
-                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(250,204,21,0.12)", color: "#facc15", fontFamily: "'Space Mono',monospace" }}>
+                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(250,204,21,0.12)", color: "#facc15", fontFamily: "var(--font-mono)" }}>
                   F残{Math.round(remainingFat)}g
                 </span>
               )}
               {remainingCarbs !== null && (
-                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(96,165,250,0.12)", color: "#60a5fa", fontFamily: "'Space Mono',monospace" }}>
+                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(96,165,250,0.12)", color: "#60a5fa", fontFamily: "var(--font-mono)" }}>
                   C残{Math.round(remainingCarbs)}g
                 </span>
               )}
@@ -1425,15 +1432,15 @@ export default function Home() {
                 boxShadow: "0 4px 20px rgba(139,92,246,0.3)",
                 letterSpacing: 0.5,
               }}>
-                ✨ 今のあなたにピッタリのメニューを提案
+                メニューを提案
               </button>
             )}
 
             {/* Loading */}
             {aiSuggestLoading && (
               <div style={{ padding: 20, borderRadius: 15, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", textAlign: "center" }}>
-                <div style={{ fontSize: 28, marginBottom: 8, animation: "pulse 2s infinite" }}>🧠</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>あなたに合った一食を考え中...</div>
+                <div style={{ marginBottom: 8, animation: "pulse 2s infinite" }}><Bot size={28} strokeWidth={1.5} color="#c084fc" /></div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>メニューを分析中...</div>
               </div>
             )}
 
@@ -1454,8 +1461,8 @@ export default function Home() {
               <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden", animation: "fadeUp 0.4s ease-out" }}>
                 {/* Meal header */}
                 <div style={{ padding: "16px 16px 12px", display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, rgba(139,92,246,0.08), rgba(34,197,94,0.05))" }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(139,92,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>
-                    {aiSuggest.emoji || "🍽️"}
+                  <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(139,92,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <UtensilsCrossed size={22} strokeWidth={1.5} color="#c084fc" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,0.9)" }}>{aiSuggest.mealName}</div>
@@ -1473,7 +1480,7 @@ export default function Home() {
                   ].map((item, i) => (
                     <div key={i} style={{ textAlign: "center" }}>
                       <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>{item.label}</div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: item.color, fontFamily: "'Space Mono',monospace" }}>{item.value}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: item.color, fontFamily: "var(--font-mono)" }}>{item.value}</div>
                     </div>
                   ))}
                 </div>
@@ -1481,7 +1488,7 @@ export default function Home() {
                 {/* Recipe */}
                 {aiSuggest.recipe && (
                   <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                    <div style={{ fontSize: 11, color: "#c4b5fd", fontWeight: 600, marginBottom: 4 }}>📝 レシピ</div>
+                    <div style={{ fontSize: 11, color: "#c4b5fd", fontWeight: 600, marginBottom: 4 }}>レシピ</div>
                     <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.7, whiteSpace: "pre-line" }}>{aiSuggest.recipe}</div>
                   </div>
                 )}
@@ -1496,14 +1503,14 @@ export default function Home() {
                     cursor: aiSuggestRecorded ? "default" : "pointer",
                     boxShadow: aiSuggestRecorded ? "none" : "0 4px 16px rgba(34,197,94,0.25)",
                   }}>
-                    {aiSuggestRecorded ? "✅ 記録しました" : "📝 この食事を記録する"}
+                    {aiSuggestRecorded ? "記録完了" : "この食事を記録する"}
                   </button>
                   <button onClick={handleSuggestMeal} style={{
                     flex: 1, padding: "11px", borderRadius: 11,
                     border: "1px solid rgba(139,92,246,0.25)", background: "rgba(139,92,246,0.08)",
                     color: "#c4b5fd", fontSize: 12, fontWeight: 600, cursor: "pointer",
                   }}>
-                    🔄 別の提案
+                    別の提案
                   </button>
                 </div>
               </div>
@@ -1517,7 +1524,7 @@ export default function Home() {
 
           {/* Gender */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 8 }}>👤 性別</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}><User size={14} strokeWidth={1.5} /> 性別</label>
             <div style={{ display: "flex", gap: 8 }}>
               {[{ id: "male", label: "男性", emoji: "♂️" }, { id: "female", label: "女性", emoji: "♀️" }].map(g => (
                 <button key={g.id} onClick={() => setGender(g.id)} aria-label={`性別: ${g.label}`} aria-pressed={gender === g.id} role="radio" style={{
@@ -1533,7 +1540,7 @@ export default function Home() {
           {/* Weight — 小数第2位対応、スライダー廃止 → ±ステッパー */}
           <div style={{ marginBottom: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>⚖️ 体重</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", gap: 5 }}><Scale size={14} strokeWidth={1.5} /> 体重</label>
               <StepperInput value={weight} onChange={setWeight}
                 min={30} max={200} inputStep={0.01} step={0.1} bigStep={0.1} suffix="kg" width={75} color="#22c55e" />
             </div>
@@ -1542,15 +1549,15 @@ export default function Home() {
 
           {/* Goal */}
           <div style={{ marginBottom: 18 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 8 }}>🎯 目的</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}><Target size={14} strokeWidth={1.5} /> 目的</label>
             <div style={{ display: "flex", gap: 8 }}>
-              {[{ id: "reduce", label: "減量", emoji: "🔥", desc: "体脂肪を落とす" }, { id: "maintain", label: "維持", emoji: "⚖️", desc: "現状キープ" }, { id: "bulk", label: "増量", emoji: "💪", desc: "筋肉をつける" }].map(g => (
+              {[{ id: "reduce", label: "減量", icon: "flame", desc: "体脂肪を落とす" }, { id: "maintain", label: "維持", icon: "scale", desc: "現状キープ" }, { id: "bulk", label: "増量", icon: "dumbbell", desc: "筋肉をつける" }].map(g => (
                 <button key={g.id} onClick={() => { setGoal(g.id); setErrors(p => ({ ...p, goalWeight: undefined })); }} aria-label={`目的: ${g.label} - ${g.desc}`} aria-pressed={goal === g.id} role="radio" style={{
                   flex: 1, padding: "11px 6px", borderRadius: 12, cursor: "pointer", textAlign: "center", transition: "all 0.2s",
                   border: goal === g.id ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.08)",
                   background: goal === g.id ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.02)",
                 }}>
-                  <div style={{ fontSize: 20, marginBottom: 3 }}>{g.emoji}</div>
+                  <div style={{ marginBottom: 3, display: "flex", justifyContent: "center" }}>{g.icon === "flame" ? <Flame size={20} strokeWidth={1.5} /> : g.icon === "scale" ? <Scale size={20} strokeWidth={1.5} /> : <Dumbbell size={20} strokeWidth={1.5} />}</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: goal === g.id ? "#4ade80" : "rgba(255,255,255,0.7)" }}>{g.label}</div>
                   <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>{g.desc}</div>
                 </button>
@@ -1560,7 +1567,7 @@ export default function Home() {
 
           {/* Activity */}
           <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 8 }}>🏃 活動レベル</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}><Activity size={14} strokeWidth={1.5} /> 活動レベル</label>
             <div style={{ display: "flex", gap: 8 }}>
               {[{ id: "low", label: "低い", desc: "デスクワーク" }, { id: "moderate", label: "普通", desc: "週2-3回運動" }, { id: "high", label: "高い", desc: "毎日運動" }].map(a => (
                 <button key={a.id} onClick={() => setActivity(a.id)} aria-label={`活動レベル: ${a.label} - ${a.desc}`} aria-pressed={activity === a.id} role="radio" style={{
@@ -1581,31 +1588,31 @@ export default function Home() {
             background: "rgba(168,139,250,0.03)", border: "1px dashed rgba(168,139,250,0.15)",
           }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(168,139,250,0.7)", marginBottom: 14 }}>
-              💡 より正確な分析のためのオプション（任意）
+              より正確な分析のためのオプション（任意）
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>📏 身長</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)", display: "flex", alignItems: "center", gap: 4 }}><Ruler size={13} strokeWidth={1.5} /> 身長</label>
               <NumInput value={height} onChange={setHeight} placeholder="170" suffix="cm" min={100} max={220} step={0.1} width={60} color="#60a5fa" />
             </div>
             {errors.height && <div style={{ fontSize: 11, color: "#ef4444", marginTop: -10, marginBottom: 10, textAlign: "right" }}>{errors.height}</div>}
             {bmi && (
               <div style={{ padding: "10px 14px", borderRadius: 11, marginBottom: 14, background: `${bmiCol}08`, border: `1px solid ${bmiCol}20`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>📊 BMI</span>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>BMI</span>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                  <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 18, fontWeight: 700, color: bmiCol }}>{bmi}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 700, color: bmiCol }}>{bmi}</span>
                   <span style={{ fontSize: 10, color: bmiCol, background: `${bmiCol}18`, padding: "2px 7px", borderRadius: 5 }}>{bmiCat}</span>
                 </div>
               </div>
             )}
             {/* 体脂肪率 — 小数第1位対応、±ステッパー */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>📉 体脂肪率</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)", display: "flex", alignItems: "center", gap: 4 }}><Percent size={13} strokeWidth={1.5} /> 体脂肪率</label>
               <StepperInput value={bodyFat} onChange={setBodyFat}
                 min={3} max={60} inputStep={0.1} step={0.1} bigStep={0.1} suffix="%" width={55} color="#f97316" />
             </div>
             {errors.bodyFat && <div style={{ fontSize: 11, color: "#ef4444", marginTop: -10, marginBottom: 10, textAlign: "right" }}>{errors.bodyFat}</div>}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🎂 年齢</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)", display: "flex", alignItems: "center", gap: 4 }}><CalendarDays size={13} strokeWidth={1.5} /> 年齢</label>
               <NumInput value={age} onChange={setAge} placeholder="30" suffix="歳" min={10} max={120} step={1} width={50} color="#a78bfa" />
             </div>
             {errors.age && <div style={{ fontSize: 11, color: "#ef4444", marginTop: -10, marginBottom: 10, textAlign: "right" }}>{errors.age}</div>}
@@ -1613,19 +1620,19 @@ export default function Home() {
             {/* ── 目標体重 & 期限 ── */}
             <div style={{ marginTop: 4, marginBottom: 10, padding: "12px 14px", borderRadius: 12, background: "rgba(251,191,36,0.03)", border: "1px solid rgba(251,191,36,0.1)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🎯 目標体重</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)", display: "flex", alignItems: "center", gap: 4 }}><Target size={13} strokeWidth={1.5} /> 目標体重</label>
                 <StepperInput value={goalWeight} onChange={setGoalWeight}
                   min={20} max={200} inputStep={0.1} step={0.5} bigStep={1} suffix="kg" width={70} color="#fbbf24" />
               </div>
               {errors.goalWeight && <div style={{ fontSize: 11, color: "#ef4444", marginTop: -8, marginBottom: 8, textAlign: "right" }}>{errors.goalWeight}</div>}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: daysLeft ? 8 : 0 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>🗓️ 目標期限</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)", display: "flex", alignItems: "center", gap: 4 }}><Calendar size={13} strokeWidth={1.5} /> 目標期限</label>
                 <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} min={new Date().toISOString().split("T")[0]}
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "7px 10px", color: deadline ? "#fbbf24" : "rgba(255,255,255,0.25)", fontFamily: "'Space Mono',monospace", fontSize: 13, outline: "none", colorScheme: "dark" }} />
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "7px 10px", color: deadline ? "#fbbf24" : "rgba(255,255,255,0.25)", fontFamily: "var(--font-mono)", fontSize: 13, outline: "none", colorScheme: "dark" }} />
               </div>
               {daysLeft > 0 && (
                 <div style={{ padding: "9px 14px", borderRadius: 10, marginTop: 6, background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.1)", fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
-                  ⏳ 残り <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 15, fontWeight: 700, color: "#fbbf24" }}>{daysLeft}</span> 日
+                  残り <span style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 700, color: "#fbbf24" }}>{daysLeft}</span> 日
                   {goalWeight && weight && daysLeft > 0 && (() => {
                     const diff = goalWeight - weight;
                     const weeklyKg = (diff / daysLeft * 7).toFixed(2);
@@ -1634,7 +1641,7 @@ export default function Home() {
                 </div>
               )}
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", lineHeight: 1.6, marginTop: 10 }}>
-                💡 目標体重と期限を設定すると、AIが1日あたりの最適なカロリー増減ペースを正確に逆算します
+                目標体重と期限を設定すると、1日あたりの最適なカロリー増減ペースを逆算します
               </div>
             </div>
           </div>
@@ -1656,20 +1663,20 @@ export default function Home() {
 
             {calcBasis && (
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginBottom: 14, padding: "8px 12px", borderRadius: 8, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", lineHeight: 1.5 }}>
-                📐 {calcBasis}
+                {calcBasis}
               </div>
             )}
 
-            <SliderInput label="🪙 食費予算/日" value={budget} setValue={setBudget} min={200} max={5000} step={50} color="#22c55e" prefix="¥" editable />
-            <SliderInput label="🥩 目標タンパク質" value={protein} setValue={setProtein} min={50} max={250} step={5} color="#f97316" suffix="g" editable />
-            <SliderInput label="🔥 目標カロリー" value={calories} setValue={setCalories} min={1000} max={4000} step={50} color="#3b82f6" suffix="kcal" editable />
+            <SliderInput label="食費予算/日" value={budget} setValue={setBudget} min={200} max={5000} step={50} color="#22c55e" prefix="¥" editable />
+            <SliderInput label="目標タンパク質" value={protein} setValue={setProtein} min={50} max={250} step={5} color="#f97316" suffix="g" editable />
+            <SliderInput label="目標カロリー" value={calories} setValue={setCalories} min={1000} max={4000} step={50} color="#3b82f6" suffix="kcal" editable />
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 8 }}>⚙️ カテゴリ除外</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}><Settings size={13} strokeWidth={1.5} /> カテゴリ除外</label>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {["meat", "fish", "dairy", "soy", "supp"].map(cat => (
                   <Pill key={cat} active={excludedCats.includes(cat)} onClick={() => setExcludedCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])}>
-                    {CAT_EMOJI[cat]} {CAT_LABELS[cat]}なし
+                    {CAT_LABELS[cat]}なし
                   </Pill>
                 ))}
               </div>
@@ -1681,7 +1688,7 @@ export default function Home() {
               color: "rgba(255,255,255,0.4)", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "space-between",
               marginBottom: showFoodPicker ? 10 : 16, transition: "all 0.2s",
             }}>
-              <span>🚫 個別に食材を除外 {excludedIds.length > 0 && `(${excludedIds.length}件)`}</span>
+              <span>個別に食材を除外 {excludedIds.length > 0 && `(${excludedIds.length}件)`}</span>
               <span style={{ fontSize: 10, transform: showFoodPicker ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}>▼</span>
             </button>
 
@@ -1692,7 +1699,7 @@ export default function Home() {
                     <input type="checkbox" checked={excludedIds.includes(f.id)}
                       onChange={() => setExcludedIds(prev => prev.includes(f.id) ? prev.filter(x => x !== f.id) : [...prev, f.id])}
                       style={{ accentColor: "#ef4444", width: 14, height: 14 }} />
-                    <span style={{ textDecoration: excludedIds.includes(f.id) ? "line-through" : "none" }}>{CAT_EMOJI[f.cat]} {f.name}</span>
+                    <span style={{ textDecoration: excludedIds.includes(f.id) ? "line-through" : "none" }}>{f.name}</span>
                     <span style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,0.2)" }}>P{f.protein}g ¥{f.cost}</span>
                   </label>
                 ))}
@@ -1706,7 +1713,7 @@ export default function Home() {
               boxShadow: aiLoading ? "none" : "0 8px 32px rgba(34,197,94,0.3)", fontFamily: "'Noto Sans JP',sans-serif", letterSpacing: 1,
               transition: "transform 0.15s, box-shadow 0.15s, opacity 0.2s",
             }}>
-              {aiLoading ? <span>🧠 AI分析中 <TypingDots /></span> : "⚡ AIプランを生成"}
+              {aiLoading ? <span>AI分析中 <TypingDots /></span> : "AIプランを生成"}
             </button>
           </SectionCard>
         )}
@@ -1719,9 +1726,9 @@ export default function Home() {
               background: result.proteinReached ? "linear-gradient(135deg,rgba(34,197,94,0.12),rgba(34,197,94,0.04))" : "linear-gradient(135deg,rgba(249,115,22,0.12),rgba(249,115,22,0.04))",
               border: `1px solid ${result.proteinReached ? "rgba(34,197,94,0.18)" : "rgba(249,115,22,0.18)"}`, display: "flex", alignItems: "center", gap: 10,
             }}>
-              <span style={{ fontSize: 22 }}>{result.proteinReached ? "✅" : "⚠️"}</span>
+              <span>{result.proteinReached ? <CheckCircle size={22} strokeWidth={1.5} color="#4ade80" /> : <AlertTriangle size={22} strokeWidth={1.5} color="#f97316" />}</span>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{result.proteinReached ? "目標達成！" : "タンパク質が少し不足"}</div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{result.proteinReached ? "目標達成" : "タンパク質が少し不足"}</div>
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>¥{Math.round(result.totals.cost)}/¥{budget} — 残¥{Math.round(result.remaining)}{daysLeft ? ` — ${daysLeft}日` : ""}</div>
               </div>
             </div>
@@ -1736,11 +1743,11 @@ export default function Home() {
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               <div style={{ flex: 1, padding: "12px", borderRadius: 13, background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.12)", textAlign: "center" }}>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 3 }}>P効率</div>
-                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 18, fontWeight: 700, color: "#f97316" }}>{ppYen}g<span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>/¥100</span></div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 700, color: "#f97316" }}>{ppYen}g<span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>/¥100</span></div>
               </div>
               <div style={{ flex: 1.5, padding: "12px", borderRadius: 13, background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.12)", textAlign: "center" }}>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 3 }}>PFC比率</div>
-                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 16, fontWeight: 700, color: "#3b82f6" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "#3b82f6" }}>
                   {Math.round(result.totals.protein * 4 / result.totals.cal * 100)} : {Math.round(result.totals.fat * 9 / result.totals.cal * 100)} : {Math.round(result.totals.carbs * 4 / result.totals.cal * 100)}
                 </div>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,0.22)", marginTop: 2 }}>理想 P{idealPFC.p} F{idealPFC.f} C{idealPFC.c}</div>
@@ -1748,7 +1755,7 @@ export default function Home() {
             </div>
 
             <div style={{ display: "flex", gap: 3, marginBottom: 14, background: "rgba(255,255,255,0.03)", borderRadius: 11, padding: 3 }}>
-              {[{ id: "ai", label: `🧠 AI献立${aiLoading ? "..." : ""}` }, { id: "plan", label: "🛒 買い物" }, { id: "tips", label: "💡 Tips" }].map(tab => (
+              {[{ id: "ai", label: `AI献立${aiLoading ? "..." : ""}` }, { id: "plan", label: "買い物" }, { id: "tips", label: "Tips" }].map(tab => (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                   flex: 1, padding: "9px 6px", borderRadius: 9, border: "none",
                   background: activeTab === tab.id ? "rgba(34,197,94,0.15)" : "transparent",
@@ -1763,45 +1770,45 @@ export default function Home() {
               <div>
                 {aiLoading && (
                   <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "28px 20px", textAlign: "center" }}>
-                    <div style={{ fontSize: 32, marginBottom: 12, animation: "pulse 2s infinite" }}>🧠</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 5 }}>AIが献立を考え中...</div>
+                    <div style={{ marginBottom: 12, animation: "pulse 2s infinite" }}><Bot size={32} strokeWidth={1.5} color="#4ade80" /></div>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 5 }}>献立を分析中...</div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{profileSummary} <TypingDots /></div>
                   </div>
                 )}
                 {aiError && (
                   <div style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)", borderRadius: 14, padding: "14px 16px" }}>
-                    <div style={{ fontSize: 12, color: "#fca5a5", lineHeight: 1.5 }}>⚠️ {aiError}</div>
+                    <div style={{ fontSize: 12, color: "#fca5a5", lineHeight: 1.5 }}>{aiError}</div>
                     <button onClick={handleGenerate} style={{ marginTop: 8, padding: "7px 14px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.08)", color: "#fca5a5", fontSize: 11, cursor: "pointer" }}>再試行</button>
                   </div>
                 )}
                 {aiAdvice && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <div style={{ background: "linear-gradient(135deg,rgba(34,197,94,0.07),rgba(59,130,246,0.05))", border: "1px solid rgba(34,197,94,0.12)", borderRadius: 15, padding: "16px" }}>
-                      <div style={{ fontSize: 11, color: "#4ade80", fontWeight: 600, marginBottom: 7 }}>🤖 AIパーソナルコーチ</div>
+                      <div style={{ fontSize: 11, color: "#4ade80", fontWeight: 600, marginBottom: 7 }}>AIパーソナルコーチ</div>
                       <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 1.75 }}><StreamText text={aiAdvice.personalMessage} /></div>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.45)" }}>👨‍🍳 本日の献立</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.45)" }}>本日の献立</div>
                     {aiAdvice.meals?.map((meal, i) => {
                       const bg = ["rgba(249,115,22,0.1)", "rgba(34,197,94,0.1)", "rgba(59,130,246,0.1)", "rgba(168,139,250,0.1)"];
-                      const fb = ["🌅", "☀️", "🌙", "🍎"];
+                      const fb = ["M", "L", "D", "S"];
                       return (
                         <div key={i} onClick={() => setExpandedMeal(expandedMeal === i ? null : i)} style={{
                           background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
                           borderRadius: 15, overflow: "hidden", cursor: "pointer", animation: `fadeUp 0.3s ease-out ${i * 0.07}s both`,
                         }}>
                           <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 11 }}>
-                            <div style={{ minWidth: 42, height: 42, borderRadius: 12, background: bg[i % 4], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{meal.emoji || fb[i % 4]}</div>
+                            <div style={{ minWidth: 42, height: 42, borderRadius: 12, background: bg[i % 4], display: "flex", alignItems: "center", justifyContent: "center" }}><UtensilsCrossed size={18} strokeWidth={1.5} color="rgba(255,255,255,0.7)" /></div>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{meal.timing}</div>
                               <div style={{ fontSize: 14, fontWeight: 600, marginTop: 1 }}>{meal.name}</div>
-                              {meal.macros && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2, fontFamily: "'Space Mono',monospace" }}>{meal.macros}</div>}
+                              {meal.macros && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2, fontFamily: "var(--font-mono)" }}>{meal.macros}</div>}
                             </div>
                             <span style={{ transform: expandedMeal === i ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s", fontSize: 11, color: "rgba(255,255,255,0.25)" }}>▼</span>
                           </div>
                           {expandedMeal === i && (
                             <div style={{ padding: "0 16px 14px", borderTop: "1px solid rgba(255,255,255,0.04)", paddingTop: 12 }}>
-                              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 8 }}><span style={{ color: "#4ade80", fontWeight: 600 }}>🛒</span> {meal.ingredients}</div>
-                              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.65 }}><span style={{ color: "#60a5fa", fontWeight: 600 }}>📝</span> {meal.recipe}</div>
+                              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginBottom: 8 }}>{meal.ingredients}</div>
+                              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.65 }}>{meal.recipe}</div>
                             </div>
                           )}
                         </div>
@@ -1809,19 +1816,19 @@ export default function Home() {
                     })}
                     {aiAdvice.weeklyTip && (
                       <div style={{ background: "rgba(168,139,250,0.05)", border: "1px solid rgba(168,139,250,0.1)", borderRadius: 14, padding: "14px 16px" }}>
-                        <div style={{ fontSize: 11, color: "#c4b5fd", fontWeight: 600, marginBottom: 5 }}>📅 週間アドバイス</div>
+                        <div style={{ fontSize: 11, color: "#c4b5fd", fontWeight: 600, marginBottom: 5 }}>週間アドバイス</div>
                         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>{aiAdvice.weeklyTip}</div>
                       </div>
                     )}
                     {aiAdvice.warning && (
                       <div style={{ background: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.12)", borderRadius: 14, padding: "14px 16px" }}>
-                        <div style={{ fontSize: 11, color: "#fbbf24", fontWeight: 600, marginBottom: 5 }}>⚠️ 注意</div>
+                        <div style={{ fontSize: 11, color: "#fbbf24", fontWeight: 600, marginBottom: 5 }}>注意</div>
                         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>{aiAdvice.warning}</div>
                       </div>
                     )}
                     {aiAdvice.productTips && (
                       <div style={{ background: "rgba(34,197,94,0.04)", border: "1px solid rgba(34,197,94,0.1)", borderRadius: 14, padding: "14px 16px" }}>
-                        <div style={{ fontSize: 11, color: "#4ade80", fontWeight: 600, marginBottom: 5 }}>🎯 あなたへのおすすめ</div>
+                        <div style={{ fontSize: 11, color: "#4ade80", fontWeight: 600, marginBottom: 5 }}>おすすめ</div>
                         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>{aiAdvice.productTips}</div>
                       </div>
                     )}
@@ -1836,15 +1843,15 @@ export default function Home() {
                 {result.items.map((item, i) => (
                   <div key={i} style={{ padding: "12px 16px", borderBottom: i < result.items.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", display: "flex", justifyContent: "space-between", alignItems: "center", animation: `fadeUp 0.25s ease-out ${i * 0.03}s both` }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{CAT_EMOJI[item.cat]} {item.name}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{item.name}</div>
                       <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{item.unit} × {item.servings} — P:{(item.protein * item.servings).toFixed(1)}g</div>
                     </div>
-                    <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 13, fontWeight: 700, color: "#22c55e" }}>¥{item.cost * item.servings}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "#22c55e" }}>¥{item.cost * item.servings}</div>
                   </div>
                 ))}
                 <div style={{ padding: "14px 16px", background: "rgba(34,197,94,0.04)", display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>合計 ({result.items.length}品)</span>
-                  <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 17, fontWeight: 700, color: "#22c55e" }}>¥{Math.round(result.totals.cost)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 17, fontWeight: 700, color: "#22c55e" }}>¥{Math.round(result.totals.cost)}</span>
                 </div>
               </div>
             )}
@@ -1853,14 +1860,14 @@ export default function Home() {
             {activeTab === "tips" && (
               <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "16px" }}>
                 {[
-                  { emoji: "🏪", title: "業務スーパー活用", desc: "鶏むね2kg ¥900〜、冷凍ブロッコリー500g ¥150〜" },
-                  { emoji: "🥚", title: "卵は最強コスパ", desc: "10個¥200前後。1個¥20でP6gの完全栄養食" },
-                  { emoji: "📅", title: "下味冷凍で時短", desc: "鶏むねに味付けして冷凍→解凍して焼くだけ" },
-                  { emoji: "🏷️", title: "20時以降は値引き品", desc: "肉・魚が30-50%OFF。タイムセールを狙う" },
-                  { emoji: "💊", title: "プロテインはコスパ◎", desc: "1杯¥50〜60でP20g。朝食・間食の置き換えに" },
+                  { title: "業務スーパー活用", desc: "鶏むね2kg ¥900〜、冷凍ブロッコリー500g ¥150〜" },
+                  { title: "卵は最強コスパ", desc: "10個¥200前後。1個¥20でP6gの完全栄養食" },
+                  { title: "下味冷凍で時短", desc: "鶏むねに味付けして冷凍→解凍して焼くだけ" },
+                  { title: "20時以降は値引き品", desc: "肉・魚が30-50%OFF。タイムセールを狙う" },
+                  { title: "プロテインはコスパ◎", desc: "1杯¥50〜60でP20g。朝食・間食の置き換えに" },
                 ].map((tip, i) => (
                   <div key={i} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < 4 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                    <span style={{ fontSize: 22, flexShrink: 0 }}>{tip.emoji}</span>
+                    <span style={{ width: 22, height: 22, borderRadius: 6, background: "rgba(34,197,94,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Lightbulb size={12} strokeWidth={1.5} color="#4ade80" /></span>
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{tip.title}</div>
                       <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>{tip.desc}</div>
@@ -1872,7 +1879,7 @@ export default function Home() {
 
             {/* Affiliate */}
             <div style={{ marginTop: 16, padding: "16px", borderRadius: 15, background: "linear-gradient(135deg,rgba(139,92,246,0.06),rgba(59,130,246,0.04))", border: "1px solid rgba(139,92,246,0.12)" }}>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 8, letterSpacing: 1 }}>💎 おすすめ</div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 8, letterSpacing: 1 }}>おすすめ</div>
               {[
                 { name: "マイプロテイン ホエイ 1kg", price: "¥3,390", tag: "1杯¥56でP21g", color: "#f97316" },
                 { name: "タニタ キッチンスケール", price: "¥1,480", tag: "計量で無駄ゼロ", color: "#3b82f6" },
@@ -1883,7 +1890,7 @@ export default function Home() {
                     <div style={{ fontSize: 12, fontWeight: 500 }}>{item.name}</div>
                     <span style={{ fontSize: 9, color: item.color, background: `${item.color}12`, padding: "1px 6px", borderRadius: 4 }}>{item.tag}</span>
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", fontFamily: "'Space Mono',monospace" }}>{item.price}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", fontFamily: "var(--font-mono)" }}>{item.price}</div>
                 </div>
               ))}
               <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", marginTop: 8, textAlign: "center" }}>※ アフィリエイトリンクを含みます</div>
@@ -1895,13 +1902,13 @@ export default function Home() {
                 flex: 1, padding: "14px", borderRadius: 13, border: "1px solid rgba(34,197,94,0.25)",
                 background: "rgba(34,197,94,0.06)", color: "#4ade80", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: aiLoading ? 0.5 : 1,
                 minHeight: 48, transition: "all 0.15s",
-              }}>🔄 再生成</button>
+              }}>再生成</button>
               <button onClick={handleShare} style={{
                 flex: 1, padding: "14px", borderRadius: 13, border: "1px solid rgba(255,255,255,0.1)",
                 background: shareMsg ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)",
                 color: shareMsg ? "#4ade80" : "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
                 minHeight: 48,
-              }}>{shareMsg || "📤 シェア"}</button>
+              }}>{shareMsg || "シェア"}</button>
             </div>
           </div>
         )}

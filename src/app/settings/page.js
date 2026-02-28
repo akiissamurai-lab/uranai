@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
+import { Target, Wallet, Zap } from "lucide-react";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -76,7 +77,7 @@ export default function SettingsPage() {
           carbs_goal: data.carbsGoal,
         });
       }
-      showToast("success", "保存しました！");
+      showToast("success", "保存完了");
     } catch {
       showToast("error", "保存に失敗しました");
     } finally {
@@ -112,7 +113,7 @@ export default function SettingsPage() {
         <form onSubmit={handleSave}>
           {/* 目標体重 */}
           <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>🎯 目標体重</h2>
+            <h2 style={styles.sectionTitle}><Target size={14} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />目標体重</h2>
             <div style={styles.inputRow}>
               <label style={styles.label}>目標体重</label>
               <div style={styles.inputWrap}>
@@ -134,7 +135,7 @@ export default function SettingsPage() {
 
           {/* 食費予算 */}
           <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>💰 1日の食費予算</h2>
+            <h2 style={styles.sectionTitle}><Wallet size={14} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />1日の食費予算</h2>
             <div style={styles.inputRow}>
               <label style={styles.label}>予算</label>
               <div style={styles.inputWrap}>
@@ -156,7 +157,7 @@ export default function SettingsPage() {
 
           {/* PFC バランス */}
           <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>⚡ PFCバランス目標</h2>
+            <h2 style={styles.sectionTitle}><Zap size={14} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />PFCバランス目標</h2>
             <p style={styles.hint}>設定するとメインページの自動計算を上書きします</p>
 
             <div style={styles.inputRow}>
@@ -257,7 +258,6 @@ const styles = {
   page: {
     minHeight: "100vh",
     background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)",
-    fontFamily: "'DM Sans','Noto Sans JP',sans-serif",
     color: "white",
     position: "relative",
     overflow: "hidden",

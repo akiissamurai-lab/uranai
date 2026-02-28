@@ -126,7 +126,7 @@ export function saveLocalRoutineMeal(meal) {
   const entry = {
     id: uid(),
     meal_name: meal.mealName,
-    emoji: meal.emoji || "🍱",
+    emoji: meal.emoji || "#4ade80",
     price: meal.price || null,
     protein: meal.protein || null,
     fat: meal.fat || null,

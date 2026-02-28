@@ -8,6 +8,7 @@ import { saveLocalBodyMetric, loadLocalBodyMetrics, loadLocalBodyMetricByDate, l
 import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from "recharts";
+import { PenLine, Scale, BarChart3 } from "lucide-react";
 
 // ─── カスタムツールチップ ───
 function CustomTooltip({ active, payload, label }) {
@@ -150,7 +151,7 @@ export default function ProgressPage() {
     setSaving(false);
 
     if (ok) {
-      showToast("success", "記録しました！");
+      showToast("success", "記録完了");
       if (user) {
         loadBodyMetrics(supabase, user.id, range || 3650).then(setMetrics);
       } else {
@@ -369,7 +370,7 @@ export default function ProgressPage() {
 
         {/* Input form */}
         <form onSubmit={handleSubmit} style={S.card}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 12 }}>📝 記録する</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><PenLine size={14} strokeWidth={1.5} />記録する</div>
 
           {/* Date picker */}
           <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
@@ -384,7 +385,7 @@ export default function ProgressPage() {
           {/* Weight + Body Fat */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
             <div>
-              <label style={S.fieldLabel}>⚖️ 体重 (kg)</label>
+              <label style={{ ...S.fieldLabel, display: "flex", alignItems: "center", gap: 4 }}><Scale size={12} strokeWidth={1.5} />体重 (kg)</label>
               <div style={S.numWrap}>
                 <input
                   type="number"
@@ -403,7 +404,7 @@ export default function ProgressPage() {
               </div>
             </div>
             <div>
-              <label style={S.fieldLabel}>📊 体脂肪率 (%)</label>
+              <label style={{ ...S.fieldLabel, display: "flex", alignItems: "center", gap: 4 }}><BarChart3 size={12} strokeWidth={1.5} />体脂肪率 (%)</label>
               <div style={S.numWrap}>
                 <input
                   type="number"
@@ -424,7 +425,7 @@ export default function ProgressPage() {
 
           {/* Notes */}
           <div style={{ marginBottom: 14 }}>
-            <label style={S.fieldLabel}>📝 体調メモ</label>
+            <label style={{ ...S.fieldLabel, display: "flex", alignItems: "center", gap: 4 }}><PenLine size={12} strokeWidth={1.5} />体調メモ</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -440,7 +441,7 @@ export default function ProgressPage() {
             cursor: saving ? "not-allowed" : "pointer",
             opacity: !weight && !saving ? 0.5 : 1,
           }}>
-            {saving ? "保存中..." : "💾 保存する"}
+            {saving ? "保存中..." : "保存"}
           </button>
         </form>
 
@@ -505,7 +506,7 @@ export default function ProgressPage() {
 }
 
 const S = {
-  page: { minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", fontFamily: "'DM Sans','Noto Sans JP',sans-serif", color: "white", position: "relative", overflow: "hidden" },
+  page: { minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", color: "white", position: "relative", overflow: "hidden" },
   orb1: { position: "fixed", top: -200, right: -200, width: 500, height: 500, background: "radial-gradient(circle,rgba(34,197,94,0.06)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" },
   orb2: { position: "fixed", bottom: -150, left: -150, width: 400, height: 400, background: "radial-gradient(circle,rgba(59,130,246,0.05)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" },
   header: { padding: "18px 24px 10px", maxWidth: 480, margin: "0 auto", display: "flex", alignItems: "center", gap: 12 },
