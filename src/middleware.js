@@ -29,7 +29,11 @@ export async function middleware(request) {
   );
 
   // Refresh session cookie
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    // ネットワークエラー等: そのまま続行
+  }
 
   return supabaseResponse;
 }

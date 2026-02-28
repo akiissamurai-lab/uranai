@@ -15,6 +15,10 @@ export default function AuthGate({ supabase, onAuthChange }) {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
       onAuthChange(user);
+    }).catch(() => {
+      // ネットワークエラー等: ゲスト扱い
+      setUser(null);
+      onAuthChange(null);
     });
 
     const {
