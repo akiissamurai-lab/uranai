@@ -135,40 +135,81 @@ export async function deleteMealLog(supabase, userId, logId) {
   }
 }
 
-// ─── ゲストデータ → Supabase 一括同期（ログイン時に実行） ───────
+// ─── ゲストデータ → Supabase 安全同期（ログイン時に実行） ───────
+// 【セーフガード】
+// 1. 既存クラウドデータはローカルで上書きしない（クラウド優先マージ）
+// 2. 全保存成功を確認してからlocalStorageをクリア（部分消失防止）
+// 3. localStorage ロックで複数タブの同時実行を防止
 export async function migrateAllLocalData(supabase, userId) {
   if (typeof window === "undefined") return;
+
+  // 既に同期済みならスキップ
   const migrated = localStorage.getItem(`guest_migrated_${userId}`);
   if (migrated) return;
+
+  // 複数タブからの同時実行をロック
+  const lockKey = `guest_migrating_lock`;
+  const existingLock = localStorage.getItem(lockKey);
+  if (existingLock) {
+    const lockTime = Number(existingLock);
+    // 5分以上前のロックは無効（タブクラッシュ対策）
+    if (Date.now() - lockTime < 5 * 60 * 1000) {
+      console.log("Migration already in progress (another tab), skipping");
+      return;
+    }
+  }
+  localStorage.setItem(lockKey, String(Date.now()));
 
   try {
     const { getAllLocalData, clearAllLocalData } = await import("@/lib/local-db");
     const local = getAllLocalData();
-    if (!local) return;
-
-    // Profile
-    if (local.profile) {
-      await saveProfile(supabase, userId, {
-        weight: local.profile.weight,
-        height: local.profile.height,
-        age: local.profile.age,
-        bodyFat: local.profile.body_fat,
-        gender: local.profile.gender,
-        goal: local.profile.goal,
-        activity: local.profile.activity,
-        goalWeight: local.profile.goal_weight,
-        budget: local.profile.budget,
-        proteinGoal: local.profile.protein_goal,
-        fatGoal: local.profile.fat_goal,
-        carbsGoal: local.profile.carbs_goal,
-      });
+    if (!local || (!local.profile && !local.mealLogs && !local.bodyMetrics && !local.routineMeals)) {
+      // ローカルデータなし → 同期不要、フラグだけ立てる
+      localStorage.setItem(`guest_migrated_${userId}`, "true");
+      localStorage.removeItem(lockKey);
+      return;
     }
 
-    // Meal logs (dateKey → array)
+    let saveErrors = 0;
+
+    // ── Profile: クラウド優先マージ（既存クラウドデータは上書きしない）──
+    if (local.profile) {
+      const cloudProfile = await loadProfile(supabase, userId);
+      const mergedProfile = {};
+      const fields = [
+        ["weight", "weight"], ["height", "height"], ["age", "age"],
+        ["body_fat", "bodyFat"], ["gender", "gender"], ["goal", "goal"],
+        ["activity", "activity"], ["goal_weight", "goalWeight"],
+        ["budget", "budget"], ["protein_goal", "proteinGoal"],
+        ["fat_goal", "fatGoal"], ["carbs_goal", "carbsGoal"],
+      ];
+      let hasNewData = false;
+      for (const [localKey, dbKey] of fields) {
+        // クラウドに値があればクラウド優先、なければローカルで埋める
+        const cloudVal = cloudProfile?.[localKey];
+        const localVal = local.profile[localKey];
+        if (cloudVal != null && cloudVal !== "" && cloudVal !== 0) {
+          mergedProfile[dbKey] = cloudVal;
+        } else if (localVal != null && localVal !== "" && localVal !== 0) {
+          mergedProfile[dbKey] = localVal;
+          hasNewData = true;
+        }
+      }
+      if (hasNewData) {
+        await saveProfile(supabase, userId, mergedProfile);
+      }
+    }
+
+    // ── Meal logs: 重複チェック（同じ日・同じ名前・同時刻はスキップ）──
     if (local.mealLogs) {
       for (const dateKey of Object.keys(local.mealLogs)) {
+        const cloudLogs = await loadMealLogs(supabase, userId, dateKey);
+        const cloudNames = new Set(cloudLogs.map((l) => `${l.meal_name}_${l.price}`));
+
         for (const log of local.mealLogs[dateKey]) {
-          await saveMealLog(supabase, userId, {
+          const key = `${log.meal_name}_${log.price}`;
+          if (cloudNames.has(key)) continue; // 重複スキップ
+          const saved = await saveMealLog(supabase, userId, {
             date: log.date,
             mealName: log.meal_name,
             price: log.price,
@@ -176,26 +217,34 @@ export async function migrateAllLocalData(supabase, userId) {
             fat: log.fat,
             carbs: log.carbs,
           });
+          if (!saved) saveErrors++;
         }
       }
     }
 
-    // Body metrics
+    // ── Body metrics: クラウドに同日データがなければ追加 ──
     if (local.bodyMetrics && Array.isArray(local.bodyMetrics)) {
       for (const m of local.bodyMetrics) {
-        await saveBodyMetric(supabase, userId, {
+        const cloudMetric = await loadBodyMetricByDate(supabase, userId, m.date);
+        if (cloudMetric) continue; // クラウドに既存データあり → スキップ
+        const ok = await saveBodyMetric(supabase, userId, {
           date: m.date,
           weight: m.weight,
           bodyFat: m.body_fat,
           notes: m.notes,
         });
+        if (!ok) saveErrors++;
       }
     }
 
-    // Routine meals
+    // ── Routine meals: 同名ルーティンは重複スキップ ──
     if (local.routineMeals && Array.isArray(local.routineMeals)) {
+      const cloudRoutines = await loadRoutineMeals(supabase, userId);
+      const cloudRouteNames = new Set(cloudRoutines.map((r) => r.meal_name));
+
       for (const r of local.routineMeals) {
-        await saveRoutineMeal(supabase, userId, {
+        if (cloudRouteNames.has(r.meal_name)) continue; // 同名スキップ
+        const saved = await saveRoutineMeal(supabase, userId, {
           mealName: r.meal_name,
           emoji: r.emoji,
           price: r.price,
@@ -203,14 +252,24 @@ export async function migrateAllLocalData(supabase, userId) {
           fat: r.fat,
           carbs: r.carbs,
         });
+        if (!saved) saveErrors++;
       }
     }
 
-    clearAllLocalData();
-    localStorage.setItem(`guest_migrated_${userId}`, "true");
-    console.log("Guest data migrated to Supabase successfully");
+    // ── クリア判定: 全保存成功時のみ localStorage をクリア ──
+    if (saveErrors === 0) {
+      clearAllLocalData();
+      localStorage.setItem(`guest_migrated_${userId}`, "true");
+      console.log("Guest data migrated to Supabase successfully");
+    } else {
+      console.warn(`Migration completed with ${saveErrors} errors — local data preserved for retry`);
+      // 次回ログイン時に再試行されるよう、migrated フラグは立てない
+    }
   } catch (e) {
     console.warn("migrateAllLocalData error:", e);
+    // ローカルデータは消さない（次回再試行）
+  } finally {
+    localStorage.removeItem(lockKey);
   }
 }
 

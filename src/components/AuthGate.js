@@ -23,8 +23,17 @@ export default function AuthGate({ supabase, onAuthChange }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       const currentUser = session?.user ?? null;
+
+      // セッション期限切れ・リフレッシュ失敗 → 安全にゲストモードへ
+      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED" && !session) {
+        setUser(null);
+        onAuthChange(null);
+        return;
+      }
+
+      // 別タブでログイン/ログアウトした場合もリアルタイム反映
       setUser(currentUser);
       onAuthChange(currentUser);
     });

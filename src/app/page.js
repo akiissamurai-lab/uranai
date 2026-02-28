@@ -545,6 +545,21 @@ export default function Home() {
     setUser(authUser);
     setAuthChecked(true);
     if (authUser) {
+      // セッション有効性の二重確認（期限切れトークンでの操作を防止）
+      try {
+        const { data: { user: verified } } = await supabase.auth.getUser();
+        if (!verified) {
+          // トークンは存在するがサーバー側で無効 → ゲストモードへ安全に退行
+          console.warn("Session token invalid, falling back to guest mode");
+          setUser(null);
+          return;
+        }
+      } catch {
+        // ネットワークエラー → ゲストモードで継続
+        setUser(null);
+        return;
+      }
+
       // プロフィール復元
       const profile = await loadProfile(supabase, authUser.id);
       if (profile) {
