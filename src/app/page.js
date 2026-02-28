@@ -111,6 +111,36 @@ function calcTDEE(bmr, activity, goal) {
   return Math.round(tdee / 50) * 50;
 }
 
+// ─── AI 価格基準（全AIプロンプト共通） ───────────────────────────
+const PRICE_ANCHOR = `【価格基準 — 日本の業務スーパー・ディスカウントストア相場（税込目安）】
+- 鶏むね肉: 100gあたり約60〜80円
+- 鶏もも肉: 100gあたり約80〜100円
+- 豚こま切れ肉: 100gあたり約90〜120円
+- 卵1パック(10個): 約200〜280円（1個あたり約20〜28円）
+- 木綿豆腐(1丁300g): 約30〜50円
+- 納豆(3パック): 約70〜100円
+- ツナ缶(水煮): 1缶約100〜130円
+- 鯖缶(水煮): 1缶約150〜200円
+- 牛乳(1L): 約170〜220円
+- ヨーグルト(400g): 約120〜160円
+- 白米(5kg): 約1,800〜2,500円（1食150g炊飯後≒約25〜35円）
+- オートミール(500g): 約300〜500円（1食40g≒約25〜40円）
+- 食パン(6枚切): 約100〜150円
+- パスタ(500g): 約100〜180円（1食100g≒約20〜36円）
+- もやし(1袋200g): 約20〜40円
+- キャベツ(1玉): 約100〜200円
+- ブロッコリー(冷凍500g): 約150〜250円（100g≒約30〜50円）
+- バナナ(1房4-5本): 約100〜150円
+- プロテインパウダー(1kg): 約2,500〜4,000円（1杯30g≒約75〜120円）
+- 調味料・油(1食あたり加算): 約15〜30円
+
+【価格ルール】
+- 上記の相場を基準に計算し、非現実的な安さ(例: 鶏むね肉100g=30円)にしないこと
+- 金額は「約〜円（目安）」と表現し、断定的な「〜円です」は避けること
+- 自炊1食あたりの現実的な範囲: 約150〜600円（質素〜しっかり）
+- 調味料・油・調理コスト(約15〜30円/食)を必ず加算すること
+- 合計金額は提案後にセルフチェックし、予算を超えていたら食材を減らして再調整すること`;
+
 // ─── AI via Next.js API Route ───────────────────────────────────
 async function fetchAIAdvice(profile, plan, signal) {
   const items = plan.items.map(i => `${i.name} ×${i.servings} (P:${(i.protein * i.servings).toFixed(1)}g, ¥${i.cost * i.servings})`).join("\n");
@@ -125,17 +155,34 @@ async function fetchAIAdvice(profile, plan, signal) {
     profile.exclusions && `除外: ${profile.exclusions}`,
   ].filter(Boolean).join("\n");
 
-  const prompt = `あなたは日本のフィットネス栄養士兼節約コーチ。
+  const month = new Date().getMonth() + 1;
+  const season = month >= 3 && month <= 5 ? "春" : month >= 6 && month <= 8 ? "夏" : month >= 9 && month <= 11 ? "秋" : "冬";
+
+  const prompt = `あなたは日本のフィットネス栄養士兼節約コーチ。コスパ最優先で提案する。
+
+${PRICE_ANCHOR}
 
 ## ユーザー
 ${lines}
+現在: ${month}月（${season}）
 
-## 食材プラン
+## 食材プラン（アルゴリズムが生成した最適化結果）
 ${items}
 合計: P:${plan.totals.protein.toFixed(1)}g F:${plan.totals.fat.toFixed(1)}g C:${plan.totals.carbs.toFixed(1)}g ${Math.round(plan.totals.cal)}kcal ¥${Math.round(plan.totals.cost)}
 
+## 指示
+上記の食材プランを基に、朝食・昼食・夕食・間食の4食に振り分けた具体的レシピを提案してください。
+
+【絶対ルール】
+1. 各食事の食材は上記プランの食材のみ使用（追加食材で予算を超えないこと）
+2. 金額・PFCは上記プランの合計を超えないこと
+3. 調味料・油コスト（約15〜30円/食、1日計約60〜100円）は予算に含まれていないため考慮すること
+4. レシピで提案する料理は日本の一般家庭で15分以内に作れるもの
+5. 金額は「約〜円（目安）」のニュアンスで（地域・時期で変動するため断定禁止）
+6. ${season}の旬食材があれば優先して提案
+
 ## 必ず以下のJSON形式のみで返答。前後にテキストを一切付けないでください。
-{"personalMessage":"2-3文のパーソナルメッセージ（性別・年齢・BMI・体脂肪率・期限すべて考慮）","meals":[{"timing":"朝食","name":"料理名","emoji":"絵文字","ingredients":"食材","recipe":"3ステップ以内","macros":"P:○g F:○g C:○g ○kcal"},{"timing":"昼食","name":"...","emoji":"...","ingredients":"...","recipe":"...","macros":"..."},{"timing":"夕食","name":"...","emoji":"...","ingredients":"...","recipe":"...","macros":"..."},{"timing":"間食","name":"...","emoji":"...","ingredients":"...","recipe":"...","macros":"..."}],"weeklyTip":"週間戦略2-3文","warning":"注意点またはnull","productTips":"年齢・性別に合わせたおすすめ商品アドバイス1-2文"}`;
+{"personalMessage":"2-3文のパーソナルメッセージ（性別・年齢・BMI・体脂肪率・期限すべて考慮）","meals":[{"timing":"朝食","name":"料理名","emoji":"絵文字","ingredients":"食材","recipe":"3ステップ以内","macros":"P:○g F:○g C:○g ○kcal","estCost":"約○円"},{"timing":"昼食","name":"...","emoji":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"},{"timing":"夕食","name":"...","emoji":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"},{"timing":"間食","name":"...","emoji":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"}],"dailyCostTotal":"約○円（目安）","weeklyTip":"週間戦略2-3文（業務スーパーやドラッグストアでの買い方含む）","warning":"注意点またはnull","productTips":"年齢・性別に合わせたおすすめ商品アドバイス1-2文"}`;
 
   const res = await fetch("/api/macro", {
     method: "POST",
@@ -190,10 +237,16 @@ async function fetchAIMealSuggestion({ remaining, profile, signal }) {
     remaining.carbs !== null ? (remaining.carbs > 0 ? `C残り${Math.round(remaining.carbs)}g` : `C超過${Math.round(Math.abs(remaining.carbs))}g`) : null,
   ].filter(Boolean).join("、");
 
-  const prompt = `あなたは日本のフィットネス栄養士兼節約コーチ。
+  const month = new Date().getMonth() + 1;
+  const season = month >= 3 && month <= 5 ? "春" : month >= 6 && month <= 8 ? "夏" : month >= 9 && month <= 11 ? "秋" : "冬";
+
+  const prompt = `あなたは日本のフィットネス栄養士兼節約コーチ。コスパ最優先で提案する。
+
+${PRICE_ANCHOR}
 
 ## ユーザー情報
 ${lines}
+現在: ${month}月（${season}）
 
 ## 今日の残り目標
 ${budgetLine}
@@ -201,13 +254,19 @@ ${pfcLine || "PFC目標: 未設定"}
 
 ## タスク
 上記の残り予算・残りPFCに収まる「次の1食」を1つだけ提案してください。
-- 日本のスーパーやコンビニで手に入る食材を使った現実的なメニュー
-- 予算やPFCがマイナス（超過中）の場合は、低カロリー・低コストの軽食を提案
-- 調理時間は15分以内が理想
-- レシピは簡潔に3ステップ以内
+
+【絶対ルール】
+1. 提案する1食の合計金額は、残り予算以内に厳密に収めること（超過は絶対NG）
+2. 金額計算は上記の価格基準に従い、食材の使用量から正確に積算すること
+3. 調味料・油のコスト（約15〜30円）を必ず加算すること
+4. 価格は「約〜円（目安）」のニュアンスで算出（地域・時期で変動するため）
+5. PFCを満たすために、まず高コスパ食材（鶏むね肉・卵・豆腐・納豆・もやし等）を優先
+6. 予算やPFCがマイナス（超過中）の場合は、低カロリー・低コストの軽食を提案
+7. 調理時間は15分以内が理想
+8. 日本のスーパーで手に入る食材のみ使用（季節の旬食材があれば優先）
 
 ## 必ず以下のJSON形式のみで返答。前後にテキストを一切付けないでください。
-{"mealName":"料理名","emoji":"絵文字1つ","price":金額数値,"protein":タンパク質g数値,"fat":脂質g数値,"carbs":炭水化物g数値,"recipe":"簡潔なレシピ（3ステップ以内）","reason":"この食事を提案する理由（1文）"}`;
+{"mealName":"料理名","emoji":"絵文字1つ","price":金額数値(目安),"protein":タンパク質g数値,"fat":脂質g数値,"carbs":炭水化物g数値,"recipe":"簡潔なレシピ（3ステップ以内）","reason":"この食事を提案する理由（予算・PFC根拠を含む1文）","priceBreakdown":"食材内訳: ○○約△円+○○約△円+調味料約△円=合計約△円"}`;
 
   const res = await fetch("/api/macro", {
     method: "POST",
