@@ -481,6 +481,7 @@ function profileToSaveData(p) {
     fatGoal: p.fat_goal,
     carbsGoal: p.carbs_goal,
     mealCount: p.meal_count,
+    goalBodyFat: p.goal_body_fat,
   };
 }
 

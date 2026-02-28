@@ -192,9 +192,11 @@ export async function POST(request) {
 8. ${season}（${month}月）の旬食材があれば優先して安く提案
 
 【ユーザー情報】
-- 性別: ${profile.gender || "不明"}
+- 性別: ${profile.gender === "male" ? "男性" : profile.gender === "female" ? "女性" : "不明"}
+- 年齢: ${profile.age || "不明"}歳
 - 現在の体重: ${profile.weight || "不明"}kg
 - 目標体重: ${profile.goal_weight || "不明"}kg
+- 目標体脂肪率: ${profile.goal_body_fat || "未設定"}%
 - 目的: ${profile.goal || "不明"}
 - 活動レベル: ${profile.activity || "不明"}
 - 1日の食費予算: ¥${profile.budget || "不明"}

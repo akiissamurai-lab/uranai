@@ -34,6 +34,7 @@ export async function saveProfile(supabase, userId, data) {
         carbs_goal: data.carbsGoal ?? null,
         calorie_goal: data.calorieGoal ?? null,
         meal_count: data.mealCount ?? null,
+        goal_body_fat: data.goalBodyFat ?? null,
       },
       { onConflict: "id" }
     );
@@ -185,7 +186,7 @@ export async function migrateAllLocalData(supabase, userId) {
         ["activity", "activity"], ["goal_weight", "goalWeight"],
         ["budget", "budget"], ["protein_goal", "proteinGoal"],
         ["fat_goal", "fatGoal"], ["carbs_goal", "carbsGoal"],
-        ["calorie_goal", "calorieGoal"], ["meal_count", "mealCount"],
+        ["calorie_goal", "calorieGoal"], ["meal_count", "mealCount"], ["goal_body_fat", "goalBodyFat"],
       ];
       let hasNewData = false;
       for (const [localKey, dbKey] of fields) {

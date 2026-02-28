@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare } from "lucide-react";
+import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare, User } from "lucide-react";
 import { LegalViewer } from "@/components/TermsModal";
 
 /* ── Stepper Component (tap-to-edit) ── */
@@ -111,7 +111,11 @@ export default function SettingsPage() {
   const [carbsGoal, setCarbsGoal] = useState("");
   const [mealCount, setMealCount] = useState(3);
   const [calorieGoal, setCalorieGoal] = useState("");
+  const [gender, setGender] = useState("");
+  const [age, setAge] = useState("");
+  const [goalBodyFat, setGoalBodyFat] = useState("");
   const [legalTab, setLegalTab] = useState(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Progressive disclosure: PFC hidden by default unless already set
   const [pfcOpen, setPfcOpen] = useState(false);
@@ -123,7 +127,9 @@ export default function SettingsPage() {
         setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? "");
         setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? "");
         setMealCount(p.meal_count ?? 3); setCalorieGoal(p.calorie_goal ?? "");
+        setGender(p.gender ?? ""); setAge(p.age ?? ""); setGoalBodyFat(p.goal_body_fat ?? "");
         if (p.protein_goal || p.fat_goal || p.carbs_goal || p.calorie_goal) setPfcOpen(true);
+        if (p.gender || p.age) setProfileOpen(true);
       }
       setLoading(false);
     }, 5000);
@@ -145,7 +151,9 @@ export default function SettingsPage() {
         setCarbsGoal(profile.carbs_goal ?? "");
         setMealCount(profile.meal_count ?? 3);
         setCalorieGoal(profile.calorie_goal ?? "");
+        setGender(profile.gender ?? ""); setAge(profile.age ?? ""); setGoalBodyFat(profile.goal_body_fat ?? "");
         if (profile.protein_goal || profile.fat_goal || profile.carbs_goal || profile.calorie_goal) setPfcOpen(true);
+        if (profile.gender || profile.age) setProfileOpen(true);
       }
       setLoading(false);
     }).catch(() => {
@@ -155,7 +163,9 @@ export default function SettingsPage() {
         setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? "");
         setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? "");
         setMealCount(p.meal_count ?? 3); setCalorieGoal(p.calorie_goal ?? "");
+        setGender(p.gender ?? ""); setAge(p.age ?? ""); setGoalBodyFat(p.goal_body_fat ?? "");
         if (p.protein_goal || p.fat_goal || p.carbs_goal || p.calorie_goal) setPfcOpen(true);
+        if (p.gender || p.age) setProfileOpen(true);
       }
       setLoading(false);
     });
@@ -179,6 +189,9 @@ export default function SettingsPage() {
         carbsGoal: carbsGoal !== "" ? Number(carbsGoal) : null,
         calorieGoal: calorieGoal !== "" ? Number(calorieGoal) : null,
         mealCount: mealCount,
+        gender: gender || null,
+        age: age !== "" ? Number(age) : null,
+        goalBodyFat: goalBodyFat !== "" ? Number(goalBodyFat) : null,
       };
       if (user) {
         await saveProfile(supabase, user.id, data);
@@ -191,6 +204,9 @@ export default function SettingsPage() {
           carbs_goal: data.carbsGoal,
           calorie_goal: data.calorieGoal,
           meal_count: data.mealCount,
+          gender: data.gender,
+          age: data.age,
+          goal_body_fat: data.goalBodyFat,
         });
       }
       showToast("success", "保存しました");
@@ -242,7 +258,7 @@ export default function SettingsPage() {
       <main style={styles.main}>
         <form onSubmit={handleSave}>
 
-          {/* ── 目標体重 ── */}
+          {/* ── 目標体重・体脂肪率 ── */}
           <div style={styles.card}>
             <div style={styles.cardLabel}>
               <Target size={16} strokeWidth={1.5} color="#4ade80" />
@@ -253,6 +269,71 @@ export default function SettingsPage() {
               min={30} max={200} step={0.5}
               color="#4ade80" unit="kg" large
             />
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)", marginTop: 18, paddingTop: 18 }}>
+              <div style={{ ...styles.cardLabel, marginBottom: 10 }}>
+                <Target size={16} strokeWidth={1.5} color="#60a5fa" />
+                <span>目標体脂肪率</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginLeft: 4 }}>任意</span>
+              </div>
+              <Stepper
+                value={goalBodyFat} onChange={setGoalBodyFat}
+                min={3} max={50} step={0.5}
+                color="#60a5fa" unit="%" large
+              />
+            </div>
+          </div>
+
+          {/* ── プロフィール（任意）── */}
+          <div style={styles.card}>
+            <button
+              type="button"
+              onClick={() => setProfileOpen(!profileOpen)}
+              style={styles.accordionBtn}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <User size={16} strokeWidth={1.5} color="#f472b6" />
+                <span style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>プロフィール</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>任意</span>
+                {!profileOpen && (gender || age) && (
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>
+                    {gender === "male" ? "男性" : gender === "female" ? "女性" : ""}{gender && age ? " / " : ""}{age ? `${age}歳` : ""}
+                  </span>
+                )}
+              </div>
+              <ChevronDown size={18} strokeWidth={1.5} color="rgba(255,255,255,0.3)" style={{
+                transition: "transform 0.25s ease",
+                transform: profileOpen ? "rotate(180deg)" : "rotate(0deg)",
+              }} />
+            </button>
+
+            <div style={{
+              maxHeight: profileOpen ? 300 : 0,
+              overflow: "hidden",
+              transition: "max-height 0.3s ease, opacity 0.25s ease",
+              opacity: profileOpen ? 1 : 0,
+            }}>
+              <div style={{ paddingTop: 20 }}>
+                {/* Gender */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.4)", marginBottom: 10 }}>性別</div>
+                  <div style={{ display: "flex", gap: 0, borderRadius: 12, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    {[{ val: "", label: "未設定" }, { val: "male", label: "男性" }, { val: "female", label: "女性" }].map(opt => (
+                      <button key={opt.val} type="button" onClick={() => setGender(opt.val)} style={{
+                        flex: 1, padding: "10px 0", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                        background: gender === opt.val ? "rgba(244,114,182,0.15)" : "transparent",
+                        color: gender === opt.val ? "#f472b6" : "rgba(255,255,255,0.3)",
+                        transition: "all 0.2s",
+                      }}>{opt.label}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Age */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.4)", marginBottom: 10 }}>年齢</div>
+                  <Stepper value={age} onChange={setAge} min={10} max={100} step={1} color="#f472b6" unit="歳" />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* ── 1日の食費 ── */}
