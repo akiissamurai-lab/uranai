@@ -29,6 +29,9 @@ export async function saveProfile(supabase, userId, data) {
         activity: data.activity || null,
         goal_weight: data.goalWeight || null,
         budget: data.budget || null,
+        protein_goal: data.proteinGoal || null,
+        fat_goal: data.fatGoal || null,
+        carbs_goal: data.carbsGoal || null,
       },
       { onConflict: "id" }
     );

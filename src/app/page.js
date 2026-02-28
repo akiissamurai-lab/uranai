@@ -358,6 +358,7 @@ export default function Home() {
 
   const [user, setUser] = useState(null);
   const profileSaveTimer = useRef(null);
+  const hasCustomProtein = useRef(false);
 
   useEffect(() => { setHistory(loadHistory()); }, []);
 
@@ -377,6 +378,11 @@ export default function Home() {
         if (profile.activity) setActivity(profile.activity);
         if (profile.goal_weight) setGoalWeight(profile.goal_weight);
         if (profile.budget) setBudget(profile.budget);
+        // PFC目標値（設定ページで保存した値で自動計算を上書き）
+        if (profile.protein_goal) {
+          setProtein(profile.protein_goal);
+          hasCustomProtein.current = true;
+        }
       }
       // localStorage→DB移行
       await migrateFromLocalStorage(supabase, authUser.id);
@@ -410,10 +416,13 @@ export default function Home() {
     const tdee = calcTDEE(bmr, activity, goal);
     setCalories(tdee);
 
-    let pMult = goal === "bulk" ? 2.0 : goal === "reduce" ? 1.8 : 1.5;
-    if (age && age >= 50) pMult = Math.max(pMult, 1.6);
-    const lean = bodyFat ? weight * (1 - bodyFat / 100) : weight;
-    setProtein(Math.round(lean * pMult));
+    // 設定ページでカスタム値が保存されていない場合のみ自動計算
+    if (!hasCustomProtein.current) {
+      let pMult = goal === "bulk" ? 2.0 : goal === "reduce" ? 1.8 : 1.5;
+      if (age && age >= 50) pMult = Math.max(pMult, 1.6);
+      const lean = bodyFat ? weight * (1 - bodyFat / 100) : weight;
+      setProtein(Math.round(lean * pMult));
+    }
 
     if (height && age) {
       setCalcBasis(`Mifflin-St Jeor式（${gender === "female" ? "女性" : "男性"}）: BMR=${Math.round(bmr)}kcal × 活動係数 ${goal === "reduce" ? "- 500kcal" : goal === "bulk" ? "+ 300kcal" : ""}`);
@@ -558,6 +567,13 @@ export default function Home() {
               background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
               color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s",
             }}>📜 履歴</button>
+          )}
+          {user && (
+            <a href="/settings" style={{
+              padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+              background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 11,
+              cursor: "pointer", transition: "all 0.2s", textDecoration: "none",
+            }}>⚙️</a>
           )}
           <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
         </div>
