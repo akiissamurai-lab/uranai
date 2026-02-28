@@ -6,6 +6,7 @@ import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocal
 import { loadLocalProfile, saveLocalProfile, loadLocalMealLogs } from "@/lib/local-db";
 import AuthGate from "@/components/AuthGate";
 import html2canvas from "html2canvas";
+import WelcomeLanding from "@/components/WelcomeLanding";
 import {
   BarChart3, Wallet, Target, Zap, PenLine, Scale, Bot, Lightbulb,
   RefreshCw, TrendingUp, UtensilsCrossed, Activity, User, Ruler,
@@ -747,6 +748,7 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [authError, setAuthError] = useState(null);
+  const [loginProfileReady, setLoginProfileReady] = useState(false);
   const profileSaveTimer = useRef(null);
   const hasCustomProtein = useRef(false);
 
@@ -857,6 +859,7 @@ export default function Home() {
           carbs_goal: profile.carbs_goal || null,
         });
       }
+      setLoginProfileReady(true);
       // ゲストデータ→DB一括同期
       await migrateAllLocalData(supabase, authUser.id);
       // レガシー localStorage→DB移行
@@ -877,6 +880,7 @@ export default function Home() {
       }
     } else {
       // ログアウト時: localStorageの履歴に戻す
+      setLoginProfileReady(false);
       setHistory(loadHistory());
       setProfileGoals(null);
       setTodayLogs([]);
@@ -1102,11 +1106,11 @@ export default function Home() {
 
   const idealPFC = goal === "reduce" ? { p: "40-50%", f: "20-30%", c: "20-30%" } : goal === "bulk" ? { p: "25-35%", f: "20-30%", c: "40-50%" } : { p: "25-35%", f: "25-35%", c: "40-50%" };
 
-  // ─── LP: ゲスト向けランディングページ ───
-  const showLP = authChecked && !user;
+  // ─── LP: 初見ユーザー向けウェルカムページ ───
+  const hasSetup = goalWeight !== "" || (profileGoals && (profileGoals.budget || profileGoals.protein_goal || profileGoals.fat_goal || profileGoals.carbs_goal));
 
-  // auth確認中はローディング画面を表示（フラッシュ防止）
-  if (!authChecked) {
+  // auth確認中 or ログイン済みプロフィール読込中はローディング画面を表示（フラッシュ防止）
+  if (!authChecked || (user && !loginProfileReady)) {
     return (
       <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", color: "white", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 30px rgba(34,197,94,0.3)", marginBottom: 16, animation: "pulse 1.5s ease-in-out infinite" }}><Activity size={24} strokeWidth={1.5} color="white" /></div>
@@ -1114,6 +1118,11 @@ export default function Home() {
         <style>{`@keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.7; } }`}</style>
       </div>
     );
+  }
+
+  // ウェルカムLP: 初見ユーザー（プロフィール未設定）
+  if (!hasSetup) {
+    return <WelcomeLanding supabase={supabase} onAuthChange={handleAuthChange} />;
   }
 
   return (
@@ -1130,172 +1139,28 @@ export default function Home() {
         </div>
       )}
 
-      {/* ═══════ LP: ヒーローセクション ═══════ */}
-      {showLP && (
-        <section className="relative overflow-hidden px-4 pt-12 pb-4">
-          {/* Animated BG orbs */}
-          <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-green-500/10 blur-3xl animate-pulse" />
-          <div className="pointer-events-none absolute -bottom-16 -right-20 h-60 w-60 rounded-full bg-blue-500/8 blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
-          <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-violet-500/6 blur-3xl animate-pulse" style={{ animationDelay: "2s" }} />
-
-          <div className="relative mx-auto max-w-lg text-center">
-            {/* Logo + Login */}
-            <div className="mb-8 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-700 shadow-lg shadow-green-500/30"><Activity size={20} strokeWidth={1.5} color="white" /></div>
-                <div className="text-left">
-                  <div className="bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-lg font-bold text-transparent">マクロ飯ビルダー</div>
-                  <div className="text-[9px] uppercase tracking-widest text-white/30">AI Macro × Budget Optimizer</div>
-                </div>
-              </div>
-              <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
-            </div>
-
-            {/* Badge */}
-            <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-3.5 py-1.5 text-[11px] font-semibold text-green-400">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-              </span>
-              登録不要・完全無料でスタート
-            </div>
-
-            {/* Headline */}
-            <h1 className="mb-4 text-[28px] font-extrabold leading-tight tracking-tight sm:text-4xl">
-              <span className="block text-white/90">毎日の食事入力、</span>
-              <span className="bg-gradient-to-r from-green-400 via-emerald-300 to-cyan-400 bg-clip-text text-transparent">もうやめませんか？</span>
-            </h1>
-
-            {/* Sub copy */}
-            <p className="mx-auto mb-8 max-w-sm text-[13px] leading-relaxed text-white/45 sm:text-sm">
-              マクロ管理 × 食費の限界圧縮。<br className="sm:hidden" />
-              予算内で最短距離で体を変える、<br className="sm:hidden" />
-              あなた専属の<span className="font-bold text-white/60">AIオートパイロット</span>・アプリ
-            </p>
-
-            {/* CTA */}
-            <a href="/record" className="group relative mb-4 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-[1.03] hover:shadow-green-500/40 active:scale-[0.97]">
-              <span className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-400 to-emerald-500 opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-50" />
-              <span className="relative">今すぐ無料で始める</span>
-            </a>
-            <p className="text-[11px] text-white/25">アカウント登録なしですべての記録機能が使えます</p>
-
-            {/* Scroll hint */}
-            <div className="mt-8 flex flex-col items-center gap-1 text-white/20">
-              <span className="text-[10px]">下にスクロールして試す</span>
-              <svg className="h-5 w-5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-            </div>
+      {/* ═══════ APP HEADER ═══════ */}
+      <header style={{ padding: "18px 24px 10px", maxWidth: 480, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(34,197,94,0.3)" }}><Activity size={18} strokeWidth={1.5} color="white" /></div>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, background: "linear-gradient(135deg,#22c55e,#4ade80)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>マクロ飯ビルダー</h1>
+            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: 0, letterSpacing: 1.5, textTransform: "uppercase" }}>AI Macro × Budget Optimizer</p>
           </div>
-        </section>
-      )}
-
-      {/* ═══════ LP: 3つの神機能ハイライト ═══════ */}
-      {showLP && (
-        <section className="relative px-4 py-10">
-          <div className="mx-auto max-w-lg">
-            <div className="mb-8 text-center">
-              <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-green-400/70">Core Features</p>
-              <h2 className="text-lg font-bold text-white/80">3つの<span className="text-green-400">神機能</span>で食事管理を自動化</h2>
-            </div>
-
-            <div className="flex flex-col gap-3.5">
-              {/* Card 1 */}
-              <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm transition-all duration-300 hover:border-green-500/20 hover:bg-white/[0.05]">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10"><Zap size={22} strokeWidth={1.5} color="#4ade80" /></div>
-                  <div>
-                    <h3 className="text-[14px] font-bold text-white/85">入力摩擦ゼロ</h3>
-                    <p className="text-[11px] text-green-400/60">Zero Friction Input</p>
-                  </div>
-                </div>
-                <p className="text-[12px] leading-relaxed text-white/40">
-                  定番の「マイルーティン飯」を登録するだけ。毎日の食事記録は<span className="font-semibold text-white/60">ワンタップ</span>で完了。面倒な栄養計算から解放されます。
-                </p>
-              </div>
-
-              {/* Card 2 */}
-              <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm transition-all duration-300 hover:border-blue-500/20 hover:bg-white/[0.05]">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10"><Calculator size={22} strokeWidth={1.5} color="#60a5fa" /></div>
-                  <div>
-                    <h3 className="text-[14px] font-bold text-white/85">Budget Optimizer</h3>
-                    <p className="text-[11px] text-blue-400/60">コスパ最強の食材プラン</p>
-                  </div>
-                </div>
-                <p className="text-[12px] leading-relaxed text-white/40">
-                  PFC目標を満たしつつ、食費を<span className="font-semibold text-white/60">極限まで圧縮</span>する最適な買い物リストをAIが自動生成。1日の予算内で最高の栄養バランスを実現。
-                </p>
-              </div>
-
-              {/* Card 3 */}
-              <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm transition-all duration-300 hover:border-violet-500/20 hover:bg-white/[0.05]">
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/10"><Bot size={22} strokeWidth={1.5} color="#c084fc" /></div>
-                  <div>
-                    <h3 className="text-[14px] font-bold text-white/85">AIコーチ</h3>
-                    <p className="text-[11px] text-violet-400/60">Autopilot Coach</p>
-                  </div>
-                </div>
-                <p className="text-[12px] leading-relaxed text-white/40">
-                  体重の停滞や目標との乖離をAIが自動検知。PFC目標の再調整から<span className="font-semibold text-white/60">予算内の買い物リスト</span>まで、すべて自動生成します。
-                </p>
-              </div>
-            </div>
-
-            {/* Social proof */}
-            <div className="mt-8 flex items-center justify-center gap-6 text-center">
-              <div>
-                <div className="text-xl font-bold text-green-400" style={{ fontFamily: "var(--font-mono)" }}>20+</div>
-                <div className="text-[10px] text-white/30">食材データベース</div>
-              </div>
-              <div className="h-8 w-px bg-white/10" />
-              <div>
-                <div className="text-xl font-bold text-blue-400" style={{ fontFamily: "var(--font-mono)" }}>¥0</div>
-                <div className="text-[10px] text-white/30">完全無料</div>
-              </div>
-              <div className="h-8 w-px bg-white/10" />
-              <div>
-                <div className="text-xl font-bold text-violet-400" style={{ fontFamily: "var(--font-mono)" }}>AI</div>
-                <div className="text-[10px] text-white/30">Claude搭載</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="mx-auto mt-10 flex max-w-lg items-center gap-4">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <span className="text-[10px] font-medium uppercase tracking-widest text-white/20">Try It Now</span>
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          </div>
-        </section>
-      )}
-
-      {/* ═══════ APP HEADER (ログイン済み or LP下部) ═══════ */}
-      {user && (
-        <>
-        <header style={{ padding: "18px 24px 10px", maxWidth: 480, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(34,197,94,0.3)" }}><Activity size={18} strokeWidth={1.5} color="white" /></div>
-            <div>
-              <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, background: "linear-gradient(135deg,#22c55e,#4ade80)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>マクロ飯ビルダー</h1>
-              <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: 0, letterSpacing: 1.5, textTransform: "uppercase" }}>AI Macro × Budget Optimizer</p>
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
-          </div>
-        </header>
-        {/* 履歴ボタン（ログイン済み＆履歴ありのみ） */}
-        {user && history.length > 0 && (
-          <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 6px" }}>
-            <button onClick={() => setShowHistory(!showHistory)} style={{
-              padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
-              background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
-              color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
-            }}>履歴</button>
-          </div>
-        )}
-        </>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
+        </div>
+      </header>
+      {/* 履歴ボタン（ログイン済み＆履歴ありのみ） */}
+      {user && history.length > 0 && (
+        <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 6px" }}>
+          <button onClick={() => setShowHistory(!showHistory)} style={{
+            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+            background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
+            color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
+          }}>履歴</button>
+        </div>
       )}
 
       <main style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 100px" }}>
