@@ -569,6 +569,13 @@ export default function Home() {
             }}>📜 履歴</button>
           )}
           {user && (
+            <a href="/record" style={{
+              padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(34,197,94,0.3)",
+              background: "rgba(34,197,94,0.1)", color: "#4ade80", fontSize: 11,
+              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600,
+            }}>📝 記録</a>
+          )}
+          {user && (
             <a href="/settings" style={{
               padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
               background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 11,

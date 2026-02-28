@@ -88,6 +88,53 @@ export async function deleteMealPlan(supabase, userId, planId) {
   }
 }
 
+// ─── meal_logs (食事記録) ───────────────────────────
+
+export async function saveMealLog(supabase, userId, log) {
+  const { data, error } = await supabase.from("meal_logs").insert({
+    user_id: userId,
+    date: log.date,
+    meal_name: log.mealName,
+    price: log.price || null,
+    protein: log.protein || null,
+    fat: log.fat || null,
+    carbs: log.carbs || null,
+  }).select().single();
+
+  if (error) {
+    console.warn("saveMealLog error:", error.message);
+    return null;
+  }
+  return data;
+}
+
+export async function loadMealLogs(supabase, userId, date) {
+  const { data, error } = await supabase
+    .from("meal_logs")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("date", date)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.warn("loadMealLogs error:", error.message);
+    return [];
+  }
+  return data;
+}
+
+export async function deleteMealLog(supabase, userId, logId) {
+  const { error } = await supabase
+    .from("meal_logs")
+    .delete()
+    .eq("id", logId)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.warn("deleteMealLog error:", error.message);
+  }
+}
+
 // localStorage → DB 移行（初回ログイン時に1回だけ）
 export async function migrateFromLocalStorage(supabase, userId) {
   const migrated = localStorage.getItem(`migrated_${userId}`);
