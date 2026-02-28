@@ -5,51 +5,90 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare } from "lucide-react";
+import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare } from "lucide-react";
 import { LegalViewer } from "@/components/TermsModal";
 
-/* ── Stepper Component ── */
+/* ── Stepper Component (tap-to-edit) ── */
 function Stepper({ value, onChange, min, max, step = 1, color = "#22c55e", unit = "", large = false }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef(null);
   const numVal = value !== "" && value != null ? Number(value) : null;
   const canDec = numVal != null && numVal > min;
   const canInc = numVal == null || numVal < max;
 
   const handleDec = () => {
     if (numVal == null) return;
-    onChange(Math.max(min, numVal - step));
+    onChange(Math.max(min, +(numVal - step).toFixed(4)));
   };
   const handleInc = () => {
     if (numVal == null) onChange(min);
-    else onChange(Math.min(max, numVal + step));
+    else onChange(Math.min(max, +(numVal + step).toFixed(4)));
   };
+
+  const startEdit = () => {
+    setDraft(numVal != null ? String(numVal) : "");
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 30);
+  };
+  const commitEdit = () => {
+    setEditing(false);
+    if (draft === "") { onChange(""); return; }
+    const n = parseFloat(draft);
+    if (isNaN(n)) { onChange(""); return; }
+    onChange(Math.max(min, Math.min(max, +n.toFixed(4))));
+  };
+
+  const btnStyle = (enabled) => ({
+    width: large ? 52 : 44, height: large ? 52 : 44, borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: enabled ? "rgba(255,255,255,0.06)" : "transparent",
+    color: enabled ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.12)",
+    fontSize: large ? 24 : 20, cursor: enabled ? "pointer" : "not-allowed",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    transition: "all 0.15s",
+  });
 
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: large ? 20 : 14 }}>
-      <button type="button" onClick={handleDec} disabled={!canDec} style={{
-        width: large ? 52 : 44, height: large ? 52 : 44, borderRadius: 14, border: "1px solid rgba(255,255,255,0.1)",
-        background: canDec ? "rgba(255,255,255,0.06)" : "transparent",
-        color: canDec ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.12)",
-        fontSize: large ? 24 : 20, cursor: canDec ? "pointer" : "not-allowed",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "all 0.15s",
-      }}>−</button>
-      <div style={{ textAlign: "center", minWidth: large ? 100 : 70 }}>
-        <span style={{
-          fontSize: large ? 36 : 28, fontWeight: 700, color: numVal != null ? color : "rgba(255,255,255,0.15)",
-          fontFamily: "'Space Mono',monospace",
-        }}>
-          {numVal != null ? numVal : "—"}
-        </span>
-        {unit && <span style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", marginLeft: 4 }}>{unit}</span>}
+      <button type="button" onClick={handleDec} disabled={!canDec} style={btnStyle(canDec)}>−</button>
+      <div
+        onClick={!editing ? startEdit : undefined}
+        style={{ textAlign: "center", minWidth: large ? 100 : 70, cursor: editing ? "default" : "pointer" }}
+      >
+        {editing ? (
+          <input
+            ref={inputRef}
+            type="number"
+            inputMode="decimal"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={e => { if (e.key === "Enter") e.target.blur(); }}
+            style={{
+              width: large ? 100 : 70, background: "rgba(255,255,255,0.06)",
+              border: `1.5px solid ${color}40`, borderRadius: 10, outline: "none",
+              color, fontFamily: "'Space Mono',monospace",
+              fontSize: large ? 30 : 22, fontWeight: 700, textAlign: "center",
+              padding: "4px 0",
+            }}
+          />
+        ) : (
+          <>
+            <span style={{
+              fontSize: large ? 36 : 28, fontWeight: 700,
+              color: numVal != null ? color : "rgba(255,255,255,0.15)",
+              fontFamily: "'Space Mono',monospace",
+              borderBottom: `1.5px dashed ${numVal != null ? color + "30" : "rgba(255,255,255,0.06)"}`,
+              paddingBottom: 2,
+            }}>
+              {numVal != null ? numVal : "—"}
+            </span>
+            {unit && <span style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", marginLeft: 4 }}>{unit}</span>}
+          </>
+        )}
       </div>
-      <button type="button" onClick={handleInc} disabled={!canInc} style={{
-        width: large ? 52 : 44, height: large ? 52 : 44, borderRadius: 14, border: "1px solid rgba(255,255,255,0.1)",
-        background: canInc ? "rgba(255,255,255,0.06)" : "transparent",
-        color: canInc ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.12)",
-        fontSize: large ? 24 : 20, cursor: canInc ? "pointer" : "not-allowed",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "all 0.15s",
-      }}>+</button>
+      <button type="button" onClick={handleInc} disabled={!canInc} style={btnStyle(canInc)}>+</button>
     </div>
   );
 }
@@ -71,6 +110,7 @@ export default function SettingsPage() {
   const [fatGoal, setFatGoal] = useState("");
   const [carbsGoal, setCarbsGoal] = useState("");
   const [mealCount, setMealCount] = useState(3);
+  const [calorieGoal, setCalorieGoal] = useState("");
   const [legalTab, setLegalTab] = useState(null);
 
   // Progressive disclosure: PFC hidden by default unless already set
@@ -82,8 +122,8 @@ export default function SettingsPage() {
       if (p) {
         setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? "");
         setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? "");
-        setMealCount(p.meal_count ?? 3);
-        if (p.protein_goal || p.fat_goal || p.carbs_goal) setPfcOpen(true);
+        setMealCount(p.meal_count ?? 3); setCalorieGoal(p.calorie_goal ?? "");
+        if (p.protein_goal || p.fat_goal || p.carbs_goal || p.calorie_goal) setPfcOpen(true);
       }
       setLoading(false);
     }, 5000);
@@ -104,7 +144,8 @@ export default function SettingsPage() {
         setFatGoal(profile.fat_goal ?? "");
         setCarbsGoal(profile.carbs_goal ?? "");
         setMealCount(profile.meal_count ?? 3);
-        if (profile.protein_goal || profile.fat_goal || profile.carbs_goal) setPfcOpen(true);
+        setCalorieGoal(profile.calorie_goal ?? "");
+        if (profile.protein_goal || profile.fat_goal || profile.carbs_goal || profile.calorie_goal) setPfcOpen(true);
       }
       setLoading(false);
     }).catch(() => {
@@ -113,8 +154,8 @@ export default function SettingsPage() {
       if (p) {
         setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? "");
         setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? "");
-        setMealCount(p.meal_count ?? 3);
-        if (p.protein_goal || p.fat_goal || p.carbs_goal) setPfcOpen(true);
+        setMealCount(p.meal_count ?? 3); setCalorieGoal(p.calorie_goal ?? "");
+        if (p.protein_goal || p.fat_goal || p.carbs_goal || p.calorie_goal) setPfcOpen(true);
       }
       setLoading(false);
     });
@@ -136,6 +177,7 @@ export default function SettingsPage() {
         proteinGoal: proteinGoal !== "" ? Number(proteinGoal) : null,
         fatGoal: fatGoal !== "" ? Number(fatGoal) : null,
         carbsGoal: carbsGoal !== "" ? Number(carbsGoal) : null,
+        calorieGoal: calorieGoal !== "" ? Number(calorieGoal) : null,
         mealCount: mealCount,
       };
       if (user) {
@@ -147,6 +189,7 @@ export default function SettingsPage() {
           protein_goal: data.proteinGoal,
           fat_goal: data.fatGoal,
           carbs_goal: data.carbsGoal,
+          calorie_goal: data.calorieGoal,
           meal_count: data.mealCount,
         });
       }
@@ -233,10 +276,10 @@ export default function SettingsPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Zap size={16} strokeWidth={1.5} color="#a78bfa" />
-                <span style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>PFC目標</span>
-                {!pfcOpen && (proteinGoal || fatGoal || carbsGoal) && (
+                <span style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>PFC・カロリー目標</span>
+                {!pfcOpen && (proteinGoal || fatGoal || carbsGoal || calorieGoal) && (
                   <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>
-                    {proteinGoal ? `P${proteinGoal}` : ""}{fatGoal ? ` F${fatGoal}` : ""}{carbsGoal ? ` C${carbsGoal}` : ""}
+                    {proteinGoal ? `P${proteinGoal}` : ""}{fatGoal ? ` F${fatGoal}` : ""}{carbsGoal ? ` C${carbsGoal}` : ""}{calorieGoal ? ` ${calorieGoal}kcal` : ""}
                   </span>
                 )}
               </div>
@@ -272,6 +315,15 @@ export default function SettingsPage() {
                   <div style={{ ...styles.pfcDot, background: "#60a5fa" }} />
                   <span style={{ ...styles.pfcLabel, color: "#60a5fa" }}>C</span>
                   <Stepper value={carbsGoal} onChange={setCarbsGoal} min={0} max={1000} step={5} color="#60a5fa" unit="g" />
+                </div>
+
+                {/* Calorie */}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)", paddingTop: 20 }}>
+                  <div style={styles.pfcRow}>
+                    <Flame size={14} strokeWidth={1.5} color="#f97316" style={{ flexShrink: 0 }} />
+                    <span style={{ ...styles.pfcLabel, color: "#f97316", width: "auto", fontSize: 13 }}>Cal</span>
+                    <Stepper value={calorieGoal} onChange={setCalorieGoal} min={0} max={8000} step={50} color="#f97316" unit="kcal" />
+                  </div>
                 </div>
               </div>
             </div>
