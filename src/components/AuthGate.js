@@ -52,7 +52,9 @@ export default function AuthGate({ supabase, onAuthChange }) {
 
     if (error) {
       console.error("Login error:", error.message);
-      if (error.message.includes("Invalid login credentials")) {
+      if (error.message.includes("Email not confirmed")) {
+        setErrorMsg("メールアドレスが未確認です。受信箱の確認メールのリンクをクリックしてください");
+      } else if (error.message.includes("Invalid login credentials")) {
         setErrorMsg("メールアドレスまたはパスワードが正しくありません");
       } else {
         setErrorMsg(error.message);
@@ -76,9 +78,12 @@ export default function AuthGate({ supabase, onAuthChange }) {
     setStatus("sending");
     setErrorMsg("");
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+      },
     });
 
     if (error) {
@@ -93,7 +98,11 @@ export default function AuthGate({ supabase, onAuthChange }) {
         setErrorMsg(error.message);
       }
       setStatus("error");
+    } else if (data.session) {
+      // メール確認不要（auto-confirm）→ 即ログイン
+      resetForm();
     } else {
+      // メール確認が必要
       setStatus("sent");
     }
   };
@@ -223,19 +232,17 @@ export default function AuthGate({ supabase, onAuthChange }) {
           {/* 送信完了 */}
           {status === "sent" ? (
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>
-                {mode === "signup" ? "🎉" : "📧"}
-              </div>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>📧</div>
               <p style={{ color: "#a0e0a0", fontSize: 13, margin: 0 }}>
                 {mode === "signup"
-                  ? "登録完了！ログインしました"
+                  ? "確認メールを送信しました"
                   : "メールを送信しました"}
               </p>
-              {mode !== "signup" && (
-                <p style={{ color: "#888", fontSize: 11, marginTop: 4 }}>
-                  メール内のリンクをタップしてログイン
-                </p>
-              )}
+              <p style={{ color: "#888", fontSize: 11, marginTop: 4 }}>
+                {mode === "signup"
+                  ? "メール内のリンクをタップして登録を完了してください"
+                  : "メール内のリンクをタップしてログイン"}
+              </p>
               <button
                 onClick={resetForm}
                 style={{

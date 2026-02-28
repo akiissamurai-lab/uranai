@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile } from "@/lib/db";
+import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -24,13 +25,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) {
-        router.replace("/");
-        return;
-      }
-      setUser(user);
+      setUser(user); // null = ゲスト
 
-      const profile = await loadProfile(supabase, user.id);
+      let profile;
+      if (user) {
+        profile = await loadProfile(supabase, user.id);
+      } else {
+        profile = loadLocalProfile();
+      }
       if (profile) {
         setGoalWeight(profile.goal_weight ?? "");
         setBudget(profile.budget ?? "");
@@ -40,7 +42,7 @@ export default function SettingsPage() {
       }
       setLoading(false);
     });
-  }, [supabase, router]);
+  }, [supabase]);
 
   const showToast = (type, msg) => {
     setToast({ type, msg });
@@ -49,17 +51,27 @@ export default function SettingsPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!user) return;
 
     setSaving(true);
     try {
-      await saveProfile(supabase, user.id, {
+      const data = {
         goalWeight: goalWeight !== "" ? Number(goalWeight) : null,
         budget: budget !== "" ? Number(budget) : null,
         proteinGoal: proteinGoal !== "" ? Number(proteinGoal) : null,
         fatGoal: fatGoal !== "" ? Number(fatGoal) : null,
         carbsGoal: carbsGoal !== "" ? Number(carbsGoal) : null,
-      });
+      };
+      if (user) {
+        await saveProfile(supabase, user.id, data);
+      } else {
+        saveLocalProfile({
+          goal_weight: data.goalWeight,
+          budget: data.budget,
+          protein_goal: data.proteinGoal,
+          fat_goal: data.fatGoal,
+          carbs_goal: data.carbsGoal,
+        });
+      }
       showToast("success", "保存しました！");
     } catch {
       showToast("error", "保存に失敗しました");

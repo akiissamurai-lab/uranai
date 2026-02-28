@@ -3,10 +3,41 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { saveMealLog, loadMealLogs, deleteMealLog } from "@/lib/db";
+import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals } from "@/lib/db";
+import { saveLocalMealLog, loadLocalMealLogs, deleteLocalMealLog, loadLocalRoutineMeals, loadLocalProfile } from "@/lib/local-db";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function ProgressRing({ label, value, max, color, unit }) {
+  if (!max) return null;
+  const pct = Math.min((value / max) * 100, 100);
+  const over = value > max;
+  const r = 32, c = 2 * Math.PI * r, off = c - (pct / 100) * c;
+  const ringColor = over ? "#ef4444" : color;
+  const remaining = max - value;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+      <svg width={76} height={76} viewBox="0 0 76 76">
+        <circle cx="38" cy="38" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+        <circle cx="38" cy="38" r={r} fill="none" stroke={ringColor} strokeWidth="6"
+          strokeDasharray={c} strokeDashoffset={off}
+          strokeLinecap="round" transform="rotate(-90 38 38)"
+          style={{ transition: "stroke-dashoffset 0.5s ease, stroke 0.3s ease" }} />
+        <text x="38" y="35" textAnchor="middle" fill={ringColor} fontSize="13" fontWeight="700" fontFamily="'Space Mono',monospace">
+          {Math.round(value)}
+        </text>
+        <text x="38" y="48" textAnchor="middle" fill="rgba(255,255,255,0.35)" fontSize="9">
+          /{max}{unit}
+        </text>
+      </svg>
+      <span style={{ fontSize: 12, fontWeight: 700, color: ringColor }}>{label}</span>
+      <span style={{ fontSize: 10, color: over ? "#ef4444" : "rgba(255,255,255,0.35)" }}>
+        {over ? `+${Math.round(value - max)}${unit} オーバー` : `残り ${Math.round(remaining)}${unit}`}
+      </span>
+    </div>
+  );
 }
 
 export default function RecordPage() {
@@ -28,26 +59,66 @@ export default function RecordPage() {
   const [fat, setFat] = useState("");
   const [carbs, setCarbs] = useState("");
 
+  // Goals from profile
+  const [goals, setGoals] = useState(null);
+
+  // Routines
+  const [routines, setRoutines] = useState([]);
+  const [savingRoutineId, setSavingRoutineId] = useState(null);
+
   // Today's logs
   const [logs, setLogs] = useState([]);
   const nameRef = useRef(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        router.replace("/");
-        return;
-      }
-      setUser(user);
+      setUser(user); // null = ゲスト
       setLoading(false);
     });
-  }, [supabase, router]);
+  }, [supabase]);
+
+  // Load routines
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      loadRoutineMeals(supabase, user.id).then(setRoutines);
+    } else {
+      setRoutines(loadLocalRoutineMeals());
+    }
+  }, [supabase, user, loading]);
+
+  // Load profile goals
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      loadProfile(supabase, user.id).then((p) => {
+        if (p) setGoals({
+          budget: p.budget || null,
+          protein: p.protein_goal || null,
+          fat: p.fat_goal || null,
+          carbs: p.carbs_goal || null,
+        });
+      });
+    } else {
+      const p = loadLocalProfile();
+      if (p) setGoals({
+        budget: p.budget || null,
+        protein: p.protein_goal || null,
+        fat: p.fat_goal || null,
+        carbs: p.carbs_goal || null,
+      });
+    }
+  }, [supabase, user, loading]);
 
   // Load logs when date or user changes
   useEffect(() => {
-    if (!user) return;
-    loadMealLogs(supabase, user.id, date).then(setLogs);
-  }, [supabase, user, date]);
+    if (loading) return;
+    if (user) {
+      loadMealLogs(supabase, user.id, date).then(setLogs);
+    } else {
+      setLogs(loadLocalMealLogs(date));
+    }
+  }, [supabase, user, date, loading]);
 
   const showToast = (type, msg) => {
     setToast({ type, msg });
@@ -56,23 +127,29 @@ export default function RecordPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user || !mealName.trim()) return;
+    if (!mealName.trim()) return;
 
     setSaving(true);
-    const saved = await saveMealLog(supabase, user.id, {
+    const logData = {
       date,
       mealName: mealName.trim(),
       price: price !== "" ? Number(price) : null,
       protein: protein !== "" ? Number(protein) : null,
       fat: fat !== "" ? Number(fat) : null,
       carbs: carbs !== "" ? Number(carbs) : null,
-    });
+    };
+
+    let saved;
+    if (user) {
+      saved = await saveMealLog(supabase, user.id, logData);
+    } else {
+      saved = saveLocalMealLog(logData);
+    }
     setSaving(false);
 
     if (saved) {
       showToast("success", "記録しました！");
       setLogs((prev) => [...prev, saved]);
-      // Clear form (keep date)
       setMealName("");
       setPrice("");
       setProtein("");
@@ -85,8 +162,39 @@ export default function RecordPage() {
   };
 
   const handleDelete = async (logId) => {
-    await deleteMealLog(supabase, user.id, logId);
+    if (user) {
+      await deleteMealLog(supabase, user.id, logId);
+    } else {
+      deleteLocalMealLog(logId);
+    }
     setLogs((prev) => prev.filter((l) => l.id !== logId));
+  };
+
+  const handleQuickLog = async (routine) => {
+    if (savingRoutineId) return;
+    setSavingRoutineId(routine.id);
+    const logData = {
+      date,
+      mealName: `${routine.emoji || "🍱"} ${routine.meal_name}`,
+      price: routine.price != null ? Number(routine.price) : null,
+      protein: routine.protein != null ? Number(routine.protein) : null,
+      fat: routine.fat != null ? Number(routine.fat) : null,
+      carbs: routine.carbs != null ? Number(routine.carbs) : null,
+    };
+
+    let saved;
+    if (user) {
+      saved = await saveMealLog(supabase, user.id, logData);
+    } else {
+      saved = saveLocalMealLog(logData);
+    }
+    setSavingRoutineId(null);
+    if (saved) {
+      showToast("success", `${routine.meal_name} を記録しました！`);
+      setLogs((prev) => [...prev, saved]);
+    } else {
+      showToast("error", "記録に失敗しました");
+    }
   };
 
   // Totals
@@ -100,6 +208,14 @@ export default function RecordPage() {
     { price: 0, protein: 0, fat: 0, carbs: 0 }
   );
   const totalCal = Math.round(totals.protein * 4 + totals.fat * 9 + totals.carbs * 4);
+
+  // Dashboard: show when goals exist AND viewing today
+  const hasGoals = goals && (goals.budget || goals.protein || goals.fat || goals.carbs);
+  const isToday = date === today();
+  const showDashboard = hasGoals && isToday;
+  const calGoal = (goals?.protein && goals?.fat && goals?.carbs)
+    ? Math.round(goals.protein * 4 + goals.fat * 9 + goals.carbs * 4)
+    : null;
 
   if (loading) {
     return (
@@ -132,6 +248,104 @@ export default function RecordPage() {
             <button onClick={() => setDate(today())} style={{ ...S.dateBtn, fontSize: 10, padding: "4px 8px" }}>今日</button>
           )}
         </div>
+
+        {/* Dashboard */}
+        {showDashboard && (
+          <div style={S.dashboard}>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 12, fontWeight: 600 }}>
+              📊 今日の進捗
+            </div>
+
+            {/* Budget bar */}
+            {goals.budget && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>💰 食費</span>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
+                    ¥{totals.price.toLocaleString()} / ¥{goals.budget.toLocaleString()}
+                  </span>
+                </div>
+                <div style={S.budgetBar}>
+                  <div style={{
+                    ...S.budgetFill,
+                    width: `${Math.min((totals.price / goals.budget) * 100, 100)}%`,
+                    background: totals.price > goals.budget
+                      ? "#ef4444"
+                      : totals.price / goals.budget >= 0.8
+                        ? "#facc15"
+                        : "#22c55e",
+                  }} />
+                </div>
+                <div style={{ fontSize: 11, marginTop: 4, textAlign: "right", color: totals.price > goals.budget ? "#ef4444" : "rgba(255,255,255,0.35)" }}>
+                  {totals.price > goals.budget
+                    ? `¥${(totals.price - goals.budget).toLocaleString()} オーバー`
+                    : `残り ¥${(goals.budget - totals.price).toLocaleString()}`}
+                </div>
+              </div>
+            )}
+
+            {/* PFC + Cal rings */}
+            <div style={S.ringGrid}>
+              <ProgressRing label="P" value={totals.protein} max={goals.protein} color="#f87171" unit="g" />
+              <ProgressRing label="F" value={totals.fat} max={goals.fat} color="#facc15" unit="g" />
+              <ProgressRing label="C" value={totals.carbs} max={goals.carbs} color="#60a5fa" unit="g" />
+              {calGoal && <ProgressRing label="Cal" value={totalCal} max={calGoal} color="#4ade80" unit="kcal" />}
+            </div>
+          </div>
+        )}
+
+        {/* Routine meals - one-tap section */}
+        {routines.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 600 }}>⚡ マイルーティン飯</span>
+              <a href="/routines" style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>管理 →</a>
+            </div>
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+              {routines.map((r) => {
+                const isSaving = savingRoutineId === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => handleQuickLog(r)}
+                    disabled={!!savingRoutineId}
+                    style={{
+                      ...S.routineChip,
+                      opacity: isSaving ? 0.5 : savingRoutineId ? 0.7 : 1,
+                      cursor: savingRoutineId ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <span style={{ fontSize: 22 }}>{r.emoji || "🍱"}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.8)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 80 }}>
+                      {isSaving ? "記録中..." : r.meal_name}
+                    </span>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "nowrap" }}>
+                      {r.price != null && <span style={S.chipBadge}>¥{Number(r.price).toLocaleString()}</span>}
+                    </div>
+                    <div style={{ display: "flex", gap: 3 }}>
+                      {r.protein != null && <span style={{ ...S.chipPfc, color: "#f87171" }}>P{Number(r.protein).toFixed(0)}</span>}
+                      {r.fat != null && <span style={{ ...S.chipPfc, color: "#facc15" }}>F{Number(r.fat).toFixed(0)}</span>}
+                      {r.carbs != null && <span style={{ ...S.chipPfc, color: "#60a5fa" }}>C{Number(r.carbs).toFixed(0)}</span>}
+                    </div>
+                  </button>
+                );
+              })}
+              {/* Add more button */}
+              <a href="/routines" style={S.routineAdd}>
+                <span style={{ fontSize: 20 }}>＋</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>追加</span>
+              </a>
+            </div>
+          </div>
+        )}
+
+        {routines.length === 0 && (
+          <a href="/routines" style={{ display: "block", textDecoration: "none", ...S.card, textAlign: "center", padding: "14px 18px", marginBottom: 14 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+              ⚡ 定番メニューを登録して、ワンタップで記録しよう →
+            </span>
+          </a>
+        )}
 
         {/* Input form */}
         <form onSubmit={handleSubmit} style={S.card}>
@@ -189,8 +403,8 @@ export default function RecordPage() {
           </button>
         </form>
 
-        {/* Today's summary */}
-        {logs.length > 0 && (
+        {/* Today's summary (hidden when dashboard is shown) */}
+        {logs.length > 0 && !showDashboard && (
           <div style={S.summaryCard}>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 10 }}>
               {date === today() ? "今日" : new Date(date + "T00:00").toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}の合計
@@ -300,6 +514,11 @@ const S = {
 
   submitBtn: { width: "100%", padding: "12px 0", borderRadius: 12, border: "none", color: "#fff", fontSize: 14, fontWeight: 700, letterSpacing: 0.5, boxShadow: "0 4px 20px rgba(34,197,94,0.3)" },
 
+  dashboard: { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, padding: "16px 18px", marginBottom: 14 },
+  budgetBar: { width: "100%", height: 8, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" },
+  budgetFill: { height: "100%", borderRadius: 4, transition: "width 0.5s ease, background 0.3s ease" },
+  ringGrid: { display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 8 },
+
   summaryCard: { background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.12)", borderRadius: 16, padding: "14px 16px", marginTop: 14 },
   summaryGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 },
   summaryItem: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2 },
@@ -307,4 +526,9 @@ const S = {
 
   logItem: { display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 12, marginBottom: 6 },
   deleteBtn: { width: 28, height: 28, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "rgba(255,255,255,0.25)", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+
+  routineChip: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "12px 14px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, minWidth: 90, flexShrink: 0, transition: "all 0.15s" },
+  chipBadge: { fontSize: 10, fontWeight: 600, color: "#4ade80", fontFamily: "'Space Mono',monospace" },
+  chipPfc: { fontSize: 9, fontWeight: 600, fontFamily: "'Space Mono',monospace" },
+  routineAdd: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: "12px 14px", background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 16, minWidth: 70, flexShrink: 0, textDecoration: "none", color: "rgba(255,255,255,0.3)" },
 };

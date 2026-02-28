@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
-import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage } from "@/lib/db";
+import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage, migrateAllLocalData, loadMealLogs, saveMealLog } from "@/lib/db";
 import AuthGate from "@/components/AuthGate";
 
 /*
@@ -168,6 +168,77 @@ ${items}
   }
 }
 
+// ─── AI Meal Suggestion ─────────────────────────────────────────
+async function fetchAIMealSuggestion({ remaining, profile, signal }) {
+  const goalLabel = { reduce: "減量", bulk: "増量", maintain: "維持" }[profile.goal] || "維持";
+  const genderLabel = profile.gender === "female" ? "女性" : "男性";
+
+  const lines = [
+    `目的: ${goalLabel}`, `性別: ${genderLabel}`,
+    profile.weight && `体重: ${profile.weight}kg`,
+    profile.age && `年齢: ${profile.age}歳`,
+  ].filter(Boolean).join("、");
+
+  const budgetLine = remaining.budget !== null
+    ? (remaining.budget > 0 ? `残り予算: ${remaining.budget}円` : `予算オーバー: ${Math.abs(remaining.budget)}円超過中`)
+    : "予算: 未設定";
+
+  const pfcLine = [
+    remaining.protein !== null ? (remaining.protein > 0 ? `P残り${Math.round(remaining.protein)}g` : `P超過${Math.round(Math.abs(remaining.protein))}g`) : null,
+    remaining.fat !== null ? (remaining.fat > 0 ? `F残り${Math.round(remaining.fat)}g` : `F超過${Math.round(Math.abs(remaining.fat))}g`) : null,
+    remaining.carbs !== null ? (remaining.carbs > 0 ? `C残り${Math.round(remaining.carbs)}g` : `C超過${Math.round(Math.abs(remaining.carbs))}g`) : null,
+  ].filter(Boolean).join("、");
+
+  const prompt = `あなたは日本のフィットネス栄養士兼節約コーチ。
+
+## ユーザー情報
+${lines}
+
+## 今日の残り目標
+${budgetLine}
+${pfcLine || "PFC目標: 未設定"}
+
+## タスク
+上記の残り予算・残りPFCに収まる「次の1食」を1つだけ提案してください。
+- 日本のスーパーやコンビニで手に入る食材を使った現実的なメニュー
+- 予算やPFCがマイナス（超過中）の場合は、低カロリー・低コストの軽食を提案
+- 調理時間は15分以内が理想
+- レシピは簡潔に3ステップ以内
+
+## 必ず以下のJSON形式のみで返答。前後にテキストを一切付けないでください。
+{"mealName":"料理名","emoji":"絵文字1つ","price":金額数値,"protein":タンパク質g数値,"fat":脂質g数値,"carbs":炭水化物g数値,"recipe":"簡潔なレシピ（3ステップ以内）","reason":"この食事を提案する理由（1文）"}`;
+
+  const res = await fetch("/api/macro", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal,
+    body: JSON.stringify({ prompt }),
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    if (res.status === 429) {
+      const retry = errData.retryAfter || 60;
+      throw new Error(`利用制限中です。${retry}秒後にお試しください`);
+    }
+    throw new Error(errData.error || `API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const raw = data.content?.map(b => b.text || "").join("") || "";
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start === -1 || end === -1) throw new Error("AIの応答を解析できませんでした");
+  const jsonStr = raw.slice(start, end + 1);
+
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    const cleaned = jsonStr.replace(/[\x00-\x1F]/g, " ").replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
+    try { return JSON.parse(cleaned); } catch { throw new Error("AIの応答を解析できませんでした"); }
+  }
+}
+
 // ─── Storage helpers (localStorage) ─────────────────────────────
 function saveHistory(entry) {
   try {
@@ -239,6 +310,7 @@ function NumInput({ value, onChange, placeholder, suffix, prefix, min, max, step
         placeholder={placeholder || "—"} min={min} max={max} step={step}
         onFocus={e => { setEditing(true); setDraft(value === "" || value == null ? "" : String(value)); e.target.select(); }}
         onChange={e => setDraft(e.target.value)}
+        onWheel={e => e.target.blur()}
         onBlur={() => {
           setEditing(false);
           if (draft === "") { onChange(""); return; }
@@ -260,7 +332,7 @@ function StepperInput({ value, onChange, min, max, step, bigStep, suffix, color 
     onChange(Math.max(min, Math.min(max, next)));
   };
   const btnStyle = {
-    width: 34, height: 34, borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
+    width: 44, height: 44, borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
     background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.6)",
     fontSize: 18, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
     transition: "all 0.15s", lineHeight: 1,
@@ -360,6 +432,15 @@ export default function Home() {
   const profileSaveTimer = useRef(null);
   const hasCustomProtein = useRef(false);
 
+  // ─── AI Meal Suggestion ───
+  const [aiSuggest, setAiSuggest] = useState(null);
+  const [aiSuggestLoading, setAiSuggestLoading] = useState(false);
+  const [aiSuggestError, setAiSuggestError] = useState(null);
+  const [aiSuggestRecorded, setAiSuggestRecorded] = useState(false);
+  const [todayLogs, setTodayLogs] = useState([]);
+  const [profileGoals, setProfileGoals] = useState(null);
+  const suggestAbortRef = useRef(null);
+
   useEffect(() => { setHistory(loadHistory()); }, []);
 
   // Auth状態変化: ログイン時にDB読み込み + localStorage移行
@@ -383,8 +464,16 @@ export default function Home() {
           setProtein(profile.protein_goal);
           hasCustomProtein.current = true;
         }
+        setProfileGoals({
+          budget: profile.budget || null,
+          protein_goal: profile.protein_goal || null,
+          fat_goal: profile.fat_goal || null,
+          carbs_goal: profile.carbs_goal || null,
+        });
       }
-      // localStorage→DB移行
+      // ゲストデータ→DB一括同期
+      await migrateAllLocalData(supabase, authUser.id);
+      // レガシー localStorage→DB移行
       await migrateFromLocalStorage(supabase, authUser.id);
       // DB履歴読み込み
       const plans = await loadMealPlans(supabase, authUser.id);
@@ -403,8 +492,28 @@ export default function Home() {
     } else {
       // ログアウト時: localStorageの履歴に戻す
       setHistory(loadHistory());
+      setProfileGoals(null);
+      setTodayLogs([]);
+      setAiSuggest(null);
     }
   }, [supabase]);
+
+  // ─── Load today's meal_logs for remaining calculation ───
+  useEffect(() => {
+    if (!user) return;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    loadMealLogs(supabase, user.id, todayStr).then(setTodayLogs);
+  }, [user, supabase]);
+
+  const todayTotals = todayLogs.reduce(
+    (acc, l) => ({ price: acc.price + (l.price || 0), protein: acc.protein + (l.protein || 0), fat: acc.fat + (l.fat || 0), carbs: acc.carbs + (l.carbs || 0) }),
+    { price: 0, protein: 0, fat: 0, carbs: 0 }
+  );
+  const remainingBudget = profileGoals?.budget ? profileGoals.budget - todayTotals.price : null;
+  const remainingProtein = profileGoals?.protein_goal ? profileGoals.protein_goal - todayTotals.protein : null;
+  const remainingFat = profileGoals?.fat_goal ? profileGoals.fat_goal - todayTotals.fat : null;
+  const remainingCarbs = profileGoals?.carbs_goal ? profileGoals.carbs_goal - todayTotals.carbs : null;
+  const canSuggest = user && profileGoals && (profileGoals.budget || profileGoals.protein_goal);
 
   const bmi = (height && weight) ? (weight / ((height / 100) ** 2)).toFixed(1) : null;
   const bmiCat = bmi ? (bmi < 18.5 ? "低体重" : bmi < 25 ? "普通" : bmi < 30 ? "肥満1度" : "肥満2度+") : null;
@@ -456,6 +565,51 @@ export default function Home() {
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }, [weight, goalWeight, bodyFat, age, height, goal]);
+
+  // ─── AI Meal Suggestion handlers ───
+  const handleSuggestMeal = useCallback(async () => {
+    if (!canSuggest) return;
+    if (suggestAbortRef.current) suggestAbortRef.current.abort();
+    const ctrl = new AbortController();
+    suggestAbortRef.current = ctrl;
+
+    setAiSuggest(null);
+    setAiSuggestError(null);
+    setAiSuggestLoading(true);
+    setAiSuggestRecorded(false);
+
+    try {
+      const suggestion = await fetchAIMealSuggestion({
+        remaining: { budget: remainingBudget, protein: remainingProtein, fat: remainingFat, carbs: remainingCarbs },
+        profile: { goal, gender, weight, age },
+        signal: ctrl.signal,
+      });
+      if (!ctrl.signal.aborted) setAiSuggest(suggestion);
+    } catch (e) {
+      if (e.name !== "AbortError") setAiSuggestError(e.message);
+    } finally {
+      if (!ctrl.signal.aborted) setAiSuggestLoading(false);
+    }
+  }, [canSuggest, remainingBudget, remainingProtein, remainingFat, remainingCarbs, goal, gender, weight, age]);
+
+  const handleRecordSuggestion = useCallback(async () => {
+    if (!aiSuggest || !user || aiSuggestRecorded) return;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const saved = await saveMealLog(supabase, user.id, {
+      date: todayStr,
+      mealName: `${aiSuggest.emoji || ""} ${aiSuggest.mealName}`.trim(),
+      price: aiSuggest.price || null,
+      protein: aiSuggest.protein || null,
+      fat: aiSuggest.fat || null,
+      carbs: aiSuggest.carbs || null,
+    });
+    if (saved) {
+      setAiSuggestRecorded(true);
+      setTodayLogs(prev => [...prev, saved]);
+    } else {
+      setAiSuggestError("記録に失敗しました");
+    }
+  }, [aiSuggest, user, aiSuggestRecorded, supabase]);
 
   const handleGenerate = useCallback(async () => {
     if (!validate()) return;
@@ -569,20 +723,31 @@ export default function Home() {
               color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s",
             }}>📜 履歴</button>
           )}
-          {user && (
-            <a href="/record" style={{
-              padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(34,197,94,0.3)",
-              background: "rgba(34,197,94,0.1)", color: "#4ade80", fontSize: 11,
-              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600,
-            }}>📝 記録</a>
-          )}
-          {user && (
-            <a href="/settings" style={{
-              padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
-              background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 11,
-              cursor: "pointer", transition: "all 0.2s", textDecoration: "none",
-            }}>⚙️</a>
-          )}
+          <a href="/record" style={{
+            padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(34,197,94,0.3)",
+            background: "rgba(34,197,94,0.1)", color: "#4ade80", fontSize: 11,
+            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600,
+          }}>📝 記録</a>
+          <a href="/progress" style={{
+            padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(96,165,250,0.3)",
+            background: "rgba(96,165,250,0.1)", color: "#60a5fa", fontSize: 11,
+            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600,
+          }}>📊 推移</a>
+          <a href="/routines" style={{
+            padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(250,204,21,0.3)",
+            background: "rgba(250,204,21,0.1)", color: "#facc15", fontSize: 11,
+            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600,
+          }}>📋 ルーティン</a>
+          <a href="/coach" style={{
+            padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(139,92,246,0.3)",
+            background: "rgba(139,92,246,0.1)", color: "#a78bfa", fontSize: 11,
+            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600,
+          }}>🤖 AIコーチ</a>
+          <a href="/settings" style={{
+            padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+            background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 11,
+            cursor: "pointer", transition: "all 0.2s", textDecoration: "none",
+          }}>⚙️</a>
           <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
         </div>
       </header>
@@ -600,6 +765,164 @@ export default function Home() {
                 <span style={{ fontFamily: "'Space Mono',monospace", color: "#4ade80" }}>P{h.protein}g ¥{h.cost}</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ─── AI Premium Wall (ゲスト用) ─── */}
+        {!user && (
+          <div style={{
+            background: "linear-gradient(135deg, rgba(139,92,246,0.10), rgba(96,165,250,0.06))",
+            border: "1px solid rgba(139,92,246,0.20)",
+            borderRadius: 20, padding: "28px 20px", marginBottom: 14, textAlign: "center",
+          }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>🔒</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.85)", marginBottom: 6 }}>
+              AIメニュー提案を解放しよう
+            </div>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: "0 0 16px", lineHeight: 1.7 }}>
+              無料アカウントを作成して、AI専属トレーナーによるメニュー提案・買い物リスト自動生成を利用できます
+            </p>
+            <div style={{ display: "inline-block" }}>
+              <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
+            </div>
+          </div>
+        )}
+
+        {/* ─── AI Meal Suggestion Section ─── */}
+        {canSuggest && (
+          <div style={{
+            background: "linear-gradient(135deg, rgba(139,92,246,0.08), rgba(34,197,94,0.06))",
+            border: "1px solid rgba(139,92,246,0.18)",
+            borderRadius: 20, padding: "20px 18px", marginBottom: 14,
+            animation: "fadeUp 0.4s ease-out",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ fontSize: 22 }}>🤖</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>AIメニュー提案</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>今日の残り予算・PFCに合った一食を提案</div>
+              </div>
+            </div>
+
+            {/* Remaining badges */}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+              {remainingBudget !== null && (
+                <span style={{
+                  padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600,
+                  background: remainingBudget > 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
+                  color: remainingBudget > 0 ? "#4ade80" : "#f87171",
+                  fontFamily: "'Space Mono',monospace",
+                }}>残¥{Math.round(remainingBudget).toLocaleString()}</span>
+              )}
+              {remainingProtein !== null && (
+                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(248,113,113,0.12)", color: "#f87171", fontFamily: "'Space Mono',monospace" }}>
+                  P残{Math.round(remainingProtein)}g
+                </span>
+              )}
+              {remainingFat !== null && (
+                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(250,204,21,0.12)", color: "#facc15", fontFamily: "'Space Mono',monospace" }}>
+                  F残{Math.round(remainingFat)}g
+                </span>
+              )}
+              {remainingCarbs !== null && (
+                <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: "rgba(96,165,250,0.12)", color: "#60a5fa", fontFamily: "'Space Mono',monospace" }}>
+                  C残{Math.round(remainingCarbs)}g
+                </span>
+              )}
+            </div>
+
+            {/* Suggest button */}
+            {!aiSuggest && !aiSuggestLoading && !aiSuggestError && (
+              <button onClick={handleSuggestMeal} style={{
+                width: "100%", padding: "13px", borderRadius: 13, border: "none",
+                background: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
+                color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                boxShadow: "0 4px 20px rgba(139,92,246,0.3)",
+                letterSpacing: 0.5,
+              }}>
+                ✨ 今のあなたにピッタリのメニューを提案
+              </button>
+            )}
+
+            {/* Loading */}
+            {aiSuggestLoading && (
+              <div style={{ padding: 20, borderRadius: 15, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", textAlign: "center" }}>
+                <div style={{ fontSize: 28, marginBottom: 8, animation: "pulse 2s infinite" }}>🧠</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>あなたに合った一食を考え中...</div>
+              </div>
+            )}
+
+            {/* Error */}
+            {aiSuggestError && (
+              <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)" }}>
+                <div style={{ fontSize: 12, color: "#fca5a5", lineHeight: 1.5 }}>{aiSuggestError}</div>
+                <button onClick={handleSuggestMeal} style={{
+                  marginTop: 8, padding: "6px 12px", borderRadius: 8,
+                  border: "1px solid rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.08)",
+                  color: "#fca5a5", fontSize: 11, cursor: "pointer",
+                }}>再試行</button>
+              </div>
+            )}
+
+            {/* Suggestion card */}
+            {aiSuggest && (
+              <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden", animation: "fadeUp 0.4s ease-out" }}>
+                {/* Meal header */}
+                <div style={{ padding: "16px 16px 12px", display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, rgba(139,92,246,0.08), rgba(34,197,94,0.05))" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(139,92,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, flexShrink: 0 }}>
+                    {aiSuggest.emoji || "🍽️"}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,0.9)" }}>{aiSuggest.mealName}</div>
+                    {aiSuggest.reason && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2, lineHeight: 1.4 }}>{aiSuggest.reason}</div>}
+                  </div>
+                </div>
+
+                {/* PFC + Price row */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4, padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                  {[
+                    { label: "金額", value: `¥${aiSuggest.price || 0}`, color: "#22c55e" },
+                    { label: "P", value: `${aiSuggest.protein || 0}g`, color: "#f87171" },
+                    { label: "F", value: `${aiSuggest.fat || 0}g`, color: "#facc15" },
+                    { label: "C", value: `${aiSuggest.carbs || 0}g`, color: "#60a5fa" },
+                  ].map((item, i) => (
+                    <div key={i} style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>{item.label}</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: item.color, fontFamily: "'Space Mono',monospace" }}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Recipe */}
+                {aiSuggest.recipe && (
+                  <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                    <div style={{ fontSize: 11, color: "#c4b5fd", fontWeight: 600, marginBottom: 4 }}>📝 レシピ</div>
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.7, whiteSpace: "pre-line" }}>{aiSuggest.recipe}</div>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div style={{ padding: "12px 16px", display: "flex", gap: 8 }}>
+                  <button onClick={handleRecordSuggestion} disabled={aiSuggestRecorded} style={{
+                    flex: 2, padding: "11px", borderRadius: 11, border: "none",
+                    background: aiSuggestRecorded ? "rgba(34,197,94,0.15)" : "linear-gradient(135deg, #22c55e, #16a34a)",
+                    color: aiSuggestRecorded ? "#4ade80" : "white",
+                    fontSize: 13, fontWeight: 700,
+                    cursor: aiSuggestRecorded ? "default" : "pointer",
+                    boxShadow: aiSuggestRecorded ? "none" : "0 4px 16px rgba(34,197,94,0.25)",
+                  }}>
+                    {aiSuggestRecorded ? "✅ 記録しました" : "📝 この食事を記録する"}
+                  </button>
+                  <button onClick={handleSuggestMeal} style={{
+                    flex: 1, padding: "11px", borderRadius: 11,
+                    border: "1px solid rgba(139,92,246,0.25)", background: "rgba(139,92,246,0.08)",
+                    color: "#c4b5fd", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  }}>
+                    🔄 別の提案
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
