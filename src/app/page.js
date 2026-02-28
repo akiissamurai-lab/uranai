@@ -5,6 +5,70 @@ import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage, migrateAllLocalData, loadMealLogs, saveMealLog } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile, loadLocalMealLogs } from "@/lib/local-db";
 import AuthGate from "@/components/AuthGate";
+import { PieChart, Pie, Cell } from "recharts";
+
+// ─── PFC ドーナツチャート ───
+function MacroDonut({ label, current, goal, color, bgColor, unit }) {
+  const pct = goal > 0 ? Math.min(current / goal, 1.5) : 0;
+  const displayPct = Math.min(pct, 1); // バーは100%で止める
+  const data = [
+    { value: displayPct * 100 },
+    { value: (1 - displayPct) * 100 },
+  ];
+  const isOver = pct > 1;
+  return (
+    <div style={{ textAlign: "center", flex: 1, minWidth: 0 }}>
+      <div style={{ width: 80, height: 80, margin: "0 auto", position: "relative" }}>
+        <PieChart width={80} height={80}>
+          <Pie data={data} innerRadius={28} outerRadius={36} startAngle={90} endAngle={-270}
+               dataKey="value" stroke="none" cornerRadius={4} isAnimationActive={false}>
+            <Cell fill={isOver ? "#ef4444" : color} />
+            <Cell fill={bgColor} />
+          </Pie>
+        </PieChart>
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: isOver ? "#ef4444" : color, fontFamily: "'Space Mono',monospace", lineHeight: 1 }}>
+            {Math.round(pct * 100)}
+            <span style={{ fontSize: 9, fontWeight: 600 }}>%</span>
+          </div>
+        </div>
+      </div>
+      <div style={{ fontSize: 10, fontWeight: 600, color: isOver ? "#ef4444" : color, marginTop: 4 }}>{label}</div>
+      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>
+        {Math.round(current)}/{goal}{unit}
+      </div>
+    </div>
+  );
+}
+
+// ─── 予算ゲージバー ───
+function BudgetGauge({ spent, total }) {
+  const pct = total > 0 ? Math.min(spent / total, 1) : 0;
+  const remaining = total - spent;
+  const barColor = pct < 0.7
+    ? "linear-gradient(90deg, #22c55e, #3b82f6)"
+    : pct < 0.9
+      ? "linear-gradient(90deg, #22c55e, #facc15)"
+      : "linear-gradient(90deg, #facc15, #ef4444)";
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>💰 今日の予算</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: remaining >= 0 ? "#4ade80" : "#f87171", fontFamily: "'Space Mono',monospace" }}>
+          {remaining >= 0 ? `残り ¥${Math.round(remaining).toLocaleString()}` : `¥${Math.abs(Math.round(remaining)).toLocaleString()} 超過`}
+        </span>
+      </div>
+      <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${Math.min(pct * 100, 100)}%`, borderRadius: 4, background: barColor, transition: "width 0.5s ease" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>¥0</span>
+        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>¥{total.toLocaleString()}</span>
+      </div>
+    </div>
+  );
+}
 
 /*
  * マクロ飯ビルダー v3 — Next.js App Router version
@@ -1081,6 +1145,36 @@ export default function Home() {
                 <span style={{ fontFamily: "'Space Mono',monospace", color: "#4ade80" }}>P{h.protein}g ¥{h.cost}</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ─── 今日の進捗ダッシュボード ─── */}
+        {profileGoals && (profileGoals.budget || profileGoals.protein_goal) && todayLogs.length > 0 && (
+          <div style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.06)",
+            borderRadius: 24,
+            padding: "20px 18px",
+            marginBottom: 14,
+            animation: "fadeUp 0.4s ease-out",
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.7)", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 16 }}>📊</span> 今日の進捗
+            </div>
+
+            {/* PFC ドーナツ3連 */}
+            {(profileGoals.protein_goal || profileGoals.fat_goal || profileGoals.carbs_goal) && (
+              <div style={{ display: "flex", gap: 4, marginBottom: profileGoals.budget ? 18 : 0, justifyContent: "center" }}>
+                {profileGoals.protein_goal && <MacroDonut label="タンパク質" current={todayTotals.protein} goal={profileGoals.protein_goal} color="#f87171" bgColor="rgba(248,113,113,0.1)" unit="g" />}
+                {profileGoals.fat_goal && <MacroDonut label="脂質" current={todayTotals.fat} goal={profileGoals.fat_goal} color="#facc15" bgColor="rgba(250,204,21,0.1)" unit="g" />}
+                {profileGoals.carbs_goal && <MacroDonut label="炭水化物" current={todayTotals.carbs} goal={profileGoals.carbs_goal} color="#60a5fa" bgColor="rgba(96,165,250,0.1)" unit="g" />}
+              </div>
+            )}
+
+            {/* 予算ゲージ */}
+            {profileGoals.budget && (
+              <BudgetGauge spent={todayTotals.price} total={profileGoals.budget} />
+            )}
           </div>
         )}
 

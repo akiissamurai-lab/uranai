@@ -3,11 +3,40 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { saveBodyMetric, loadBodyMetrics, loadBodyMetricByDate } from "@/lib/db";
-import { saveLocalBodyMetric, loadLocalBodyMetrics, loadLocalBodyMetricByDate } from "@/lib/local-db";
+import { saveBodyMetric, loadBodyMetrics, loadBodyMetricByDate, loadProfile } from "@/lib/db";
+import { saveLocalBodyMetric, loadLocalBodyMetrics, loadLocalBodyMetricByDate, loadLocalProfile } from "@/lib/local-db";
 import {
-  ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from "recharts";
+
+// ─── カスタムツールチップ ───
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background: "rgba(15,15,30,0.95)",
+      backdropFilter: "blur(12px)",
+      border: "1px solid rgba(255,255,255,0.1)",
+      borderRadius: 16,
+      padding: "12px 16px",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+      minWidth: 140,
+    }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.7)", marginBottom: 8 }}>{label}</div>
+      {payload.map(p => (
+        <div key={p.dataKey} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.color, boxShadow: `0 0 6px ${p.color}` }} />
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>
+            {p.dataKey === "weight" ? "体重" : "体脂肪率"}
+          </span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: p.color, fontFamily: "'Space Mono',monospace", marginLeft: "auto" }}>
+            {p.value}{p.dataKey === "weight" ? "kg" : "%"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -33,6 +62,7 @@ export default function ProgressPage() {
   // Chart data
   const [metrics, setMetrics] = useState([]);
   const [range, setRange] = useState(90); // 30, 90, 0 (all)
+  const [goalWeight, setGoalWeight] = useState(null);
 
   // Auth (ゲストも許可)
   useEffect(() => {
@@ -41,6 +71,19 @@ export default function ProgressPage() {
       setLoading(false);
     }).catch(() => { setLoading(false); });
   }, [supabase]);
+
+  // 目標体重の読み込み
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      loadProfile(supabase, user.id).then(p => {
+        if (p?.goal_weight) setGoalWeight(Number(p.goal_weight));
+      });
+    } else {
+      const p = loadLocalProfile();
+      if (p?.goal_weight) setGoalWeight(Number(p.goal_weight));
+    }
+  }, [user, loading, supabase]);
 
   // Load chart data
   useEffect(() => {
@@ -126,11 +169,12 @@ export default function ProgressPage() {
     bodyFat: m.body_fat != null ? Number(m.body_fat) : null,
   }));
 
-  // Y-axis domains
+  // Y-axis domains（goalWeightも含めてラインが見切れないように）
   const weights = chartData.filter((d) => d.weight != null).map((d) => d.weight);
   const fats = chartData.filter((d) => d.bodyFat != null).map((d) => d.bodyFat);
-  const wMin = weights.length ? Math.floor(Math.min(...weights) - 1) : 50;
-  const wMax = weights.length ? Math.ceil(Math.max(...weights) + 1) : 80;
+  const allWeights = goalWeight ? [...weights, goalWeight] : weights;
+  const wMin = allWeights.length ? Math.floor(Math.min(...allWeights) - 1) : 50;
+  const wMax = allWeights.length ? Math.ceil(Math.max(...allWeights) + 1) : 80;
   const fMin = fats.length ? Math.floor(Math.min(...fats) - 2) : 5;
   const fMax = fats.length ? Math.ceil(Math.max(...fats) + 2) : 30;
 
@@ -213,21 +257,27 @@ export default function ProgressPage() {
               ))}
             </div>
 
-            <div style={{ width: "100%", height: 220 }}>
+            <div style={{ width: "100%", height: 260 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 5, right: 8, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="weightGlow" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#4ade80" stopOpacity={0.15} />
+                      <stop offset="100%" stopColor="#4ade80" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                   <XAxis
                     dataKey="label"
                     tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }}
-                    axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
+                    axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
                     tickLine={false}
                     interval="preserveStartEnd"
                   />
                   <YAxis
                     yAxisId="left"
                     domain={[wMin, wMax]}
-                    tick={{ fill: "#4ade80", fontSize: 10 }}
+                    tick={{ fill: "rgba(74,222,128,0.6)", fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `${v}`}
@@ -237,33 +287,37 @@ export default function ProgressPage() {
                       yAxisId="right"
                       orientation="right"
                       domain={[fMin, fMax]}
-                      tick={{ fill: "#60a5fa", fontSize: 10 }}
+                      tick={{ fill: "rgba(96,165,250,0.6)", fontSize: 10 }}
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(v) => `${v}%`}
                     />
                   )}
-                  <Tooltip
-                    contentStyle={{
-                      background: "#1e1e2e", border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 10, fontSize: 12, color: "#fff",
-                    }}
-                    labelStyle={{ color: "rgba(255,255,255,0.5)" }}
-                    formatter={(value, name) => {
-                      if (name === "weight") return [`${value} kg`, "体重"];
-                      if (name === "bodyFat") return [`${value} %`, "体脂肪率"];
-                      return [value, name];
-                    }}
-                    labelFormatter={(label) => label}
-                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)", strokeWidth: 1 }} />
+                  {goalWeight && (
+                    <ReferenceLine
+                      yAxisId="left"
+                      y={goalWeight}
+                      stroke="rgba(168,139,250,0.5)"
+                      strokeDasharray="6 4"
+                      strokeWidth={1.5}
+                      label={{
+                        value: `目標 ${goalWeight}kg`,
+                        position: "right",
+                        fill: "rgba(168,139,250,0.6)",
+                        fontSize: 10,
+                        fontWeight: 600,
+                      }}
+                    />
+                  )}
                   <Line
                     yAxisId="left"
                     type="monotone"
                     dataKey="weight"
                     stroke="#4ade80"
-                    strokeWidth={2}
-                    dot={{ r: 3, fill: "#4ade80" }}
-                    activeDot={{ r: 5 }}
+                    strokeWidth={2.5}
+                    dot={{ r: 4, fill: "#4ade80", stroke: "#0a0a0f", strokeWidth: 2 }}
+                    activeDot={{ r: 7, fill: "#4ade80", stroke: "rgba(74,222,128,0.3)", strokeWidth: 4 }}
                     connectNulls
                   />
                   {fats.length > 0 && (
@@ -273,8 +327,8 @@ export default function ProgressPage() {
                       dataKey="bodyFat"
                       stroke="#60a5fa"
                       strokeWidth={2}
-                      dot={{ r: 3, fill: "#60a5fa" }}
-                      activeDot={{ r: 5 }}
+                      dot={{ r: 4, fill: "#60a5fa", stroke: "#0a0a0f", strokeWidth: 2 }}
+                      activeDot={{ r: 7, fill: "#60a5fa", stroke: "rgba(96,165,250,0.3)", strokeWidth: 4 }}
                       connectNulls
                       strokeDasharray="5 3"
                     />
@@ -284,15 +338,21 @@ export default function ProgressPage() {
             </div>
 
             {/* Legend */}
-            <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <div style={{ width: 16, height: 2, background: "#4ade80", borderRadius: 1 }} />
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>体重 (kg)</span>
+            <div style={{ display: "flex", justifyContent: "center", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div style={{ width: 14, height: 3, background: "#4ade80", borderRadius: 2 }} />
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>体重</span>
               </div>
               {fats.length > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <div style={{ width: 16, height: 2, background: "#60a5fa", borderRadius: 1, borderTop: "1px dashed #60a5fa" }} />
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>体脂肪率 (%)</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 14, height: 0, borderTop: "2px dashed #60a5fa" }} />
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>体脂肪率</span>
+                </div>
+              )}
+              {goalWeight && (
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 14, height: 0, borderTop: "2px dashed rgba(168,139,250,0.6)" }} />
+                  <span style={{ fontSize: 10, color: "rgba(168,139,250,0.6)" }}>目標</span>
                 </div>
               )}
             </div>
