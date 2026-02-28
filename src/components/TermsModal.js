@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Shield, ScrollText, X } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Shield, ScrollText, Lock, X } from "lucide-react";
 
 const TERMS_VERSION = "1.0";
 const STORAGE_KEY = "tos_agreed";
 
-// ─── 規約本文 ─────────────────────────────────────────────────────
+// ─── 利用規約 ──────────────────────────────────────────────────────
 const TERMS_SECTIONS = [
   {
     title: null,
@@ -51,8 +51,63 @@ const TERMS_SECTIONS = [
   },
 ];
 
-// ─── 規約テキスト共通レンダー ──────────────────────────────────────
-function TermsContent({ scrollRef, onScroll }) {
+// ─── プライバシーポリシー ─────────────────────────────────────────────
+const PRIVACY_SECTIONS = [
+  {
+    title: null,
+    body: `ダツ皿アキ（以下、「当社」といいます）は、当社が提供するサービス「マクロ飯ビルダー」（以下、「本サービス」といいます）における、ユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシー（以下、「本ポリシー」といいます）を定めます。`,
+  },
+  {
+    title: "第1条（収集する情報）",
+    body: `当社は、本サービスの提供にあたり、以下の情報を取得・収集します。\n\n1. アカウント情報：メールアドレス、パスワード（暗号化され保存されます）\n2. プロフィールおよび目標データ：目標体重、期間、予算、食事回数などの設定情報\n3. ヘルスケアおよび記録データ：体重、体脂肪率、食事履歴、トレーニング履歴、およびユーザーが入力した体調メモ（定性データ）\n4. 端末および利用状況データ：Cookie、ローカルストレージデータ、アクセスログ、端末情報`,
+  },
+  {
+    title: "第2条（利用目的）",
+    body: `当社は、収集した個人情報を以下の目的で利用します。\n\n1. 本サービスの提供、ログイン認証、およびユーザーデータのクラウド同期（バックアップ）のため\n2. AIを用いた最適なマクロ栄養素、食事メニュー、予算、および改善アドバイスの生成・提案のため\n3. 本サービスの利便性向上、不具合修正、および新機能開発のための統計的分析のため\n4. ユーザーからのお問い合わせに対応するため\n5. 利用規約等に違反する行為、または不正・不当な目的での利用を防止するため`,
+  },
+  {
+    title: "第3条（外部サービスおよびAIの利用・越境移転について）",
+    important: true,
+    body: `本サービスは、機能の提供およびデータ管理のために以下の外部サービスを利用しており、必要な範囲でデータが送信・処理されます。\n\n1. データベースおよび認証基盤（Supabase等）\nユーザーのデータは、高いセキュリティ基準を満たすクラウドデータベースに安全に保存・管理されます。\n\n2. AI解析プロバイダー（Anthropic社等）\nAIコーチング機能やメニュー提案を提供するため、ユーザーの目標、記録データ、体調メモ等は、外部のAIプロバイダーのAPIに送信されます。ただし、API経由で送信されたデータは、当該プロバイダーにおけるAIモデルの学習（トレーニング）には一切使用されない設定で厳格に運用されています。\n\n3. 越境移転（外国へのデータ提供）\n前各号の外部サービス利用に伴い、ユーザーの個人データは日本国外のサーバー（米国等）に保存、または同国のAIプロバイダーに送信される場合があります。当社は、法令の定めに従い、当該移転先が個人情報の保護に関する相当の措置を講じていることを確認した上でデータの取り扱いを委託します。`,
+  },
+  {
+    title: "第4条（第三者への提供）",
+    body: `当社は、次に掲げる場合を除いて、あらかじめユーザーの同意を得ることなく、第三者に個人情報を提供することはありません。\n\n1. 法令に基づく場合\n2. 人の生命、身体または財産の保護のために必要がある場合であって、本人の同意を得ることが困難であるとき\n3. 本サービスの提供において、当社が利用目的の達成に必要な範囲内において個人情報の取扱いの全部または一部を委託する場合（第3条に定める外部サービスの利用を含みます）`,
+  },
+  {
+    title: "第5条（安全管理措置）",
+    body: `当社は、ユーザーの個人情報の漏えい、滅失またはき損の防止、その他の個人情報の安全管理のために、必要かつ適切なセキュリティ対策（アクセス制御、通信の暗号化等）を講じます。`,
+  },
+  {
+    title: "第6条（個人情報の開示・訂正・削除）",
+    body: `1. ユーザーは、本サービス内の設定画面より、自身の登録情報の確認および訂正を行うことができます。\n\n2. ユーザーがアカウントの削除（退会）を行った場合、当社は、当社のデータベースから当該ユーザーの個人情報および記録データを30日以内に完全に削除します。ただし、法令に基づき保存が義務付けられている情報については、当該法令で定められた期間、保存する場合があります。\n\n3. アカウント削除を行わない限り、ユーザーのデータはサービス提供のために保持されます。`,
+  },
+  {
+    title: "第7条（Cookieおよびローカルストレージの利用）",
+    body: `本サービスでは、ユーザーの利便性向上（ゲストモード時のデータ一時保存や、ログイン状態の維持など）を目的として、ブラウザのCookieおよびローカルストレージ機能を利用しています。ブラウザの設定によりこれらの機能を無効にすることは可能ですが、その場合、本サービスの一部機能が正常に利用できなくなる場合があります。`,
+  },
+  {
+    title: "第8条（プライバシーポリシーの変更）",
+    body: `当社は、法令の改正やサービス内容の変更等により、必要に応じて本ポリシーを変更することがあります。変更を行う場合は、変更後のプライバシーポリシーの施行時期および内容を本サービス内での掲示、またはその他の適切な方法によりユーザーに周知します。ただし、法令上ユーザーの同意が必要となるような内容の変更の場合は、当社所定の方法でユーザーの同意を得るものとします。`,
+  },
+  {
+    title: "第9条（お問い合わせ窓口）",
+    body: `本ポリシーに関するお問い合わせは、下記の窓口までお願いいたします。\n\n運営者：ダツ皿アキ\n連絡先：akiissamurai@gmail.com`,
+  },
+  {
+    title: "附則",
+    body: `2026年3月1日 制定・施行`,
+  },
+];
+
+// ─── タブ定義 ──────────────────────────────────────────────────────
+const TABS = [
+  { id: "terms", label: "利用規約", icon: ScrollText, sections: TERMS_SECTIONS, heading: "マクロ飯ビルダー 利用規約 および 健康に関する免責事項" },
+  { id: "privacy", label: "プライバシーポリシー", icon: Lock, sections: PRIVACY_SECTIONS, heading: "マクロ飯ビルダー プライバシーポリシー" },
+];
+
+// ─── セクション共通レンダラー ───────────────────────────────────────
+function SectionRenderer({ sections, heading, scrollRef, onScroll }) {
   return (
     <div
       ref={scrollRef}
@@ -65,16 +120,15 @@ function TermsContent({ scrollRef, onScroll }) {
       }}
     >
       <h2 style={{
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: 700,
-        color: "rgba(255,255,255,0.85)",
+        color: "rgba(255,255,255,0.8)",
         margin: "0 0 16px",
         textAlign: "center",
       }}>
-        マクロ飯ビルダー 利用規約 および 健康に関する免責事項
+        {heading}
       </h2>
-
-      {TERMS_SECTIONS.map((sec, i) => (
+      {sections.map((sec, i) => (
         <div key={i} style={{ marginBottom: 20 }}>
           {sec.title && (
             <h3 style={{
@@ -107,10 +161,72 @@ function TermsContent({ scrollRef, onScroll }) {
   );
 }
 
+// ─── タブ切替バー ──────────────────────────────────────────────────
+function TabBar({ activeTab, onTabChange, readTabs }) {
+  return (
+    <div style={{
+      display: "flex",
+      gap: 4,
+      padding: "0 20px",
+      marginBottom: 12,
+    }}>
+      {TABS.map((tab) => {
+        const active = activeTab === tab.id;
+        const Icon = tab.icon;
+        const isRead = readTabs?.has(tab.id);
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 5,
+              padding: "9px 0",
+              borderRadius: 10,
+              border: active
+                ? "1px solid rgba(34,197,94,0.3)"
+                : "1px solid rgba(255,255,255,0.08)",
+              background: active
+                ? "rgba(34,197,94,0.1)"
+                : "rgba(255,255,255,0.03)",
+              color: active
+                ? "#4ade80"
+                : "rgba(255,255,255,0.4)",
+              fontSize: 11,
+              fontWeight: active ? 700 : 500,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              position: "relative",
+            }}
+          >
+            <Icon size={13} strokeWidth={1.5} />
+            {tab.label}
+            {isRead && (
+              <span style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "#22c55e",
+                position: "absolute",
+                top: 6,
+                right: 8,
+              }} />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── TermsGate: 初回同意用（layout.js から使用） ────────────────────
 export default function TermsGate() {
   const [show, setShow] = useState(false);
-  const [canAgree, setCanAgree] = useState(false);
+  const [activeTab, setActiveTab] = useState("terms");
+  const [readTabs, setReadTabs] = useState(new Set());
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -119,26 +235,36 @@ export default function TermsGate() {
     if (!stored) {
       setShow(true);
     } else {
-      // バージョンチェック（将来の規約更新対応）
       try {
         const parsed = JSON.parse(stored);
         if (parsed.version !== TERMS_VERSION) {
           setShow(true);
         }
       } catch {
-        // 旧形式 → 再同意不要（初期バージョン）
+        // 旧形式
       }
     }
   }, []);
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-    // 末尾近くまでスクロールしたら同意ボタン有効化
     if (scrollHeight - scrollTop - clientHeight < 60) {
-      setCanAgree(true);
+      setReadTabs((prev) => {
+        const next = new Set(prev);
+        next.add(activeTab);
+        return next;
+      });
     }
+  }, [activeTab]);
+
+  // タブ切替時にスクロール位置リセット
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   };
+
+  const canAgree = readTabs.has("terms") && readTabs.has("privacy");
 
   const handleAgree = () => {
     localStorage.setItem(
@@ -149,6 +275,8 @@ export default function TermsGate() {
   };
 
   if (!show) return null;
+
+  const currentTab = TABS.find((t) => t.id === activeTab);
 
   return (
     <div style={{
@@ -175,7 +303,7 @@ export default function TermsGate() {
       }}>
         {/* ヘッダー */}
         <div style={{
-          padding: "24px 20px 16px",
+          padding: "24px 20px 14px",
           borderBottom: "1px solid rgba(255,255,255,0.06)",
           textAlign: "center",
         }}>
@@ -198,38 +326,54 @@ export default function TermsGate() {
             color: "rgba(255,255,255,0.9)",
             margin: "0 0 4px",
           }}>
-            利用規約への同意
+            利用規約・プライバシーポリシー
           </h1>
           <p style={{
             fontSize: 12,
             color: "rgba(255,255,255,0.35)",
-            margin: 0,
+            margin: "0 0 14px",
           }}>
-            サービスをご利用いただくには、以下の規約への同意が必要です
+            両方をお読みいただき、同意の上でご利用ください
           </p>
+
+          {/* タブ切替 */}
+          <TabBar activeTab={activeTab} onTabChange={handleTabChange} readTabs={readTabs} />
         </div>
 
-        {/* スクロール可能な規約本文 */}
-        <TermsContent scrollRef={scrollRef} onScroll={handleScroll} />
+        {/* スクロール可能な本文 */}
+        <SectionRenderer
+          key={activeTab}
+          sections={currentTab.sections}
+          heading={currentTab.heading}
+          scrollRef={scrollRef}
+          onScroll={handleScroll}
+        />
 
         {/* フッター */}
         <div style={{
-          padding: "16px 20px 20px",
+          padding: "14px 20px 20px",
           borderTop: "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           flexDirection: "column",
           gap: 8,
         }}>
-          {!canAgree && (
-            <p style={{
-              fontSize: 11,
-              color: "rgba(255,255,255,0.3)",
-              textAlign: "center",
-              margin: 0,
-            }}>
-              最後までスクロールしてお読みください
-            </p>
-          )}
+          {/* 進捗インジケーター */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 12,
+            fontSize: 11,
+            color: "rgba(255,255,255,0.3)",
+          }}>
+            <span style={{ color: readTabs.has("terms") ? "#4ade80" : undefined }}>
+              {readTabs.has("terms") ? "\u2713" : "\u25CB"} 利用規約
+            </span>
+            <span style={{ color: readTabs.has("privacy") ? "#4ade80" : undefined }}>
+              {readTabs.has("privacy") ? "\u2713" : "\u25CB"} プライバシーポリシー
+            </span>
+          </div>
+
           <button
             onClick={handleAgree}
             disabled={!canAgree}
@@ -250,7 +394,9 @@ export default function TermsGate() {
               transition: "all 0.3s ease",
             }}
           >
-            {canAgree ? "同意して利用を開始する" : "規約を最後までお読みください"}
+            {canAgree
+              ? "同意して利用を開始する"
+              : "両方の規約を最後までお読みください"}
           </button>
         </div>
       </div>
@@ -258,9 +404,17 @@ export default function TermsGate() {
   );
 }
 
-// ─── TermsViewer: 閲覧用モーダル（設定画面から使用） ─────────────────
-export function TermsViewer({ onClose }) {
+// ─── LegalViewer: 閲覧用モーダル（設定画面から使用） ─────────────────
+export function LegalViewer({ initialTab = "terms", onClose }) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const scrollRef = useRef(null);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  };
+
+  const currentTab = TABS.find((t) => t.id === activeTab);
 
   return (
     <div style={{
@@ -289,42 +443,51 @@ export function TermsViewer({ onClose }) {
         <div style={{
           padding: "20px 20px 14px",
           borderBottom: "1px solid rgba(255,255,255,0.06)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <ScrollText size={18} color="rgba(255,255,255,0.5)" strokeWidth={1.5} />
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 14,
+          }}>
             <h1 style={{
               fontSize: 16,
               fontWeight: 700,
               color: "rgba(255,255,255,0.85)",
               margin: 0,
             }}>
-              利用規約
+              法的情報
             </h1>
+            <button
+              onClick={onClose}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,0.1)",
+                background: "rgba(255,255,255,0.05)",
+                color: "rgba(255,255,255,0.5)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <X size={16} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.1)",
-              background: "rgba(255,255,255,0.05)",
-              color: "rgba(255,255,255,0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-          >
-            <X size={16} />
-          </button>
+
+          {/* タブ切替 */}
+          <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
         </div>
 
-        {/* スクロール可能な規約本文 */}
-        <TermsContent scrollRef={scrollRef} />
+        {/* スクロール可能な本文 */}
+        <SectionRenderer
+          key={activeTab}
+          sections={currentTab.sections}
+          heading={currentTab.heading}
+          scrollRef={scrollRef}
+        />
 
         {/* フッター */}
         <div style={{

@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap, UtensilsCrossed, ScrollText } from "lucide-react";
-import { TermsViewer } from "@/components/TermsModal";
+import { Target, Wallet, Zap, UtensilsCrossed, ScrollText, Lock } from "lucide-react";
+import { LegalViewer } from "@/components/TermsModal";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export default function SettingsPage() {
   const [fatGoal, setFatGoal] = useState("");
   const [carbsGoal, setCarbsGoal] = useState("");
   const [mealCount, setMealCount] = useState(3);
-  const [showTerms, setShowTerms] = useState(false);
+  const [legalTab, setLegalTab] = useState(null); // null = closed, "terms" | "privacy"
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -251,10 +251,10 @@ export default function SettingsPage() {
           </button>
         </form>
 
-        {/* 利用規約リンク */}
-        <div style={{ marginTop: 24, textAlign: "center", paddingBottom: 8 }}>
+        {/* 法的情報リンク */}
+        <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 4, paddingBottom: 8 }}>
           <button
-            onClick={() => setShowTerms(true)}
+            onClick={() => setLegalTab("terms")}
             style={{
               background: "none",
               border: "none",
@@ -263,18 +263,36 @@ export default function SettingsPage() {
               cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
-              gap: 6,
-              padding: "8px 16px",
+              gap: 5,
+              padding: "8px 12px",
             }}
           >
-            <ScrollText size={13} strokeWidth={1.5} />
-            利用規約を確認する
+            <ScrollText size={12} strokeWidth={1.5} />
+            利用規約
+          </button>
+          <span style={{ color: "rgba(255,255,255,0.12)", fontSize: 12, lineHeight: "36px" }}>|</span>
+          <button
+            onClick={() => setLegalTab("privacy")}
+            style={{
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.3)",
+              fontSize: 12,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "8px 12px",
+            }}
+          >
+            <Lock size={12} strokeWidth={1.5} />
+            プライバシーポリシー
           </button>
         </div>
       </main>
 
-      {/* 利用規約モーダル */}
-      {showTerms && <TermsViewer onClose={() => setShowTerms(false)} />}
+      {/* 法的情報モーダル */}
+      {legalTab && <LegalViewer initialTab={legalTab} onClose={() => setLegalTab(null)} />}
 
       {/* Toast */}
       {toast && (
