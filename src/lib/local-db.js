@@ -61,6 +61,7 @@ export function saveLocalMealLog(log) {
     protein: log.protein || null,
     fat: log.fat || null,
     carbs: log.carbs || null,
+    meal_index: log.mealIndex || null,
     created_at: now(),
   };
   all[dateKey].push(entry);
@@ -84,7 +85,7 @@ export function deleteLocalMealLog(logId) {
 
 // ─── Body Metrics ─────────────────────────────────────────────
 
-export function saveLocalBodyMetric({ date, weight, bodyFat, notes }) {
+export function saveLocalBodyMetric({ date, weight, bodyFat, notes, weightNight, bodyFatNight }) {
   const all = get(KEYS.bodyMetrics) || [];
   const idx = all.findIndex((m) => m.date === date);
   const entry = {
@@ -92,6 +93,8 @@ export function saveLocalBodyMetric({ date, weight, bodyFat, notes }) {
     date,
     weight: weight || null,
     body_fat: bodyFat || null,
+    weight_night: weightNight || null,
+    body_fat_night: bodyFatNight || null,
     notes: notes || null,
     created_at: idx >= 0 ? all[idx].created_at : now(),
     updated_at: now(),
@@ -133,6 +136,8 @@ export function saveLocalDailyNotes(date, notes) {
       date,
       weight: null,
       body_fat: null,
+      weight_night: null,
+      body_fat_night: null,
       notes: notes || null,
       created_at: now(),
       updated_at: now(),

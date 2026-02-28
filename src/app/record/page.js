@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals, saveDailyNotes, loadBodyMetricByDate } from "@/lib/db";
-import { saveLocalMealLog, loadLocalMealLogs, deleteLocalMealLog, loadLocalRoutineMeals, loadLocalProfile, saveLocalDailyNotes, loadLocalBodyMetricByDate } from "@/lib/local-db";
-import { BarChart3, Wallet, Zap, UtensilsCrossed, Plus, PenLine } from "lucide-react";
+import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals, saveDailyNotes, loadBodyMetricByDate, saveBodyMetric } from "@/lib/db";
+import { saveLocalMealLog, loadLocalMealLogs, deleteLocalMealLog, loadLocalRoutineMeals, loadLocalProfile, saveLocalDailyNotes, loadLocalBodyMetricByDate, saveLocalBodyMetric } from "@/lib/local-db";
+import { BarChart3, Wallet, Zap, UtensilsCrossed, Plus, PenLine, Scale } from "lucide-react";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -77,6 +77,19 @@ export default function RecordPage() {
   const [notesSaved, setNotesSaved] = useState(false);
   const debounceRef = useRef(null);
 
+  // 体重記録（朝/夜）
+  const [weightTab, setWeightTab] = useState("morning");
+  const [morningWeight, setMorningWeight] = useState("");
+  const [morningBodyFat, setMorningBodyFat] = useState("");
+  const [nightWeight, setNightWeight] = useState("");
+  const [nightBodyFat, setNightBodyFat] = useState("");
+  const [weightSaving, setWeightSaving] = useState(false);
+  const [weightSaved, setWeightSaved] = useState(false);
+
+  // 食事セクション
+  const [activeMealIndex, setActiveMealIndex] = useState(null); // null = 全て
+  const [mealCount, setMealCount] = useState(3);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user); // null = ゲスト
@@ -94,26 +107,32 @@ export default function RecordPage() {
     }
   }, [supabase, user, loading]);
 
-  // Load profile goals
+  // Load profile goals + mealCount
   useEffect(() => {
     if (loading) return;
     if (user) {
       loadProfile(supabase, user.id).then((p) => {
-        if (p) setGoals({
+        if (p) {
+          setGoals({
+            budget: p.budget || null,
+            protein: p.protein_goal || null,
+            fat: p.fat_goal || null,
+            carbs: p.carbs_goal || null,
+          });
+          setMealCount(p.meal_count ?? 3);
+        }
+      });
+    } else {
+      const p = loadLocalProfile();
+      if (p) {
+        setGoals({
           budget: p.budget || null,
           protein: p.protein_goal || null,
           fat: p.fat_goal || null,
           carbs: p.carbs_goal || null,
         });
-      });
-    } else {
-      const p = loadLocalProfile();
-      if (p) setGoals({
-        budget: p.budget || null,
-        protein: p.protein_goal || null,
-        fat: p.fat_goal || null,
-        carbs: p.carbs_goal || null,
-      });
+        setMealCount(p.meal_count ?? 3);
+      }
     }
   }, [supabase, user, loading]);
 
@@ -143,6 +162,72 @@ export default function RecordPage() {
       setDailyNotes(m?.notes || "");
     }
   }, [supabase, user, date, loading]);
+
+  // Load weight data when date changes
+  useEffect(() => {
+    if (loading) return;
+    setMorningWeight(""); setMorningBodyFat("");
+    setNightWeight(""); setNightBodyFat("");
+    setWeightSaved(false);
+
+    const loadMetric = async () => {
+      let m;
+      if (user) {
+        m = await loadBodyMetricByDate(supabase, user.id, date);
+      } else {
+        m = loadLocalBodyMetricByDate(date);
+      }
+      if (m) {
+        setMorningWeight(m.weight != null ? String(m.weight) : "");
+        setMorningBodyFat(m.body_fat != null ? String(m.body_fat) : "");
+        setNightWeight(m.weight_night != null ? String(m.weight_night) : "");
+        setNightBodyFat(m.body_fat_night != null ? String(m.body_fat_night) : "");
+      }
+    };
+    loadMetric();
+  }, [supabase, user, date, loading]);
+
+  // mealCount 変更時に activeMealIndex が範囲外なら全表示にリセット
+  useEffect(() => {
+    if (activeMealIndex !== null && activeMealIndex > mealCount) {
+      setActiveMealIndex(null);
+    }
+  }, [mealCount, activeMealIndex]);
+
+  const handleWeightSave = async () => {
+    setWeightSaving(true);
+    try {
+      // 既存の metric を読み込み（notes を保持するため）
+      let existing;
+      if (user) {
+        existing = await loadBodyMetricByDate(supabase, user.id, date);
+      } else {
+        existing = loadLocalBodyMetricByDate(date);
+      }
+
+      const payload = {
+        date,
+        weight: morningWeight !== "" ? Number(morningWeight) : null,
+        bodyFat: morningBodyFat !== "" ? Number(morningBodyFat) : null,
+        weightNight: nightWeight !== "" ? Number(nightWeight) : null,
+        bodyFatNight: nightBodyFat !== "" ? Number(nightBodyFat) : null,
+        notes: existing?.notes || dailyNotes || null,
+      };
+
+      if (user) {
+        await saveBodyMetric(supabase, user.id, payload);
+      } else {
+        saveLocalBodyMetric(payload);
+      }
+      setWeightSaved(true);
+      showToast("success", "体重を保存しました");
+      setTimeout(() => setWeightSaved(false), 2000);
+    } catch {
+      showToast("error", "体重の保存に失敗しました");
+    } finally {
+      setWeightSaving(false);
+    }
+  };
 
   const handleNotesChange = (value) => {
     setDailyNotes(value);
@@ -186,6 +271,7 @@ export default function RecordPage() {
       protein: protein !== "" ? Number(protein) : null,
       fat: fat !== "" ? Number(fat) : null,
       carbs: carbs !== "" ? Number(carbs) : null,
+      mealIndex: activeMealIndex,
     };
 
     let saved;
@@ -229,6 +315,7 @@ export default function RecordPage() {
       protein: routine.protein != null ? Number(routine.protein) : null,
       fat: routine.fat != null ? Number(routine.fat) : null,
       carbs: routine.carbs != null ? Number(routine.carbs) : null,
+      mealIndex: activeMealIndex,
     };
 
     let saved;
@@ -316,6 +403,83 @@ export default function RecordPage() {
           />
         </div>
 
+        {/* 体重記録カード */}
+        <div style={S.card}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              <Scale size={12} strokeWidth={1.5} />体重記録
+            </span>
+            <div style={{ display: "flex", gap: 0, background: "rgba(255,255,255,0.04)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden" }}>
+              {["morning", "night"].map((tab) => (
+                <button key={tab} onClick={() => setWeightTab(tab)} style={{
+                  padding: "5px 14px", border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  background: weightTab === tab
+                    ? (tab === "morning" ? "rgba(74,222,128,0.15)" : "rgba(245,158,11,0.15)")
+                    : "transparent",
+                  color: weightTab === tab
+                    ? (tab === "morning" ? "#4ade80" : "#f59e0b")
+                    : "rgba(255,255,255,0.35)",
+                  transition: "all 0.2s",
+                }}>
+                  {tab === "morning" ? "☀ 朝" : "🌙 夜"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+            <div style={S.fieldWrap}>
+              <label style={S.fieldLabel}>体重</label>
+              <div style={S.numWrap}>
+                <input
+                  type="number" inputMode="decimal" step="0.1" min="30" max="200"
+                  value={weightTab === "morning" ? morningWeight : nightWeight}
+                  onChange={(e) => weightTab === "morning" ? setMorningWeight(e.target.value) : setNightWeight(e.target.value)}
+                  placeholder="—"
+                  style={{ ...S.numInput, color: weightTab === "morning" ? "#4ade80" : "#f59e0b" }}
+                />
+                <span style={S.unit}>kg</span>
+              </div>
+            </div>
+            <div style={S.fieldWrap}>
+              <label style={S.fieldLabel}>体脂肪率</label>
+              <div style={S.numWrap}>
+                <input
+                  type="number" inputMode="decimal" step="0.1" min="1" max="60"
+                  value={weightTab === "morning" ? morningBodyFat : nightBodyFat}
+                  onChange={(e) => weightTab === "morning" ? setMorningBodyFat(e.target.value) : setNightBodyFat(e.target.value)}
+                  placeholder="—"
+                  style={{ ...S.numInput, color: weightTab === "morning" ? "#4ade80" : "#f59e0b" }}
+                />
+                <span style={S.unit}>%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 朝夜サマリー */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 10, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
+            {morningWeight && <span>☀ 朝 <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{morningWeight}</span>kg</span>}
+            {nightWeight && <span>🌙 夜 <span style={{ color: "#f59e0b", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{nightWeight}</span>kg</span>}
+            {morningWeight && nightWeight && (
+              <span style={{ color: "rgba(255,255,255,0.25)" }}>
+                差 <span style={{ fontWeight: 700, fontFamily: "'Space Mono',monospace", color: "rgba(255,255,255,0.5)" }}>
+                  {(Number(nightWeight) - Number(morningWeight) >= 0 ? "+" : "")}{(Number(nightWeight) - Number(morningWeight)).toFixed(1)}
+                </span>kg
+              </span>
+            )}
+          </div>
+
+          <button onClick={handleWeightSave} disabled={weightSaving} style={{
+            width: "100%", padding: "10px 0", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 700,
+            background: weightSaving ? "#555" : weightSaved ? "rgba(74,222,128,0.15)" : "rgba(255,255,255,0.06)",
+            color: weightSaved ? "#4ade80" : "rgba(255,255,255,0.6)",
+            cursor: weightSaving ? "not-allowed" : "pointer",
+            transition: "all 0.2s",
+          }}>
+            {weightSaving ? "保存中..." : weightSaved ? "✓ 保存しました" : "体重を保存"}
+          </button>
+        </div>
+
         {/* Dashboard */}
         {showDashboard && (
           <div style={S.dashboard}>
@@ -360,6 +524,38 @@ export default function RecordPage() {
             </div>
           </div>
         )}
+
+        {/* 食事セクション切替 */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 0, background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <button
+              onClick={() => setActiveMealIndex(null)}
+              style={{
+                flex: 1, padding: "8px 0", border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                background: activeMealIndex === null ? "rgba(34,197,94,0.12)" : "transparent",
+                color: activeMealIndex === null ? "#4ade80" : "rgba(255,255,255,0.35)",
+                transition: "all 0.2s",
+              }}
+            >
+              全て
+            </button>
+            {Array.from({ length: mealCount }, (_, i) => i + 1).map((idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveMealIndex(idx)}
+                style={{
+                  flex: 1, padding: "8px 0", border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  borderLeft: "1px solid rgba(255,255,255,0.06)",
+                  background: activeMealIndex === idx ? "rgba(34,197,94,0.12)" : "transparent",
+                  color: activeMealIndex === idx ? "#4ade80" : "rgba(255,255,255,0.35)",
+                  transition: "all 0.2s",
+                }}
+              >
+                {idx}食目
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Routine meals - one-tap section */}
         {routines.length > 0 && (
@@ -506,32 +702,44 @@ export default function RecordPage() {
         )}
 
         {/* Log list */}
-        {logs.length > 0 && (
-          <div style={{ marginTop: 8 }}>
-            {logs.map((log) => (
-              <div key={log.id} style={S.logItem}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {log.meal_name}
-                  </div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2, display: "flex", gap: 8 }}>
-                    {log.price != null && <span>¥{log.price}</span>}
-                    {log.protein != null && <span style={{ color: "#f87171" }}>P{log.protein}g</span>}
-                    {log.fat != null && <span style={{ color: "#facc15" }}>F{log.fat}g</span>}
-                    {log.carbs != null && <span style={{ color: "#60a5fa" }}>C{log.carbs}g</span>}
-                  </div>
-                </div>
-                <button onClick={() => handleDelete(log.id)} style={S.deleteBtn} aria-label="削除">×</button>
-              </div>
-            ))}
-          </div>
-        )}
+        {(() => {
+          const filteredLogs = activeMealIndex === null
+            ? logs
+            : logs.filter((l) => l.meal_index === activeMealIndex);
 
-        {logs.length === 0 && (
-          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.25)", fontSize: 13, marginTop: 32 }}>
-            まだ記録がありません
-          </p>
-        )}
+          return filteredLogs.length > 0 ? (
+            <div style={{ marginTop: 8 }}>
+              {filteredLogs.map((log) => (
+                <div key={log.id} style={S.logItem}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
+                      {log.meal_index != null && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 6,
+                          background: "rgba(34,197,94,0.1)", color: "#4ade80", flexShrink: 0,
+                        }}>
+                          {log.meal_index}食目
+                        </span>
+                      )}
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{log.meal_name}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2, display: "flex", gap: 8 }}>
+                      {log.price != null && <span>¥{log.price}</span>}
+                      {log.protein != null && <span style={{ color: "#f87171" }}>P{log.protein}g</span>}
+                      {log.fat != null && <span style={{ color: "#facc15" }}>F{log.fat}g</span>}
+                      {log.carbs != null && <span style={{ color: "#60a5fa" }}>C{log.carbs}g</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => handleDelete(log.id)} style={S.deleteBtn} aria-label="削除">×</button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ textAlign: "center", color: "rgba(255,255,255,0.25)", fontSize: 13, marginTop: 32 }}>
+              {activeMealIndex !== null ? `${activeMealIndex}食目の記録はまだありません` : "まだ記録がありません"}
+            </p>
+          );
+        })()}
       </main>
 
       {/* Toast */}

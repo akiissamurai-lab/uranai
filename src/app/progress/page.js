@@ -11,6 +11,12 @@ import {
 import { PenLine, Scale, BarChart3 } from "lucide-react";
 
 // ─── カスタムツールチップ ───
+const tooltipLabels = {
+  weight: "体重(朝)", weightNight: "体重(夜)",
+  bodyFat: "体脂肪率(朝)", bodyFatNight: "体脂肪率(夜)",
+};
+const tooltipUnits = { weight: "kg", weightNight: "kg", bodyFat: "%", bodyFatNight: "%" };
+
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
@@ -21,17 +27,17 @@ function CustomTooltip({ active, payload, label }) {
       borderRadius: 16,
       padding: "12px 16px",
       boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-      minWidth: 140,
+      minWidth: 160,
     }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.7)", marginBottom: 8 }}>{label}</div>
       {payload.map(p => (
         <div key={p.dataKey} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.color, boxShadow: `0 0 6px ${p.color}` }} />
           <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>
-            {p.dataKey === "weight" ? "体重" : "体脂肪率"}
+            {tooltipLabels[p.dataKey] || p.dataKey}
           </span>
           <span style={{ fontSize: 13, fontWeight: 700, color: p.color, fontFamily: "'Space Mono',monospace", marginLeft: "auto" }}>
-            {p.value}{p.dataKey === "weight" ? "kg" : "%"}
+            {p.value}{tooltipUnits[p.dataKey] || ""}
           </span>
         </div>
       ))}
@@ -56,8 +62,11 @@ export default function ProgressPage() {
 
   // Form
   const [date, setDate] = useState(today());
+  const [formTab, setFormTab] = useState("morning"); // "morning" | "night"
   const [weight, setWeight] = useState("");
   const [bodyFat, setBodyFat] = useState("");
+  const [nightWeight, setNightWeight] = useState("");
+  const [nightBodyFat, setNightBodyFat] = useState("");
   const [notes, setNotes] = useState("");
 
   // Chart data
@@ -99,29 +108,23 @@ export default function ProgressPage() {
   // Load existing data for selected date
   useEffect(() => {
     if (loading) return;
-    if (user) {
-      loadBodyMetricByDate(supabase, user.id, date).then((m) => {
-        if (m) {
-          setWeight(m.weight != null ? String(m.weight) : "");
-          setBodyFat(m.body_fat != null ? String(m.body_fat) : "");
-          setNotes(m.notes || "");
-        } else {
-          setWeight("");
-          setBodyFat("");
-          setNotes("");
-        }
-      });
-    } else {
-      const m = loadLocalBodyMetricByDate(date);
+    const applyMetric = (m) => {
       if (m) {
         setWeight(m.weight != null ? String(m.weight) : "");
         setBodyFat(m.body_fat != null ? String(m.body_fat) : "");
+        setNightWeight(m.weight_night != null ? String(m.weight_night) : "");
+        setNightBodyFat(m.body_fat_night != null ? String(m.body_fat_night) : "");
         setNotes(m.notes || "");
       } else {
-        setWeight("");
-        setBodyFat("");
+        setWeight(""); setBodyFat("");
+        setNightWeight(""); setNightBodyFat("");
         setNotes("");
       }
+    };
+    if (user) {
+      loadBodyMetricByDate(supabase, user.id, date).then(applyMetric);
+    } else {
+      applyMetric(loadLocalBodyMetricByDate(date));
     }
   }, [supabase, user, date, loading]);
 
@@ -132,13 +135,15 @@ export default function ProgressPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!weight) return;
+    if (!weight && !nightWeight) return;
 
     setSaving(true);
     const metricData = {
       date,
-      weight: Number(weight),
+      weight: weight !== "" ? Number(weight) : null,
       bodyFat: bodyFat !== "" ? Number(bodyFat) : null,
+      weightNight: nightWeight !== "" ? Number(nightWeight) : null,
+      bodyFatNight: nightBodyFat !== "" ? Number(nightBodyFat) : null,
       notes: notes.trim() || null,
     };
 
@@ -167,17 +172,21 @@ export default function ProgressPage() {
     date: m.date,
     label: `${new Date(m.date + "T00:00").getMonth() + 1}/${new Date(m.date + "T00:00").getDate()}`,
     weight: m.weight != null ? Number(m.weight) : null,
+    weightNight: m.weight_night != null ? Number(m.weight_night) : null,
     bodyFat: m.body_fat != null ? Number(m.body_fat) : null,
+    bodyFatNight: m.body_fat_night != null ? Number(m.body_fat_night) : null,
   }));
 
-  // Y-axis domains（goalWeightも含めてラインが見切れないように）
-  const weights = chartData.filter((d) => d.weight != null).map((d) => d.weight);
+  // Y-axis domains（goalWeight + 夜体重も含めてラインが見切れないように）
+  const morningWeights = chartData.filter((d) => d.weight != null).map((d) => d.weight);
+  const nightWeights = chartData.filter((d) => d.weightNight != null).map((d) => d.weightNight);
   const fats = chartData.filter((d) => d.bodyFat != null).map((d) => d.bodyFat);
-  const allWeights = goalWeight ? [...weights, goalWeight] : weights;
+  const allWeights = [...morningWeights, ...nightWeights, ...(goalWeight ? [goalWeight] : [])];
   const wMin = allWeights.length ? Math.floor(Math.min(...allWeights) - 1) : 50;
   const wMax = allWeights.length ? Math.ceil(Math.max(...allWeights) + 1) : 80;
   const fMin = fats.length ? Math.floor(Math.min(...fats) - 2) : 5;
   const fMax = fats.length ? Math.ceil(Math.max(...fats) + 2) : 30;
+  const hasNightWeight = nightWeights.length > 0;
 
   // Latest values
   const latest = metrics.length > 0 ? metrics[metrics.length - 1] : null;
@@ -211,17 +220,27 @@ export default function ProgressPage() {
         {/* Latest stats */}
         {latest && (
           <div style={S.statsRow}>
-            <div style={S.statCard}>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>最新体重</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
-                {Number(latest.weight).toFixed(1)}<span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>kg</span>
-              </div>
-              {weightDiff && (
-                <div style={{ fontSize: 10, color: Number(weightDiff) > 0 ? "#f87171" : "#4ade80", fontFamily: "'Space Mono',monospace" }}>
-                  {Number(weightDiff) > 0 ? "+" : ""}{weightDiff}kg
+            {latest.weight != null && (
+              <div style={S.statCard}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>最新体重(朝)</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                  {Number(latest.weight).toFixed(1)}<span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>kg</span>
                 </div>
-              )}
-            </div>
+                {weightDiff && (
+                  <div style={{ fontSize: 10, color: Number(weightDiff) > 0 ? "#f87171" : "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                    {Number(weightDiff) > 0 ? "+" : ""}{weightDiff}kg
+                  </div>
+                )}
+              </div>
+            )}
+            {latest.weight_night != null && (
+              <div style={S.statCard}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>最新体重(夜)</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#f59e0b", fontFamily: "'Space Mono',monospace" }}>
+                  {Number(latest.weight_night).toFixed(1)}<span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>kg</span>
+                </div>
+              </div>
+            )}
             {latest.body_fat != null && (
               <div style={S.statCard}>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>最新体脂肪率</div>
@@ -321,6 +340,18 @@ export default function ProgressPage() {
                     activeDot={{ r: 7, fill: "#4ade80", stroke: "rgba(74,222,128,0.3)", strokeWidth: 4 }}
                     connectNulls
                   />
+                  {hasNightWeight && (
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="weightNight"
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      dot={{ r: 3, fill: "#f59e0b", stroke: "#0a0a0f", strokeWidth: 2 }}
+                      activeDot={{ r: 6, fill: "#f59e0b", stroke: "rgba(245,158,11,0.3)", strokeWidth: 4 }}
+                      connectNulls
+                    />
+                  )}
                   {fats.length > 0 && (
                     <Line
                       yAxisId="right"
@@ -342,8 +373,14 @@ export default function ProgressPage() {
             <div style={{ display: "flex", justifyContent: "center", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 <div style={{ width: 14, height: 3, background: "#4ade80", borderRadius: 2 }} />
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>体重</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>体重(朝)</span>
               </div>
+              {hasNightWeight && (
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 14, height: 3, background: "#f59e0b", borderRadius: 2 }} />
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>体重(夜)</span>
+                </div>
+              )}
               {fats.length > 0 && (
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <div style={{ width: 14, height: 0, borderTop: "2px dashed #60a5fa" }} />
@@ -370,7 +407,25 @@ export default function ProgressPage() {
 
         {/* Input form */}
         <form onSubmit={handleSubmit} style={S.card}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><PenLine size={14} strokeWidth={1.5} />記録する</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", gap: 6 }}><PenLine size={14} strokeWidth={1.5} />記録する</div>
+            <div style={{ display: "flex", gap: 0, background: "rgba(255,255,255,0.04)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden" }}>
+              {["morning", "night"].map((tab) => (
+                <button key={tab} type="button" onClick={() => setFormTab(tab)} style={{
+                  padding: "5px 14px", border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  background: formTab === tab
+                    ? (tab === "morning" ? "rgba(74,222,128,0.15)" : "rgba(245,158,11,0.15)")
+                    : "transparent",
+                  color: formTab === tab
+                    ? (tab === "morning" ? "#4ade80" : "#f59e0b")
+                    : "rgba(255,255,255,0.35)",
+                  transition: "all 0.2s",
+                }}>
+                  {tab === "morning" ? "☀ 朝" : "🌙 夜"}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Date picker */}
           <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
@@ -382,10 +437,12 @@ export default function ProgressPage() {
             )}
           </div>
 
-          {/* Weight + Body Fat */}
+          {/* Weight + Body Fat (tab-bound) */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
             <div>
-              <label style={{ ...S.fieldLabel, display: "flex", alignItems: "center", gap: 4 }}><Scale size={12} strokeWidth={1.5} />体重 (kg)</label>
+              <label style={{ ...S.fieldLabel, display: "flex", alignItems: "center", gap: 4 }}>
+                <Scale size={12} strokeWidth={1.5} />体重 (kg)
+              </label>
               <div style={S.numWrap}>
                 <input
                   type="number"
@@ -393,18 +450,19 @@ export default function ProgressPage() {
                   step="0.1"
                   min="20"
                   max="300"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
+                  value={formTab === "morning" ? weight : nightWeight}
+                  onChange={(e) => formTab === "morning" ? setWeight(e.target.value) : setNightWeight(e.target.value)}
                   placeholder="65.0"
-                  required
-                  style={{ ...S.numInput, color: "#4ade80" }}
+                  style={{ ...S.numInput, color: formTab === "morning" ? "#4ade80" : "#f59e0b" }}
                   onWheel={(e) => e.target.blur()}
                 />
                 <span style={S.unit}>kg</span>
               </div>
             </div>
             <div>
-              <label style={{ ...S.fieldLabel, display: "flex", alignItems: "center", gap: 4 }}><BarChart3 size={12} strokeWidth={1.5} />体脂肪率 (%)</label>
+              <label style={{ ...S.fieldLabel, display: "flex", alignItems: "center", gap: 4 }}>
+                <BarChart3 size={12} strokeWidth={1.5} />体脂肪率 (%)
+              </label>
               <div style={S.numWrap}>
                 <input
                   type="number"
@@ -412,15 +470,28 @@ export default function ProgressPage() {
                   step="0.1"
                   min="1"
                   max="60"
-                  value={bodyFat}
-                  onChange={(e) => setBodyFat(e.target.value)}
+                  value={formTab === "morning" ? bodyFat : nightBodyFat}
+                  onChange={(e) => formTab === "morning" ? setBodyFat(e.target.value) : setNightBodyFat(e.target.value)}
                   placeholder="—"
-                  style={{ ...S.numInput, color: "#60a5fa" }}
+                  style={{ ...S.numInput, color: formTab === "morning" ? "#4ade80" : "#f59e0b" }}
                   onWheel={(e) => e.target.blur()}
                 />
                 <span style={S.unit}>%</span>
               </div>
             </div>
+          </div>
+
+          {/* 朝夜サマリー */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 10, fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
+            {weight && <span>☀ <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{weight}</span>kg</span>}
+            {nightWeight && <span>🌙 <span style={{ color: "#f59e0b", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{nightWeight}</span>kg</span>}
+            {weight && nightWeight && (
+              <span style={{ color: "rgba(255,255,255,0.25)" }}>
+                差 <span style={{ fontWeight: 700, fontFamily: "'Space Mono',monospace", color: "rgba(255,255,255,0.5)" }}>
+                  {(Number(nightWeight) - Number(weight) >= 0 ? "+" : "")}{(Number(nightWeight) - Number(weight)).toFixed(1)}
+                </span>kg
+              </span>
+            )}
           </div>
 
           {/* Notes */}
@@ -435,11 +506,11 @@ export default function ProgressPage() {
             />
           </div>
 
-          <button type="submit" disabled={saving || !weight} style={{
+          <button type="submit" disabled={saving || (!weight && !nightWeight)} style={{
             ...S.submitBtn,
             background: saving ? "#555" : "linear-gradient(135deg, #22c55e, #16a34a)",
             cursor: saving ? "not-allowed" : "pointer",
-            opacity: !weight && !saving ? 0.5 : 1,
+            opacity: (!weight && !nightWeight) && !saving ? 0.5 : 1,
           }}>
             {saving ? "保存中..." : "保存"}
           </button>
@@ -451,21 +522,28 @@ export default function ProgressPage() {
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>直近の記録</div>
             {metrics.slice().reverse().slice(0, 10).map((m) => (
               <div key={m.id} style={S.logItem}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", minWidth: 50 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", minWidth: 40 }}>
                     {`${new Date(m.date + "T00:00").getMonth() + 1}/${new Date(m.date + "T00:00").getDate()}`}
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
-                    {Number(m.weight).toFixed(1)}kg
-                  </span>
+                  {m.weight != null && (
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                      朝{Number(m.weight).toFixed(1)}
+                    </span>
+                  )}
+                  {m.weight_night != null && (
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b", fontFamily: "'Space Mono',monospace" }}>
+                      夜{Number(m.weight_night).toFixed(1)}
+                    </span>
+                  )}
                   {m.body_fat != null && (
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#60a5fa", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#60a5fa", fontFamily: "'Space Mono',monospace" }}>
                       {Number(m.body_fat).toFixed(1)}%
                     </span>
                   )}
                 </div>
                 {m.notes && (
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 120 }}>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 100 }}>
                     {m.notes}
                   </div>
                 )}

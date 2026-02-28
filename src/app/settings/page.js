@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap } from "lucide-react";
+import { Target, Wallet, Zap, UtensilsCrossed } from "lucide-react";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -23,6 +23,7 @@ export default function SettingsPage() {
   const [proteinGoal, setProteinGoal] = useState("");
   const [fatGoal, setFatGoal] = useState("");
   const [carbsGoal, setCarbsGoal] = useState("");
+  const [mealCount, setMealCount] = useState(3);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -40,11 +41,12 @@ export default function SettingsPage() {
         setProteinGoal(profile.protein_goal ?? "");
         setFatGoal(profile.fat_goal ?? "");
         setCarbsGoal(profile.carbs_goal ?? "");
+        setMealCount(profile.meal_count ?? 3);
       }
       setLoading(false);
     }).catch(() => {
       const p = loadLocalProfile();
-      if (p) { setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? ""); setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? ""); }
+      if (p) { setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? ""); setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? ""); setMealCount(p.meal_count ?? 3); }
       setLoading(false);
     });
   }, [supabase]);
@@ -65,6 +67,7 @@ export default function SettingsPage() {
         proteinGoal: proteinGoal !== "" ? Number(proteinGoal) : null,
         fatGoal: fatGoal !== "" ? Number(fatGoal) : null,
         carbsGoal: carbsGoal !== "" ? Number(carbsGoal) : null,
+        mealCount: mealCount,
       };
       if (user) {
         await saveProfile(supabase, user.id, data);
@@ -75,6 +78,7 @@ export default function SettingsPage() {
           protein_goal: data.proteinGoal,
           fat_goal: data.fatGoal,
           carbs_goal: data.carbsGoal,
+          meal_count: data.mealCount,
         });
       }
       showToast("success", "保存完了");
@@ -209,6 +213,29 @@ export default function SettingsPage() {
                 />
                 <span style={styles.suffix}>g</span>
               </div>
+            </div>
+          </div>
+
+          {/* 食事回数 */}
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}><UtensilsCrossed size={14} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />1日の食事回数</h2>
+            <p style={styles.hint}>食事記録ページのセクション数が変わります</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
+              <button type="button" onClick={() => setMealCount((prev) => Math.max(2, prev - 1))} disabled={mealCount <= 2} style={{
+                width: 40, height: 40, borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)",
+                background: mealCount <= 2 ? "transparent" : "rgba(255,255,255,0.06)",
+                color: mealCount <= 2 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.6)",
+                fontSize: 20, cursor: mealCount <= 2 ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>-</button>
+              <span style={{ fontSize: 28, fontWeight: 700, color: "#22c55e", fontFamily: "'Space Mono',monospace", minWidth: 40, textAlign: "center" }}>{mealCount}</span>
+              <button type="button" onClick={() => setMealCount((prev) => Math.min(5, prev + 1))} disabled={mealCount >= 5} style={{
+                width: 40, height: 40, borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)",
+                background: mealCount >= 5 ? "transparent" : "rgba(255,255,255,0.06)",
+                color: mealCount >= 5 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.6)",
+                fontSize: 20, cursor: mealCount >= 5 ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>+</button>
             </div>
           </div>
 

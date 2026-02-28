@@ -32,6 +32,7 @@ export async function saveProfile(supabase, userId, data) {
         protein_goal: data.proteinGoal || null,
         fat_goal: data.fatGoal || null,
         carbs_goal: data.carbsGoal || null,
+        meal_count: data.mealCount || null,
       },
       { onConflict: "id" }
     );
@@ -99,6 +100,7 @@ export async function saveMealLog(supabase, userId, log) {
     protein: log.protein || null,
     fat: log.fat || null,
     carbs: log.carbs || null,
+    meal_index: log.mealIndex || null,
   }).select().single();
 
   if (error) {
@@ -182,6 +184,7 @@ export async function migrateAllLocalData(supabase, userId) {
         ["activity", "activity"], ["goal_weight", "goalWeight"],
         ["budget", "budget"], ["protein_goal", "proteinGoal"],
         ["fat_goal", "fatGoal"], ["carbs_goal", "carbsGoal"],
+        ["meal_count", "mealCount"],
       ];
       let hasNewData = false;
       for (const [localKey, dbKey] of fields) {
@@ -216,6 +219,7 @@ export async function migrateAllLocalData(supabase, userId) {
             protein: log.protein,
             fat: log.fat,
             carbs: log.carbs,
+            mealIndex: log.meal_index,
           });
           if (!saved) saveErrors++;
         }
@@ -232,6 +236,8 @@ export async function migrateAllLocalData(supabase, userId) {
           weight: m.weight,
           bodyFat: m.body_fat,
           notes: m.notes,
+          weightNight: m.weight_night,
+          bodyFatNight: m.body_fat_night,
         });
         if (!ok) saveErrors++;
       }
@@ -373,7 +379,7 @@ export async function deleteRoutineMeal(supabase, userId, mealId) {
 
 // ─── body_metrics (体重・体脂肪率) ─────────────────────────
 
-export async function saveBodyMetric(supabase, userId, { date, weight, bodyFat, notes }) {
+export async function saveBodyMetric(supabase, userId, { date, weight, bodyFat, notes, weightNight, bodyFatNight }) {
   const { error } = await supabase
     .from("body_metrics")
     .upsert(
@@ -383,6 +389,8 @@ export async function saveBodyMetric(supabase, userId, { date, weight, bodyFat, 
         weight: weight || null,
         body_fat: bodyFat || null,
         notes: notes || null,
+        weight_night: weightNight || null,
+        body_fat_night: bodyFatNight || null,
       },
       { onConflict: "user_id,date" }
     );

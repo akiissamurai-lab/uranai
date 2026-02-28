@@ -5,8 +5,10 @@ CREATE TABLE body_metrics (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   date DATE NOT NULL,
-  weight NUMERIC(5,2),
-  body_fat NUMERIC(4,1),
+  weight NUMERIC(5,2),            -- 朝の体重
+  body_fat NUMERIC(4,1),          -- 朝の体脂肪率
+  weight_night NUMERIC(5,2),      -- 夜の体重
+  body_fat_night NUMERIC(4,1),    -- 夜の体脂肪率
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),

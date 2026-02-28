@@ -89,9 +89,16 @@ export async function POST(request) {
     .order("created_at", { ascending: true });
 
   // ── プロンプト構築 ──────────────────────────────────────────
-  const metricsStr = metrics.map((m) =>
-    `${m.date}: ${m.weight}kg${m.body_fat ? ` / 体脂肪${m.body_fat}%` : ""}${m.notes ? ` (メモ: ${m.notes})` : ""}`
-  ).join("\n");
+  const metricsStr = metrics.map((m) => {
+    let line = `${m.date}: `;
+    if (m.weight != null) line += `朝${m.weight}kg`;
+    if (m.weight_night != null) line += `→夜${m.weight_night}kg`;
+    if (!m.weight && !m.weight_night) line += "体重未記録";
+    if (m.body_fat != null) line += ` / 体脂肪${m.body_fat}%`;
+    if (m.body_fat_night != null) line += `(夜${m.body_fat_night}%)`;
+    if (m.notes) line += ` (メモ: ${m.notes})`;
+    return line;
+  }).join("\n");
 
   const routinesStr = routines && routines.length > 0
     ? routines.map((r) => `- ${r.meal_name}: ¥${r.price || "?"} P${r.protein || "?"}g F${r.fat || "?"}g C${r.carbs || "?"}g`).join("\n")
@@ -111,7 +118,7 @@ export async function POST(request) {
       const dayC = logs.reduce((s, l) => s + (l.carbs || 0), 0);
       const dayCost = logs.reduce((s, l) => s + (l.price || 0), 0);
       const dayCal = Math.round(dayP * 4 + dayF * 9 + dayC * 4);
-      const items = logs.map((l) => `  - ${l.meal_name}${l.price ? ` ¥${l.price}` : ""} P${l.protein || 0}g F${l.fat || 0}g C${l.carbs || 0}g`).join("\n");
+      const items = logs.map((l) => `  - ${l.meal_index ? `[${l.meal_index}食目] ` : ""}${l.meal_name}${l.price ? ` ¥${l.price}` : ""} P${l.protein || 0}g F${l.fat || 0}g C${l.carbs || 0}g`).join("\n");
       return `${d} [合計: ${dayCal}kcal P${Math.round(dayP)}g F${Math.round(dayF)}g C${Math.round(dayC)}g ¥${dayCost}]\n${items}`;
     }).join("\n");
   }
@@ -177,7 +184,7 @@ export async function POST(request) {
 - 脂質: ${profile.fat_goal || "未設定"}g
 - 炭水化物: ${profile.carbs_goal || "未設定"}g
 
-【直近14日間の体重推移】
+【直近14日間の体重推移（朝→夜）】
 ${metricsStr}
 
 【登録済みルーティン飯】
