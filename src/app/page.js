@@ -559,7 +559,7 @@ export default function Home() {
               color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s",
             }}>📜 履歴</button>
           )}
-          <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
+          {supabase && <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />}
         </div>
       </header>
 

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "マクロ飯ビルダー",
   description: "AI Macro × Budget Optimizer",
