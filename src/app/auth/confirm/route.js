@@ -11,46 +11,69 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type");
+  const code = searchParams.get("code");           // PKCE フロー用
   const next = searchParams.get("next") ?? "/";
 
   const redirectTo = new URL(next, request.url);
 
-  if (token_hash && type) {
-    const cookieStore = await cookies();
+  // token_hash (implicit) か code (PKCE) のどちらかが必要
+  if (!code && !(token_hash && type)) {
+    return NextResponse.redirect(new URL("/?auth_error=invalid_params", request.url));
+  }
 
-    // Cookie を追跡するためのリストを用意
-    const cookiesToSet = [];
+  const cookieStore = await cookies();
+  const cookiesToSet = [];
 
-    const supabase = createServerClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookies) {
-            cookies.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-            // リダイレクトレスポンスにも設定するため保存
-            cookiesToSet.push(...cookies);
-          },
+  const supabase = createServerClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
         },
-      }
-    );
+        setAll(cookies) {
+          cookies.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+          cookiesToSet.push(...cookies);
+        },
+      },
+    }
+  );
 
-    const { error } = await supabase.auth.verifyOtp({ type, token_hash });
+  let error = null;
 
-    if (!error) {
-      const response = NextResponse.redirect(redirectTo);
-      // セッション Cookie をリダイレクトレスポンスにコピー
-      cookiesToSet.forEach(({ name, value, options }) => {
-        response.cookies.set(name, value, options);
-      });
-      return response;
+  if (code) {
+    // ── PKCE フロー（@supabase/ssr デフォルト）──────────────────
+    // ブラウザで生成された code_verifier を使って code → session に交換
+    const result = await supabase.auth.exchangeCodeForSession(code);
+    error = result.error;
+    if (error) {
+      console.error("PKCE exchangeCodeForSession failed:", error.message);
+    }
+  } else if (token_hash && type) {
+    // ── Implicit フロー（レガシー / Magic Link）─────────────────
+    const result = await supabase.auth.verifyOtp({ type, token_hash });
+    error = result.error;
+    if (error) {
+      console.error("verifyOtp failed:", error.message);
     }
   }
 
-  return NextResponse.redirect(new URL("/?auth_error=true", request.url));
+  if (!error) {
+    const response = NextResponse.redirect(redirectTo);
+    // セッション Cookie をリダイレクトレスポンスにコピー
+    cookiesToSet.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options);
+    });
+    return response;
+  }
+
+  // エラー時: 理由をクエリパラメータで渡す
+  const errorUrl = new URL("/?auth_error=true", request.url);
+  if (error?.message) {
+    errorUrl.searchParams.set("error_desc", error.message.slice(0, 100));
+  }
+  return NextResponse.redirect(errorUrl);
 }

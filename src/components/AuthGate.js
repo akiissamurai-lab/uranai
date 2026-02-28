@@ -257,6 +257,11 @@ export default function AuthGate({ supabase, onAuthChange }) {
                   ? "メール内のリンクをタップして登録を完了してください"
                   : "メール内のリンクをタップしてログイン"}
               </p>
+              <p style={{ color: "#777", fontSize: 10, marginTop: 8, lineHeight: 1.5 }}>
+                届かない場合は迷惑メールフォルダを確認してください。
+                <br />
+                数分待っても届かない場合は再度お試しください。
+              </p>
               <button
                 onClick={resetForm}
                 style={{

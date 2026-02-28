@@ -490,6 +490,7 @@ export default function Home() {
 
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [authError, setAuthError] = useState(null);
   const profileSaveTimer = useRef(null);
   const hasCustomProtein = useRef(false);
 
@@ -513,6 +514,22 @@ export default function Home() {
       // ネットワークエラー等: ゲストとして扱う
       if (!authChecked) setAuthChecked(true);
     });
+
+    // auth/confirm からのエラーリダイレクトを検出
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("auth_error")) {
+        const desc = params.get("error_desc") || "認証に失敗しました。もう一度お試しください。";
+        setAuthError(desc);
+        // URLからパラメータを除去（履歴汚染防止）
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete("auth_error");
+        cleanUrl.searchParams.delete("error_desc");
+        window.history.replaceState({}, "", cleanUrl.pathname);
+        // 10秒後に自動消去
+        setTimeout(() => setAuthError(null), 10000);
+      }
+    }
   }, [supabase, authChecked]);
 
   useEffect(() => { setHistory(loadHistory()); }, []);
@@ -847,6 +864,15 @@ export default function Home() {
     <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", fontFamily: "'DM Sans','Noto Sans JP',sans-serif", color: "white", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "fixed", top: -200, right: -200, width: 500, height: 500, background: "radial-gradient(circle,rgba(34,197,94,0.06)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
       <div style={{ position: "fixed", bottom: -150, left: -150, width: 400, height: 400, background: "radial-gradient(circle,rgba(59,130,246,0.05)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
+
+      {/* ═══════ 認証エラートースト ═══════ */}
+      {authError && (
+        <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 9999, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 12, padding: "10px 20px", maxWidth: 340, textAlign: "center", backdropFilter: "blur(8px)" }}>
+          <p style={{ color: "#f87171", fontSize: 13, margin: 0, fontWeight: 600 }}>認証エラー</p>
+          <p style={{ color: "#fca5a5", fontSize: 11, margin: "4px 0 0" }}>{authError}</p>
+          <button onClick={() => setAuthError(null)} style={{ marginTop: 8, padding: "2px 10px", borderRadius: 6, border: "1px solid rgba(248,113,113,0.3)", background: "transparent", color: "#f87171", fontSize: 10, cursor: "pointer" }}>閉じる</button>
+        </div>
+      )}
 
       {/* ═══════ LP: ヒーローセクション ═══════ */}
       {showLP && (
