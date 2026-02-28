@@ -40,8 +40,13 @@ export default function AuthGate({ supabase, onAuthChange }) {
     });
 
     if (error) {
-      setStatus("error");
-      setTimeout(() => setStatus("idle"), 3000);
+      console.error("Magic Link error:", error.message);
+      if (error.message.includes("rate limit")) {
+        setStatus("rate_limit");
+      } else {
+        setStatus("error");
+      }
+      setTimeout(() => setStatus("idle"), 5000);
     } else {
       setStatus("sent");
     }
@@ -210,9 +215,11 @@ export default function AuthGate({ supabase, onAuthChange }) {
               >
                 {status === "sending"
                   ? "送信中..."
-                  : status === "error"
-                    ? "エラー。もう一度お試しください"
-                    : "ログインリンクを送信"}
+                  : status === "rate_limit"
+                    ? "送信制限中。しばらく待ってください"
+                    : status === "error"
+                      ? "エラー。もう一度お試しください"
+                      : "ログインリンクを送信"}
               </button>
             </form>
           )}
