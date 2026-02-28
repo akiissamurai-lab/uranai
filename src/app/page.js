@@ -416,11 +416,12 @@ export default function Home() {
     const tdee = calcTDEE(bmr, activity, goal);
     setCalories(tdee);
 
+    const lean = bodyFat ? weight * (1 - bodyFat / 100) : weight;
+
     // 設定ページでカスタム値が保存されていない場合のみ自動計算
     if (!hasCustomProtein.current) {
       let pMult = goal === "bulk" ? 2.0 : goal === "reduce" ? 1.8 : 1.5;
       if (age && age >= 50) pMult = Math.max(pMult, 1.6);
-      const lean = bodyFat ? weight * (1 - bodyFat / 100) : weight;
       setProtein(Math.round(lean * pMult));
     }
 
