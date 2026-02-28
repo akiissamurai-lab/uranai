@@ -137,6 +137,7 @@ export default function AuthGate({ supabase, onAuthChange }) {
   };
 
   const handleLogout = async () => {
+    if (!window.confirm("ログアウトしますか？")) return;
     await supabase.auth.signOut();
     resetForm();
   };

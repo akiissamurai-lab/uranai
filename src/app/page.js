@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage, migrateAllLocalData, loadMealLogs, saveMealLog } from "@/lib/db";
+import { loadLocalProfile, saveLocalProfile, loadLocalMealLogs } from "@/lib/local-db";
 import AuthGate from "@/components/AuthGate";
 
 /*
@@ -429,6 +430,7 @@ export default function Home() {
   const supabase = supabaseRef.current;
 
   const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const profileSaveTimer = useRef(null);
   const hasCustomProtein = useRef(false);
 
@@ -443,9 +445,33 @@ export default function Home() {
 
   useEffect(() => { setHistory(loadHistory()); }, []);
 
+  // ゲストプロフィール復元（初回マウント時）
+  const guestProfileLoaded = useRef(false);
+  useEffect(() => {
+    if (guestProfileLoaded.current) return;
+    guestProfileLoaded.current = true;
+    const gp = loadLocalProfile();
+    if (gp) {
+      if (gp.weight) setWeight(gp.weight);
+      if (gp.height) setHeight(gp.height);
+      if (gp.age) setAge(gp.age);
+      if (gp.body_fat) setBodyFat(gp.body_fat);
+      if (gp.gender) setGender(gp.gender);
+      if (gp.goal) setGoal(gp.goal);
+      if (gp.activity) setActivity(gp.activity);
+      if (gp.goal_weight) setGoalWeight(gp.goal_weight);
+      if (gp.budget) setBudget(gp.budget);
+      if (gp.protein_goal) {
+        setProtein(gp.protein_goal);
+        hasCustomProtein.current = true;
+      }
+    }
+  }, []);
+
   // Auth状態変化: ログイン時にDB読み込み + localStorage移行
   const handleAuthChange = useCallback(async (authUser) => {
     setUser(authUser);
+    setAuthChecked(true);
     if (authUser) {
       // プロフィール復元
       const profile = await loadProfile(supabase, authUser.id);
@@ -498,11 +524,24 @@ export default function Home() {
     }
   }, [supabase]);
 
-  // ─── Load today's meal_logs for remaining calculation ───
+  // ─── Load today's meal_logs + profileGoals for remaining calculation ───
   useEffect(() => {
-    if (!user) return;
     const todayStr = new Date().toISOString().slice(0, 10);
-    loadMealLogs(supabase, user.id, todayStr).then(setTodayLogs);
+    if (user) {
+      loadMealLogs(supabase, user.id, todayStr).then(setTodayLogs);
+    } else {
+      setTodayLogs(loadLocalMealLogs(todayStr));
+      // ゲスト: localStorageからprofileGoals読み込み
+      const gp = loadLocalProfile();
+      if (gp) {
+        setProfileGoals({
+          budget: gp.budget || null,
+          protein_goal: gp.protein_goal || null,
+          fat_goal: gp.fat_goal || null,
+          carbs_goal: gp.carbs_goal || null,
+        });
+      }
+    }
   }, [user, supabase]);
 
   const todayTotals = todayLogs.reduce(
@@ -541,12 +580,15 @@ export default function Home() {
     }
   }, [weight, goal, activity, age, height, bodyFat, gender]);
 
-  // ログイン中: プロフィール自動保存 (2秒デバウンス)
+  // プロフィール自動保存 (2秒デバウンス) — ログイン=Supabase, ゲスト=localStorage
   useEffect(() => {
-    if (!user) return;
     if (profileSaveTimer.current) clearTimeout(profileSaveTimer.current);
     profileSaveTimer.current = setTimeout(() => {
-      saveProfile(supabase, user.id, { weight, height, age, bodyFat, gender, goal, activity, goalWeight, budget });
+      if (user) {
+        saveProfile(supabase, user.id, { weight, height, age, bodyFat, gender, goal, activity, goalWeight, budget });
+      } else {
+        saveLocalProfile({ weight, height, age, body_fat: bodyFat, gender, goal, activity, goal_weight: goalWeight, budget });
+      }
     }, 2000);
     return () => { if (profileSaveTimer.current) clearTimeout(profileSaveTimer.current); };
   }, [user, supabase, weight, height, age, bodyFat, gender, goal, activity, goalWeight, budget]);
@@ -715,42 +757,45 @@ export default function Home() {
             <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: 0, letterSpacing: 1.5, textTransform: "uppercase" }}>AI Macro × Budget Optimizer</p>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {history.length > 0 && (
-            <button onClick={() => setShowHistory(!showHistory)} style={{
-              padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
-              background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
-              color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s",
-            }}>📜 履歴</button>
-          )}
-          <a href="/record" style={{
-            padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(34,197,94,0.3)",
-            background: "rgba(34,197,94,0.1)", color: "#4ade80", fontSize: 11,
-            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600,
-          }}>📝 記録</a>
-          <a href="/progress" style={{
-            padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(96,165,250,0.3)",
-            background: "rgba(96,165,250,0.1)", color: "#60a5fa", fontSize: 11,
-            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600,
-          }}>📊 推移</a>
-          <a href="/routines" style={{
-            padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(250,204,21,0.3)",
-            background: "rgba(250,204,21,0.1)", color: "#facc15", fontSize: 11,
-            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600,
-          }}>📋 ルーティン</a>
-          <a href="/coach" style={{
-            padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(139,92,246,0.3)",
-            background: "rgba(139,92,246,0.1)", color: "#a78bfa", fontSize: 11,
-            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600,
-          }}>🤖 AIコーチ</a>
-          <a href="/settings" style={{
-            padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
-            background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 11,
-            cursor: "pointer", transition: "all 0.2s", textDecoration: "none",
-          }}>⚙️</a>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
         </div>
       </header>
+      {/* Nav bar — scrollable on mobile */}
+      <nav style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 6px", overflowX: "auto", WebkitOverflowScrolling: "touch", display: "flex", gap: 6, scrollbarWidth: "none" }}>
+          {history.length > 0 && (
+            <button onClick={() => setShowHistory(!showHistory)} style={{
+              padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+              background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
+              color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap", flexShrink: 0,
+            }}>📜 履歴</button>
+          )}
+          <a href="/record" style={{
+            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(34,197,94,0.3)",
+            background: "rgba(34,197,94,0.1)", color: "#4ade80", fontSize: 11,
+            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+          }}>📝 記録</a>
+          <a href="/progress" style={{
+            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(96,165,250,0.3)",
+            background: "rgba(96,165,250,0.1)", color: "#60a5fa", fontSize: 11,
+            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+          }}>📊 推移</a>
+          <a href="/routines" style={{
+            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(250,204,21,0.3)",
+            background: "rgba(250,204,21,0.1)", color: "#facc15", fontSize: 11,
+            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+          }}>📋 ルーティン</a>
+          <a href="/coach" style={{
+            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(139,92,246,0.3)",
+            background: "rgba(139,92,246,0.1)", color: "#a78bfa", fontSize: 11,
+            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+          }}>🤖 コーチ</a>
+          <a href="/settings" style={{
+            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+            background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 11,
+            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
+          }}>⚙️</a>
+      </nav>
 
       <main style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 100px" }}>
 
@@ -761,7 +806,9 @@ export default function Home() {
             {history.slice(0, 5).map((h, i) => (
               <div key={h.id || i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < Math.min(history.length, 5) - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", fontSize: 12 }}>
                 <span style={{ color: "rgba(255,255,255,0.4)" }}>{h.date}</span>
-                <span style={{ color: "rgba(255,255,255,0.6)" }}>{h.weight}kg {({ reduce: "減量", bulk: "増量", maintain: "維持" })[h.goal]}</span>
+                <span style={{ color: "rgba(255,255,255,0.6)" }}>
+                  {h.budget ? `¥${Number(h.budget).toLocaleString()}` : ""}
+                </span>
                 <span style={{ fontFamily: "'Space Mono',monospace", color: "#4ade80" }}>P{h.protein}g ¥{h.cost}</span>
               </div>
             ))}
@@ -769,7 +816,7 @@ export default function Home() {
         )}
 
         {/* ─── AI Premium Wall (ゲスト用) ─── */}
-        {!user && (
+        {authChecked && !user && (
           <div style={{
             background: "linear-gradient(135deg, rgba(139,92,246,0.10), rgba(96,165,250,0.06))",
             border: "1px solid rgba(139,92,246,0.20)",
