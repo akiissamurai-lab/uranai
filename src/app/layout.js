@@ -1,4 +1,5 @@
 import "./globals.css";
+import SupabaseErrorBoundary from "@/components/SupabaseErrorBoundary";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,9 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body style={{ margin: 0 }}>{children}</body>
+      <body style={{ margin: 0 }}>
+        <SupabaseErrorBoundary>{children}</SupabaseErrorBoundary>
+      </body>
     </html>
   );
 }
