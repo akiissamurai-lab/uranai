@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals } from "@/lib/db";
-import { saveLocalMealLog, loadLocalMealLogs, deleteLocalMealLog, loadLocalRoutineMeals, loadLocalProfile } from "@/lib/local-db";
-import { BarChart3, Wallet, Zap, UtensilsCrossed, Plus } from "lucide-react";
+import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals, saveDailyNotes, loadBodyMetricByDate } from "@/lib/db";
+import { saveLocalMealLog, loadLocalMealLogs, deleteLocalMealLog, loadLocalRoutineMeals, loadLocalProfile, saveLocalDailyNotes, loadLocalBodyMetricByDate } from "@/lib/local-db";
+import { BarChart3, Wallet, Zap, UtensilsCrossed, Plus, PenLine } from "lucide-react";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -71,6 +71,12 @@ export default function RecordPage() {
   const [logs, setLogs] = useState([]);
   const nameRef = useRef(null);
 
+  // Daily notes (体調メモ)
+  const [dailyNotes, setDailyNotes] = useState("");
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
+  const debounceRef = useRef(null);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user); // null = ゲスト
@@ -120,6 +126,48 @@ export default function RecordPage() {
       setLogs(loadLocalMealLogs(date));
     }
   }, [supabase, user, date, loading]);
+
+  // Load daily notes when date changes
+  useEffect(() => {
+    if (loading) return;
+    setDailyNotes("");
+    setNotesSaved(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (user) {
+      loadBodyMetricByDate(supabase, user.id, date).then((m) => {
+        setDailyNotes(m?.notes || "");
+      });
+    } else {
+      const m = loadLocalBodyMetricByDate(date);
+      setDailyNotes(m?.notes || "");
+    }
+  }, [supabase, user, date, loading]);
+
+  const handleNotesChange = (value) => {
+    setDailyNotes(value);
+    setNotesSaved(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(async () => {
+      setNotesSaving(true);
+      if (user) {
+        await saveDailyNotes(supabase, user.id, date, value);
+      } else {
+        saveLocalDailyNotes(date, value);
+      }
+      setNotesSaving(false);
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2000);
+    }, 1000);
+  };
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const showToast = (type, msg) => {
     setToast({ type, msg });
@@ -248,6 +296,24 @@ export default function RecordPage() {
           {date !== today() && (
             <button onClick={() => setDate(today())} style={{ ...S.dateBtn, fontSize: 10, padding: "4px 8px" }}>今日</button>
           )}
+        </div>
+
+        {/* Daily notes (体調メモ) */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              <PenLine size={12} strokeWidth={1.5} />体調メモ
+            </span>
+            {notesSaving && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>保存中...</span>}
+            {notesSaved && !notesSaving && <span style={{ fontSize: 10, color: "#4ade80" }}>保存完了</span>}
+          </div>
+          <textarea
+            value={dailyNotes}
+            onChange={(e) => handleNotesChange(e.target.value)}
+            placeholder="昨日は飲み会だった / 脚の筋肉痛がひどい / 睡眠不足..."
+            rows={2}
+            style={S.notesInput}
+          />
         </div>
 
         {/* Dashboard */}
@@ -534,4 +600,6 @@ const S = {
   chipBadge: { fontSize: 10, fontWeight: 600, color: "#4ade80", fontFamily: "'Space Mono',monospace" },
   chipPfc: { fontSize: 9, fontWeight: 600, fontFamily: "'Space Mono',monospace" },
   routineAdd: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: "12px 14px", background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 16, minWidth: 70, flexShrink: 0, textDecoration: "none", color: "rgba(255,255,255,0.3)" },
+
+  notesInput: { width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.7)", fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "'Noto Sans JP',sans-serif", resize: "vertical", lineHeight: 1.6 },
 };

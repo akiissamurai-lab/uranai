@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, loadBodyMetrics } from "@/lib/db";
 import AuthGate from "@/components/AuthGate";
-import { Lock, CheckCircle, Bot, Settings, BarChart3, Target, ShoppingCart, Lightbulb, UtensilsCrossed, RefreshCw } from "lucide-react";
+import { Lock, CheckCircle, Bot, Settings, BarChart3, Target, ShoppingCart, Lightbulb, UtensilsCrossed, RefreshCw, PenLine, ClipboardList } from "lucide-react";
 
 export default function CoachPage() {
   const router = useRouter();
@@ -370,6 +370,32 @@ export default function CoachPage() {
                   <p style={{ fontSize: 12, color: "rgba(96,165,250,0.7)", margin: 0, lineHeight: 1.6, display: "flex", alignItems: "flex-start", gap: 6 }}>
                     <UtensilsCrossed size={12} strokeWidth={1.5} style={{ flexShrink: 0, marginTop: 2 }} />{result.mealTip}
                   </p>
+                )}
+              </div>
+            )}
+
+            {/* Condition context + Meal analysis card */}
+            {(result.conditionContext || result.mealAnalysis) && (
+              <div style={{ ...S.card, background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.12)" }}>
+                {result.conditionContext && (
+                  <div style={{ marginBottom: result.mealAnalysis ? 14 : 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                      <PenLine size={14} strokeWidth={1.5} />体調メモ分析
+                    </div>
+                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", margin: 0, lineHeight: 1.7 }}>
+                      {result.conditionContext}
+                    </p>
+                  </div>
+                )}
+                {result.mealAnalysis && (
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                      <ClipboardList size={14} strokeWidth={1.5} />食事記録分析
+                    </div>
+                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", margin: 0, lineHeight: 1.7 }}>
+                      {result.mealAnalysis}
+                    </p>
+                  </div>
                 )}
               </div>
             )}

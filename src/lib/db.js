@@ -413,6 +413,58 @@ export async function loadBodyMetrics(supabase, userId, days = 90) {
   return data;
 }
 
+// ─── 体調メモ（notes のみ保存 — weight/body_fat を壊さない） ────
+
+export async function saveDailyNotes(supabase, userId, date, notes) {
+  const existing = await loadBodyMetricByDate(supabase, userId, date);
+
+  if (existing) {
+    const { error } = await supabase
+      .from("body_metrics")
+      .update({ notes: notes || null })
+      .eq("user_id", userId)
+      .eq("date", date);
+
+    if (error) {
+      console.warn("saveDailyNotes update error:", error.message);
+      return false;
+    }
+    return true;
+  } else {
+    const { error } = await supabase
+      .from("body_metrics")
+      .insert({ user_id: userId, date, weight: null, body_fat: null, notes: notes || null });
+
+    if (error) {
+      console.warn("saveDailyNotes insert error:", error.message);
+      return false;
+    }
+    return true;
+  }
+}
+
+// ─── meal_logs 範囲取得（AI coach 用） ────────────────────────
+
+export async function loadMealLogsRange(supabase, userId, days = 7) {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const sinceStr = since.toISOString().slice(0, 10);
+
+  const { data, error } = await supabase
+    .from("meal_logs")
+    .select("*")
+    .eq("user_id", userId)
+    .gte("date", sinceStr)
+    .order("date", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.warn("loadMealLogsRange error:", error.message);
+    return [];
+  }
+  return data;
+}
+
 export async function loadBodyMetricByDate(supabase, userId, date) {
   const { data, error } = await supabase
     .from("body_metrics")

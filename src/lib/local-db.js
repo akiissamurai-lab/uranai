@@ -119,6 +119,31 @@ export function loadLocalBodyMetricByDate(date) {
   return all.find((m) => m.date === date) || null;
 }
 
+// ─── 体調メモ（notes のみ保存 — weight/body_fat を壊さない）────
+
+export function saveLocalDailyNotes(date, notes) {
+  const all = get(KEYS.bodyMetrics) || [];
+  const idx = all.findIndex((m) => m.date === date);
+
+  if (idx >= 0) {
+    all[idx] = { ...all[idx], notes: notes || null, updated_at: now() };
+  } else {
+    all.push({
+      id: uid(),
+      date,
+      weight: null,
+      body_fat: null,
+      notes: notes || null,
+      created_at: now(),
+      updated_at: now(),
+    });
+    all.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  set(KEYS.bodyMetrics, all);
+  return true;
+}
+
 // ─── Routine Meals ────────────────────────────────────────────
 
 export function saveLocalRoutineMeal(meal) {

@@ -75,6 +75,19 @@ export async function POST(request) {
     .eq("user_id", user.id)
     .order("sort_order", { ascending: true });
 
+  // Meal logs (直近7日間の実際の食事記録)
+  const mealSince = new Date();
+  mealSince.setDate(mealSince.getDate() - 7);
+  const mealSinceStr = mealSince.toISOString().slice(0, 10);
+
+  const { data: mealLogs } = await supabase
+    .from("meal_logs")
+    .select("*")
+    .eq("user_id", user.id)
+    .gte("date", mealSinceStr)
+    .order("date", { ascending: true })
+    .order("created_at", { ascending: true });
+
   // ── プロンプト構築 ──────────────────────────────────────────
   const metricsStr = metrics.map((m) =>
     `${m.date}: ${m.weight}kg${m.body_fat ? ` / 体脂肪${m.body_fat}%` : ""}${m.notes ? ` (メモ: ${m.notes})` : ""}`
@@ -83,6 +96,25 @@ export async function POST(request) {
   const routinesStr = routines && routines.length > 0
     ? routines.map((r) => `- ${r.meal_name}: ¥${r.price || "?"} P${r.protein || "?"}g F${r.fat || "?"}g C${r.carbs || "?"}g`).join("\n")
     : "（未登録）";
+
+  // 食事ログを日別にグループ化 + 日別合計算出
+  let mealLogsStr = "（記録なし）";
+  if (mealLogs && mealLogs.length > 0) {
+    const grouped = {};
+    for (const log of mealLogs) {
+      if (!grouped[log.date]) grouped[log.date] = [];
+      grouped[log.date].push(log);
+    }
+    mealLogsStr = Object.entries(grouped).map(([d, logs]) => {
+      const dayP = logs.reduce((s, l) => s + (l.protein || 0), 0);
+      const dayF = logs.reduce((s, l) => s + (l.fat || 0), 0);
+      const dayC = logs.reduce((s, l) => s + (l.carbs || 0), 0);
+      const dayCost = logs.reduce((s, l) => s + (l.price || 0), 0);
+      const dayCal = Math.round(dayP * 4 + dayF * 9 + dayC * 4);
+      const items = logs.map((l) => `  - ${l.meal_name}${l.price ? ` ¥${l.price}` : ""} P${l.protein || 0}g F${l.fat || 0}g C${l.carbs || 0}g`).join("\n");
+      return `${d} [合計: ${dayCal}kcal P${Math.round(dayP)}g F${Math.round(dayF)}g C${Math.round(dayC)}g ¥${dayCost}]\n${items}`;
+    }).join("\n");
+  }
 
   const month = new Date().getMonth() + 1;
   const season = month >= 3 && month <= 5 ? "春" : month >= 6 && month <= 8 ? "夏" : month >= 9 && month <= 11 ? "秋" : "冬";
@@ -151,20 +183,35 @@ ${metricsStr}
 【登録済みルーティン飯】
 ${routinesStr}
 
+【直近7日間の実際の食事記録】
+${mealLogsStr}
+
+【体調メモの活用 — 厳守】
+- 体調メモ（体重推移欄に記載）は体重変動の「原因」を推定するための定性データとして扱う
+- 飲み会・外食の記載: 一時的な水分貯留・塩分過多の可能性を指摘し、翌日以降の回復プランを提示すること（非judgmental・責めない）
+- 筋肉痛・トレーニングの記載: 筋修復を優先し、タンパク質維持または微増を推奨。過度なカロリー制限を避けるよう助言
+- 睡眠不足・疲労の記載: コルチゾール上昇による水分貯留・食欲増進のメカニズムに触れ、回復優先を推奨
+- 体調不良の記載: 減量ペースの一時緩和を推奨し、無理をさせない
+- メモがない日は数値のみで判断（メモの有無で分析精度が変わることをユーザーに示唆しない）
+- summaryフィールドでメモ内容を分析根拠として明示的に引用すること
+
 【指示】
-1. 体重推移から「順調」「停滞気味」「要注意」のいずれかを判定
+1. 体重推移と体調メモの両方を考慮し「順調」「停滞気味」「要注意」のいずれかを判定
 2. 停滞or要注意の場合、予算内でPFCを微調整した新目標を提示
 3. 順調でも改善の余地があれば軽微な調整を提案
 4. 業務スーパー・ドラッグストア・ドンキホーテで安く買える食材中心の「今週の買い物リスト」（7日分）を生成
 5. 合計金額は週間予算(¥${weeklyBudget || "不明"})以内に厳密に収める
 6. 各食材のestPriceは上記の価格基準に準拠すること
 7. 買い物リストの最後に「調味料・油セット」を必ず含めること
+8. 実際の食事記録がある場合、目標PFCとの乖離を日別に分析し、具体的な改善点を提示すること
 
 必ず以下のJSON形式のみで回答してください。JSON以外のテキストは不要です:
 {
   "status": "順調" or "停滞気味" or "要注意",
-  "summary": "2-3文の分析サマリー",
+  "summary": "2-3文の分析サマリー（体調メモがあれば分析根拠として引用）",
   "weightTrend": { "direction": "down" or "flat" or "up", "weeklyChange": 数値(kg) },
+  "conditionContext": "体調メモに基づく補足分析（メモがない場合は空文字）",
+  "mealAnalysis": "実際の食事記録に基づくPFC乖離分析と改善点（記録がない場合は空文字）",
   "newMacros": { "protein": 数値, "fat": 数値, "carbs": 数値, "budget": 数値 },
   "macroReason": "変更理由の1文",
   "groceryList": [
@@ -187,7 +234,7 @@ ${routinesStr}
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 2000,
+        max_tokens: 2500,
         messages: [{ role: "user", content: prompt }],
       }),
     });
