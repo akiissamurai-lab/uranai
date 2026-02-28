@@ -443,6 +443,16 @@ export default function Home() {
   const [profileGoals, setProfileGoals] = useState(null);
   const suggestAbortRef = useRef(null);
 
+  // 初回auth check（AuthGateとは独立して即座にチェック）
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user: u } }) => {
+      if (!authChecked) {
+        setUser(u || null);
+        setAuthChecked(true);
+      }
+    });
+  }, [supabase, authChecked]);
+
   useEffect(() => { setHistory(loadHistory()); }, []);
 
   // ゲストプロフィール復元（初回マウント時）
@@ -742,65 +752,210 @@ export default function Home() {
 
   const idealPFC = goal === "reduce" ? { p: "40-50%", f: "20-30%", c: "20-30%" } : goal === "bulk" ? { p: "25-35%", f: "20-30%", c: "40-50%" } : { p: "25-35%", f: "25-35%", c: "40-50%" };
 
+  // ─── LP: ゲスト向けランディングページ ───
+  const showLP = authChecked && !user;
+
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", fontFamily: "'DM Sans','Noto Sans JP',sans-serif", color: "white", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "fixed", top: -200, right: -200, width: 500, height: 500, background: "radial-gradient(circle,rgba(34,197,94,0.06)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
       <div style={{ position: "fixed", bottom: -150, left: -150, width: 400, height: 400, background: "radial-gradient(circle,rgba(59,130,246,0.05)0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
-      {/* Fonts loaded via layout.js */}
 
-      {/* Header */}
-      <header style={{ padding: "18px 24px 10px", maxWidth: 480, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: "0 4px 20px rgba(34,197,94,0.3)" }}>💪</div>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, background: "linear-gradient(135deg,#22c55e,#4ade80)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>マクロ飯ビルダー</h1>
-            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: 0, letterSpacing: 1.5, textTransform: "uppercase" }}>AI Macro × Budget Optimizer</p>
+      {/* ═══════ LP: ヒーローセクション ═══════ */}
+      {showLP && (
+        <section className="relative overflow-hidden px-4 pt-12 pb-4">
+          {/* Animated BG orbs */}
+          <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-green-500/10 blur-3xl animate-pulse" />
+          <div className="pointer-events-none absolute -bottom-16 -right-20 h-60 w-60 rounded-full bg-blue-500/8 blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+          <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-violet-500/6 blur-3xl animate-pulse" style={{ animationDelay: "2s" }} />
+
+          <div className="relative mx-auto max-w-lg text-center">
+            {/* Logo + Login */}
+            <div className="mb-8 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-700 text-xl shadow-lg shadow-green-500/30">💪</div>
+                <div className="text-left">
+                  <div className="bg-gradient-to-r from-green-400 to-emerald-300 bg-clip-text text-lg font-bold text-transparent">マクロ飯ビルダー</div>
+                  <div className="text-[9px] uppercase tracking-widest text-white/30">AI Macro × Budget Optimizer</div>
+                </div>
+              </div>
+              <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
+            </div>
+
+            {/* Badge */}
+            <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-3.5 py-1.5 text-[11px] font-semibold text-green-400">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+              </span>
+              登録不要・完全無料でスタート
+            </div>
+
+            {/* Headline */}
+            <h1 className="mb-4 text-[28px] font-extrabold leading-tight tracking-tight sm:text-4xl">
+              <span className="block text-white/90">毎日の食事入力、</span>
+              <span className="bg-gradient-to-r from-green-400 via-emerald-300 to-cyan-400 bg-clip-text text-transparent">もうやめませんか？</span>
+            </h1>
+
+            {/* Sub copy */}
+            <p className="mx-auto mb-8 max-w-sm text-[13px] leading-relaxed text-white/45 sm:text-sm">
+              マクロ管理 × 食費の限界圧縮。<br className="sm:hidden" />
+              予算内で最短距離で体を変える、<br className="sm:hidden" />
+              あなた専属の<span className="font-bold text-white/60">AIオートパイロット</span>・アプリ
+            </p>
+
+            {/* CTA */}
+            <a href="/record" className="group relative mb-4 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-green-500/30 transition-all duration-300 hover:scale-[1.03] hover:shadow-green-500/40 active:scale-[0.97]">
+              <span className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-400 to-emerald-500 opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-50" />
+              <span className="relative">🔥 今すぐ無料で始める</span>
+            </a>
+            <p className="text-[11px] text-white/25">アカウント登録なしですべての記録機能が使えます</p>
+
+            {/* Scroll hint */}
+            <div className="mt-8 flex flex-col items-center gap-1 text-white/20">
+              <span className="text-[10px]">下にスクロールして試す</span>
+              <svg className="h-5 w-5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+            </div>
           </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
-        </div>
-      </header>
-      {/* Nav bar — scrollable on mobile */}
-      <nav style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 6px", overflowX: "auto", WebkitOverflowScrolling: "touch", display: "flex", gap: 6, scrollbarWidth: "none" }}>
-          {history.length > 0 && (
-            <button onClick={() => setShowHistory(!showHistory)} style={{
+        </section>
+      )}
+
+      {/* ═══════ LP: 3つの神機能ハイライト ═══════ */}
+      {showLP && (
+        <section className="relative px-4 py-10">
+          <div className="mx-auto max-w-lg">
+            <div className="mb-8 text-center">
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-green-400/70">Core Features</p>
+              <h2 className="text-lg font-bold text-white/80">3つの<span className="text-green-400">神機能</span>で食事管理を自動化</h2>
+            </div>
+
+            <div className="flex flex-col gap-3.5">
+              {/* Card 1 */}
+              <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm transition-all duration-300 hover:border-green-500/20 hover:bg-white/[0.05]">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10 text-2xl">⚡</div>
+                  <div>
+                    <h3 className="text-[14px] font-bold text-white/85">入力摩擦ゼロ</h3>
+                    <p className="text-[11px] text-green-400/60">Zero Friction Input</p>
+                  </div>
+                </div>
+                <p className="text-[12px] leading-relaxed text-white/40">
+                  定番の「マイルーティン飯」を登録するだけ。毎日の食事記録は<span className="font-semibold text-white/60">ワンタップ</span>で完了。面倒な栄養計算から解放されます。
+                </p>
+              </div>
+
+              {/* Card 2 */}
+              <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm transition-all duration-300 hover:border-blue-500/20 hover:bg-white/[0.05]">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 text-2xl">🧮</div>
+                  <div>
+                    <h3 className="text-[14px] font-bold text-white/85">Budget Optimizer</h3>
+                    <p className="text-[11px] text-blue-400/60">コスパ最強の食材プラン</p>
+                  </div>
+                </div>
+                <p className="text-[12px] leading-relaxed text-white/40">
+                  PFC目標を満たしつつ、食費を<span className="font-semibold text-white/60">極限まで圧縮</span>する最適な買い物リストをAIが自動生成。1日の予算内で最高の栄養バランスを実現。
+                </p>
+              </div>
+
+              {/* Card 3 */}
+              <div className="group rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm transition-all duration-300 hover:border-violet-500/20 hover:bg-white/[0.05]">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/10 text-2xl">🤖</div>
+                  <div>
+                    <h3 className="text-[14px] font-bold text-white/85">AI専属トレーナー</h3>
+                    <p className="text-[11px] text-violet-400/60">Autopilot Coach</p>
+                  </div>
+                </div>
+                <p className="text-[12px] leading-relaxed text-white/40">
+                  体重の停滞や目標との乖離をAIが自動検知。PFC目標の再調整から<span className="font-semibold text-white/60">予算内の買い物リスト</span>まで、すべて自動生成します。
+                </p>
+              </div>
+            </div>
+
+            {/* Social proof */}
+            <div className="mt-8 flex items-center justify-center gap-6 text-center">
+              <div>
+                <div className="text-xl font-bold text-green-400" style={{ fontFamily: "'Space Mono',monospace" }}>20+</div>
+                <div className="text-[10px] text-white/30">食材データベース</div>
+              </div>
+              <div className="h-8 w-px bg-white/10" />
+              <div>
+                <div className="text-xl font-bold text-blue-400" style={{ fontFamily: "'Space Mono',monospace" }}>¥0</div>
+                <div className="text-[10px] text-white/30">完全無料</div>
+              </div>
+              <div className="h-8 w-px bg-white/10" />
+              <div>
+                <div className="text-xl font-bold text-violet-400" style={{ fontFamily: "'Space Mono',monospace" }}>AI</div>
+                <div className="text-[10px] text-white/30">Claude搭載</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="mx-auto mt-10 flex max-w-lg items-center gap-4">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <span className="text-[10px] font-medium uppercase tracking-widest text-white/20">Try It Now</span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          </div>
+        </section>
+      )}
+
+      {/* ═══════ APP HEADER (ログイン済み or LP下部) ═══════ */}
+      {user && (
+        <>
+        <header style={{ padding: "18px 24px 10px", maxWidth: 480, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: "0 4px 20px rgba(34,197,94,0.3)" }}>💪</div>
+            <div>
+              <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, background: "linear-gradient(135deg,#22c55e,#4ade80)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>マクロ飯ビルダー</h1>
+              <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: 0, letterSpacing: 1.5, textTransform: "uppercase" }}>AI Macro × Budget Optimizer</p>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
+          </div>
+        </header>
+        <nav style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 6px", overflowX: "auto", WebkitOverflowScrolling: "touch", display: "flex", gap: 6, scrollbarWidth: "none" }}>
+            {history.length > 0 && (
+              <button onClick={() => setShowHistory(!showHistory)} style={{
+                padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+                background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
+                color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap", flexShrink: 0,
+              }}>📜 履歴</button>
+            )}
+            <a href="/record" style={{
+              padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(34,197,94,0.3)",
+              background: "rgba(34,197,94,0.1)", color: "#4ade80", fontSize: 11,
+              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+            }}>📝 記録</a>
+            <a href="/progress" style={{
+              padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(96,165,250,0.3)",
+              background: "rgba(96,165,250,0.1)", color: "#60a5fa", fontSize: 11,
+              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+            }}>📊 推移</a>
+            <a href="/routines" style={{
+              padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(250,204,21,0.3)",
+              background: "rgba(250,204,21,0.1)", color: "#facc15", fontSize: 11,
+              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+            }}>📋 ルーティン</a>
+            <a href="/coach" style={{
+              padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(139,92,246,0.3)",
+              background: "rgba(139,92,246,0.1)", color: "#a78bfa", fontSize: 11,
+              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+            }}>🤖 コーチ</a>
+            <a href="/settings" style={{
               padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
-              background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
-              color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap", flexShrink: 0,
-            }}>📜 履歴</button>
-          )}
-          <a href="/record" style={{
-            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(34,197,94,0.3)",
-            background: "rgba(34,197,94,0.1)", color: "#4ade80", fontSize: 11,
-            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
-          }}>📝 記録</a>
-          <a href="/progress" style={{
-            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(96,165,250,0.3)",
-            background: "rgba(96,165,250,0.1)", color: "#60a5fa", fontSize: 11,
-            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
-          }}>📊 推移</a>
-          <a href="/routines" style={{
-            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(250,204,21,0.3)",
-            background: "rgba(250,204,21,0.1)", color: "#facc15", fontSize: 11,
-            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
-          }}>📋 ルーティン</a>
-          <a href="/coach" style={{
-            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(139,92,246,0.3)",
-            background: "rgba(139,92,246,0.1)", color: "#a78bfa", fontSize: 11,
-            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
-          }}>🤖 コーチ</a>
-          <a href="/settings" style={{
-            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
-            background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 11,
-            cursor: "pointer", transition: "all 0.2s", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
-          }}>⚙️</a>
-      </nav>
+              background: "transparent", color: "rgba(255,255,255,0.35)", fontSize: 11,
+              cursor: "pointer", transition: "all 0.2s", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0,
+            }}>⚙️</a>
+        </nav>
+        </>
+      )}
 
       <main style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 100px" }}>
 
-        {/* History panel */}
-        {showHistory && history.length > 0 && (
+        {/* History panel (ログイン済みのみ) */}
+        {user && showHistory && history.length > 0 && (
           <div style={{ background: "rgba(168,139,250,0.05)", border: "1px solid rgba(168,139,250,0.12)", borderRadius: 16, padding: "14px 16px", marginBottom: 14, animation: "fadeUp 0.3s ease-out" }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: "#c4b5fd", marginBottom: 10 }}>📜 過去のプラン</div>
             {history.slice(0, 5).map((h, i) => (
@@ -812,26 +967,6 @@ export default function Home() {
                 <span style={{ fontFamily: "'Space Mono',monospace", color: "#4ade80" }}>P{h.protein}g ¥{h.cost}</span>
               </div>
             ))}
-          </div>
-        )}
-
-        {/* ─── AI Premium Wall (ゲスト用) ─── */}
-        {authChecked && !user && (
-          <div style={{
-            background: "linear-gradient(135deg, rgba(139,92,246,0.10), rgba(96,165,250,0.06))",
-            border: "1px solid rgba(139,92,246,0.20)",
-            borderRadius: 20, padding: "28px 20px", marginBottom: 14, textAlign: "center",
-          }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>🔒</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.85)", marginBottom: 6 }}>
-              AIメニュー提案を解放しよう
-            </div>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", margin: "0 0 16px", lineHeight: 1.7 }}>
-              無料アカウントを作成して、AI専属トレーナーによるメニュー提案・買い物リスト自動生成を利用できます
-            </p>
-            <div style={{ display: "inline-block" }}>
-              <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
-            </div>
           </div>
         )}
 
