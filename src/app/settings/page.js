@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap, UtensilsCrossed, ScrollText, Lock, ChevronDown } from "lucide-react";
+import { Target, Wallet, Zap, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare } from "lucide-react";
 import { LegalViewer } from "@/components/TermsModal";
 
 /* ── Stepper Component ── */
@@ -287,8 +287,23 @@ export default function SettingsPage() {
           </button>
         </form>
 
+        {/* Feedback */}
+        <a
+          href="https://docs.google.com/forms/d/1KlfxBPlE7BVeWcnD8vbXTZte2qfSQBm6P7cwKZ8fV-k/edit?hl=ja"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={styles.feedbackLink}
+        >
+          <MessageSquare size={18} strokeWidth={1.5} color="#a78bfa" />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.75)" }}>フィードバックを送る</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>バグ報告・機能要望</div>
+          </div>
+          <span style={{ marginLeft: "auto", fontSize: 14, color: "rgba(255,255,255,0.2)" }}>›</span>
+        </a>
+
         {/* Legal links */}
-        <div style={{ marginTop: 32, display: "flex", justifyContent: "center", gap: 4, paddingBottom: 8 }}>
+        <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 4, paddingBottom: 8 }}>
           <button onClick={() => setLegalTab("terms")} style={styles.legalBtn}>
             <ScrollText size={12} strokeWidth={1.5} />
             利用規約
@@ -420,6 +435,18 @@ const styles = {
     letterSpacing: 0.5,
     marginTop: 12,
     boxShadow: "0 4px 20px rgba(34,197,94,0.3)",
+  },
+  feedbackLink: {
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+    marginTop: 32,
+    padding: "18px 20px",
+    borderRadius: 16,
+    border: "1px solid rgba(168,139,250,0.12)",
+    background: "rgba(168,139,250,0.04)",
+    textDecoration: "none",
+    transition: "all 0.2s",
   },
   legalBtn: {
     background: "none",
