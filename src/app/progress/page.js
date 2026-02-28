@@ -3,12 +3,22 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { saveBodyMetric, loadBodyMetrics, loadBodyMetricByDate, loadProfile } from "@/lib/db";
-import { saveLocalBodyMetric, loadLocalBodyMetrics, loadLocalBodyMetricByDate, loadLocalProfile } from "@/lib/local-db";
+import { saveBodyMetric, loadBodyMetrics, loadBodyMetricByDate, loadProfile, loadTrainingLogsRange } from "@/lib/db";
+import { saveLocalBodyMetric, loadLocalBodyMetrics, loadLocalBodyMetricByDate, loadLocalProfile, loadLocalTrainingLogsRange } from "@/lib/local-db";
 import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from "recharts";
-import { PenLine, Scale, BarChart3 } from "lucide-react";
+import { PenLine, Scale, BarChart3, Dumbbell, Star } from "lucide-react";
+
+const BODY_PART_LABELS = {
+  chest: { label: "胸", color: "#f87171" },
+  back: { label: "背中", color: "#60a5fa" },
+  shoulders: { label: "肩", color: "#fbbf24" },
+  arms: { label: "腕", color: "#a78bfa" },
+  legs: { label: "脚", color: "#4ade80" },
+  abs: { label: "腹", color: "#f472b6" },
+  cardio: { label: "有酸素", color: "#22d3ee" },
+};
 
 // ─── カスタムツールチップ ───
 const tooltipLabels = {
@@ -74,6 +84,9 @@ export default function ProgressPage() {
   const [range, setRange] = useState(90); // 30, 90, 0 (all)
   const [goalWeight, setGoalWeight] = useState(null);
 
+  // Training stats
+  const [trainingLogs, setTrainingLogs] = useState([]);
+
   // Auth (ゲストも許可)
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -104,6 +117,16 @@ export default function ProgressPage() {
       setMetrics(loadLocalBodyMetrics(range || 3650));
     }
   }, [supabase, user, range, loading]);
+
+  // Load training logs (30 days)
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      loadTrainingLogsRange(supabase, user.id, 30).then(setTrainingLogs);
+    } else {
+      setTrainingLogs(loadLocalTrainingLogsRange(30));
+    }
+  }, [supabase, user, loading]);
 
   // Load existing data for selected date
   useEffect(() => {
@@ -187,6 +210,42 @@ export default function ProgressPage() {
   const fMin = fats.length ? Math.floor(Math.min(...fats) - 2) : 5;
   const fMax = fats.length ? Math.ceil(Math.max(...fats) + 2) : 30;
   const hasNightWeight = nightWeights.length > 0;
+
+  // Training stats calculations
+  const trainingWeekCount = (() => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekStr = weekAgo.toISOString().slice(0, 10);
+    return trainingLogs.filter((t) => t.date >= weekStr).length;
+  })();
+
+  const bodyPartCounts = (() => {
+    const counts = {};
+    for (const tl of trainingLogs) {
+      for (const part of (tl.body_parts || [])) {
+        counts[part] = (counts[part] || 0) + 1;
+      }
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  })();
+
+  const maxBodyPartCount = bodyPartCounts.length > 0 ? bodyPartCounts[0][1] : 0;
+
+  // Weekly training heatmap (last 4 weeks)
+  const weeklyTrainingDays = (() => {
+    const weeks = [0, 0, 0, 0];
+    const now = new Date();
+    for (const tl of trainingLogs) {
+      const d = new Date(tl.date + "T00:00");
+      const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+      const weekIdx = Math.floor(diffDays / 7);
+      if (weekIdx >= 0 && weekIdx < 4) {
+        // Count unique dates per week
+        weeks[weekIdx]++;
+      }
+    }
+    return weeks.reverse(); // oldest first
+  })();
 
   // Latest values
   const latest = metrics.length > 0 ? metrics[metrics.length - 1] : null;
@@ -393,6 +452,104 @@ export default function ProgressPage() {
                   <span style={{ fontSize: 10, color: "rgba(168,139,250,0.6)" }}>目標</span>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Training Stats */}
+        {trainingLogs.length > 0 && (
+          <div style={S.card}>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 600, marginBottom: 14, display: "flex", alignItems: "center", gap: 4 }}>
+              <Dumbbell size={14} strokeWidth={1.5} />トレーニング統計（直近30日）
+            </div>
+
+            {/* Weekly frequency */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>今週の回数</span>
+                <span style={{ fontSize: 20, fontWeight: 700, color: "#a78bfa", fontFamily: "'Space Mono',monospace" }}>
+                  {trainingWeekCount}<span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>回</span>
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: 4, alignItems: "flex-end" }}>
+                {weeklyTrainingDays.map((count, i) => (
+                  <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    <div style={{
+                      width: "100%", height: Math.max(count * 10, 4), borderRadius: 4,
+                      background: i === 3 ? "#a78bfa" : "rgba(168,139,250,0.3)",
+                      transition: "height 0.3s ease",
+                    }} />
+                    <span style={{ fontSize: 9, color: i === 3 ? "#a78bfa" : "rgba(255,255,255,0.25)" }}>
+                      {i === 3 ? "今週" : `${3 - i}週前`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Body part balance */}
+            <div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 8 }}>部位バランス</div>
+              {bodyPartCounts.map(([partId, count]) => {
+                const info = BODY_PART_LABELS[partId] || { label: partId, color: "#a78bfa" };
+                const pct = maxBodyPartCount > 0 ? (count / maxBodyPartCount) * 100 : 0;
+                const avg = count / 4; // 4 weeks average
+                return (
+                  <div key={partId} style={{ marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                      <span style={{ fontSize: 11, color: info.color, fontWeight: 600 }}>{info.label}</span>
+                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'Space Mono',monospace" }}>
+                        {count}回 <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>({avg.toFixed(1)}/週)</span>
+                      </span>
+                    </div>
+                    <div style={{ width: "100%", height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%", borderRadius: 3, background: info.color,
+                        width: `${pct}%`, transition: "width 0.5s ease",
+                        opacity: count < avg * 0.5 ? 0.5 : 1,
+                      }} />
+                    </div>
+                  </div>
+                );
+              })}
+              {bodyPartCounts.length === 0 && (
+                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", textAlign: "center", margin: "8px 0" }}>
+                  データなし
+                </p>
+              )}
+            </div>
+
+            {/* Recent training list */}
+            <div style={{ marginTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>直近の記録</div>
+              {trainingLogs.slice().reverse().slice(0, 5).map((tl) => (
+                <div key={tl.id} style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "6px 0",
+                  borderBottom: "1px solid rgba(255,255,255,0.03)",
+                }}>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", minWidth: 36 }}>
+                    {`${new Date(tl.date + "T00:00").getMonth() + 1}/${new Date(tl.date + "T00:00").getDate()}`}
+                  </span>
+                  <div style={{ display: "flex", gap: 3, flex: 1, flexWrap: "wrap" }}>
+                    {(tl.body_parts || []).map((p) => {
+                      const info = BODY_PART_LABELS[p] || { label: p, color: "#a78bfa" };
+                      return (
+                        <span key={p} style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, background: `${info.color}20`, color: info.color }}>
+                          {info.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <span style={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star key={i} size={8} fill={i <= (tl.intensity || 0) ? "#fbbf24" : "transparent"} color={i <= (tl.intensity || 0) ? "#fbbf24" : "rgba(255,255,255,0.1)"} strokeWidth={1.5} />
+                    ))}
+                  </span>
+                  {tl.duration_minutes && (
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Space Mono',monospace" }}>{tl.duration_minutes}m</span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}

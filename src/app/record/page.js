@@ -3,9 +3,19 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals, saveDailyNotes, loadBodyMetricByDate, saveBodyMetric } from "@/lib/db";
-import { saveLocalMealLog, loadLocalMealLogs, deleteLocalMealLog, loadLocalRoutineMeals, loadLocalProfile, saveLocalDailyNotes, loadLocalBodyMetricByDate, saveLocalBodyMetric } from "@/lib/local-db";
-import { BarChart3, Wallet, Zap, UtensilsCrossed, Plus, PenLine, Scale } from "lucide-react";
+import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals, saveDailyNotes, loadBodyMetricByDate, saveBodyMetric, saveTrainingLog, loadTrainingLogsByDate, deleteTrainingLog } from "@/lib/db";
+import { saveLocalMealLog, loadLocalMealLogs, deleteLocalMealLog, loadLocalRoutineMeals, loadLocalProfile, saveLocalDailyNotes, loadLocalBodyMetricByDate, saveLocalBodyMetric, saveLocalTrainingLog, loadLocalTrainingLogsByDate, deleteLocalTrainingLog } from "@/lib/local-db";
+import { BarChart3, Wallet, Zap, UtensilsCrossed, Plus, PenLine, Scale, Dumbbell, Star, Clock, Trash2 } from "lucide-react";
+
+const BODY_PART_OPTIONS = [
+  { id: "chest", label: "胸", color: "#f87171" },
+  { id: "back", label: "背中", color: "#60a5fa" },
+  { id: "shoulders", label: "肩", color: "#fbbf24" },
+  { id: "arms", label: "腕", color: "#a78bfa" },
+  { id: "legs", label: "脚", color: "#4ade80" },
+  { id: "abs", label: "腹", color: "#f472b6" },
+  { id: "cardio", label: "有酸素", color: "#22d3ee" },
+];
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -89,6 +99,15 @@ export default function RecordPage() {
   // 食事セクション
   const [activeMealIndex, setActiveMealIndex] = useState(null); // null = 全て
   const [mealCount, setMealCount] = useState(3);
+
+  // トレーニング記録
+  const [trainingLogs, setTrainingLogs] = useState([]);
+  const [selectedBodyParts, setSelectedBodyParts] = useState([]);
+  const [trainingIntensity, setTrainingIntensity] = useState(3);
+  const [trainingDuration, setTrainingDuration] = useState("");
+  const [trainingNotes, setTrainingNotes] = useState("");
+  const [trainingSaving, setTrainingSaving] = useState(false);
+  const [trainingOpen, setTrainingOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -187,6 +206,16 @@ export default function RecordPage() {
     loadMetric();
   }, [supabase, user, date, loading]);
 
+  // Load training logs when date changes
+  useEffect(() => {
+    if (loading) return;
+    if (user) {
+      loadTrainingLogsByDate(supabase, user.id, date).then(setTrainingLogs);
+    } else {
+      setTrainingLogs(loadLocalTrainingLogsByDate(date));
+    }
+  }, [supabase, user, date, loading]);
+
   // mealCount 変更時に activeMealIndex が範囲外なら全表示にリセット
   useEffect(() => {
     if (activeMealIndex !== null && activeMealIndex > mealCount) {
@@ -227,6 +256,53 @@ export default function RecordPage() {
     } finally {
       setWeightSaving(false);
     }
+  };
+
+  const handleTrainingSave = async () => {
+    if (selectedBodyParts.length === 0) return;
+    setTrainingSaving(true);
+    const logData = {
+      date,
+      bodyParts: selectedBodyParts,
+      intensity: trainingIntensity,
+      durationMinutes: trainingDuration !== "" ? Number(trainingDuration) : null,
+      notes: trainingNotes.trim() || null,
+    };
+
+    let saved;
+    if (user) {
+      saved = await saveTrainingLog(supabase, user.id, logData);
+    } else {
+      saved = saveLocalTrainingLog(logData);
+    }
+    setTrainingSaving(false);
+
+    if (saved) {
+      showToast("success", "トレーニングを記録しました");
+      setTrainingLogs((prev) => [...prev, saved]);
+      setSelectedBodyParts([]);
+      setTrainingIntensity(3);
+      setTrainingDuration("");
+      setTrainingNotes("");
+      setTrainingOpen(false);
+    } else {
+      showToast("error", "トレーニング記録の保存に失敗しました");
+    }
+  };
+
+  const handleTrainingDelete = async (logId) => {
+    if (user) {
+      await deleteTrainingLog(supabase, user.id, logId);
+    } else {
+      deleteLocalTrainingLog(logId);
+    }
+    setTrainingLogs((prev) => prev.filter((t) => t.id !== logId));
+  };
+
+  const toggleBodyPart = (partId) => {
+    setSelectedBodyParts((prev) =>
+      prev.includes(partId) ? prev.filter((p) => p !== partId) : [...prev, partId]
+    );
   };
 
   const handleNotesChange = (value) => {
@@ -478,6 +554,157 @@ export default function RecordPage() {
           }}>
             {weightSaving ? "保存中..." : weightSaved ? "✓ 保存しました" : "体重を保存"}
           </button>
+        </div>
+
+        {/* トレーニング記録 */}
+        <div style={S.card}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: trainingOpen ? 14 : 0 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              <Dumbbell size={12} strokeWidth={1.5} />トレーニング記録
+            </span>
+            <button onClick={() => setTrainingOpen(!trainingOpen)} style={{
+              padding: "5px 12px", border: "1px solid rgba(168,139,250,0.3)", borderRadius: 8, fontSize: 11, fontWeight: 600,
+              background: trainingOpen ? "rgba(168,139,250,0.15)" : "transparent",
+              color: trainingOpen ? "#a78bfa" : "rgba(255,255,255,0.35)", cursor: "pointer", transition: "all 0.2s",
+            }}>
+              {trainingOpen ? "閉じる" : "＋ 記録する"}
+            </button>
+          </div>
+
+          {trainingOpen && (
+            <>
+              {/* 部位選択チップ */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600, display: "block", marginBottom: 6 }}>部位（複数選択可）</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {BODY_PART_OPTIONS.map((part) => {
+                    const selected = selectedBodyParts.includes(part.id);
+                    return (
+                      <button key={part.id} onClick={() => toggleBodyPart(part.id)} style={{
+                        padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                        border: `1px solid ${selected ? part.color : "rgba(255,255,255,0.1)"}`,
+                        background: selected ? `${part.color}20` : "rgba(255,255,255,0.03)",
+                        color: selected ? part.color : "rgba(255,255,255,0.4)",
+                        transition: "all 0.15s",
+                      }}>
+                        {part.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 強度 ★ */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600, display: "block", marginBottom: 6 }}>
+                  強度
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {[1, 2, 3, 4, 5].map((level) => (
+                    <button key={level} onClick={() => setTrainingIntensity(level)} style={{
+                      background: "transparent", border: "none", cursor: "pointer", padding: 2, transition: "transform 0.15s",
+                      transform: trainingIntensity >= level ? "scale(1.1)" : "scale(1)",
+                    }}>
+                      <Star
+                        size={24}
+                        fill={trainingIntensity >= level ? "#fbbf24" : "transparent"}
+                        color={trainingIntensity >= level ? "#fbbf24" : "rgba(255,255,255,0.15)"}
+                        strokeWidth={1.5}
+                      />
+                    </button>
+                  ))}
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginLeft: 8, fontFamily: "'Space Mono',monospace", fontWeight: 700 }}>
+                    {trainingIntensity}/5
+                  </span>
+                </div>
+              </div>
+
+              {/* 時間 */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
+                  <Clock size={11} strokeWidth={1.5} />時間
+                </label>
+                <div style={S.numWrap}>
+                  <input
+                    type="number" inputMode="numeric" min="0" max="600"
+                    value={trainingDuration} onChange={(e) => setTrainingDuration(e.target.value)}
+                    placeholder="60" style={{ ...S.numInput, color: "#a78bfa" }}
+                  />
+                  <span style={S.unit}>分</span>
+                </div>
+              </div>
+
+              {/* 種目メモ */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontWeight: 600, display: "block", marginBottom: 6 }}>
+                  種目メモ（任意）
+                </label>
+                <textarea
+                  value={trainingNotes} onChange={(e) => setTrainingNotes(e.target.value)}
+                  placeholder={"ベンチ 80kg×8×3\nインクラインDB 26kg×10×3\nケーブルフライ 15kg×12×3"}
+                  rows={3}
+                  style={S.notesInput}
+                />
+              </div>
+
+              <button onClick={handleTrainingSave} disabled={trainingSaving || selectedBodyParts.length === 0} style={{
+                width: "100%", padding: "10px 0", borderRadius: 10, border: "none", fontSize: 13, fontWeight: 700,
+                background: trainingSaving ? "#555" : selectedBodyParts.length === 0 ? "rgba(255,255,255,0.04)" : "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                color: selectedBodyParts.length === 0 ? "rgba(255,255,255,0.2)" : "#fff",
+                cursor: trainingSaving || selectedBodyParts.length === 0 ? "not-allowed" : "pointer",
+                boxShadow: selectedBodyParts.length > 0 ? "0 4px 20px rgba(139,92,246,0.3)" : "none",
+                transition: "all 0.2s",
+              }}>
+                {trainingSaving ? "記録中..." : "トレーニングを記録"}
+              </button>
+            </>
+          )}
+
+          {/* 当日のトレーニングログ一覧 */}
+          {trainingLogs.length > 0 && (
+            <div style={{ marginTop: trainingOpen ? 14 : 12 }}>
+              {trainingLogs.map((tl) => (
+                <div key={tl.id} style={{
+                  padding: "10px 12px", background: "rgba(168,139,250,0.04)", border: "1px solid rgba(168,139,250,0.1)",
+                  borderRadius: 12, marginBottom: 6,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {(tl.body_parts || []).map((partId) => {
+                        const part = BODY_PART_OPTIONS.find((p) => p.id === partId);
+                        return (
+                          <span key={partId} style={{
+                            fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10,
+                            background: `${part?.color || "#a78bfa"}20`, color: part?.color || "#a78bfa",
+                          }}>
+                            {part?.label || partId}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <button onClick={() => handleTrainingDelete(tl.id)} style={S.deleteBtn} aria-label="削除">
+                      <Trash2 size={12} strokeWidth={1.5} />
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Star key={i} size={10} fill={i <= (tl.intensity || 0) ? "#fbbf24" : "transparent"} color={i <= (tl.intensity || 0) ? "#fbbf24" : "rgba(255,255,255,0.15)"} strokeWidth={1.5} />
+                      ))}
+                    </span>
+                    {tl.duration_minutes != null && (
+                      <span style={{ fontFamily: "'Space Mono',monospace", fontWeight: 600 }}>{tl.duration_minutes}分</span>
+                    )}
+                  </div>
+                  {tl.notes && (
+                    <div style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.35)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+                      {tl.notes}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Dashboard */}

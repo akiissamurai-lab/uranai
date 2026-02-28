@@ -7,6 +7,7 @@ const KEYS = {
   mealLogs: "guest_meal_logs",
   bodyMetrics: "guest_body_metrics",
   routineMeals: "guest_routine_meals",
+  trainingLogs: "guest_training_logs",
 };
 
 function isBrowser() {
@@ -178,6 +179,44 @@ export function deleteLocalRoutineMeal(mealId) {
   set(KEYS.routineMeals, all.filter((r) => r.id !== mealId));
 }
 
+// ─── Training Logs ────────────────────────────────────────────
+
+export function saveLocalTrainingLog(log) {
+  const all = get(KEYS.trainingLogs) || [];
+  const entry = {
+    id: uid(),
+    date: log.date,
+    body_parts: log.bodyParts,
+    intensity: log.intensity || null,
+    duration_minutes: log.durationMinutes || null,
+    notes: log.notes || null,
+    created_at: now(),
+    updated_at: now(),
+  };
+  all.push(entry);
+  all.sort((a, b) => a.date.localeCompare(b.date));
+  set(KEYS.trainingLogs, all);
+  return entry;
+}
+
+export function loadLocalTrainingLogsByDate(date) {
+  const all = get(KEYS.trainingLogs) || [];
+  return all.filter((t) => t.date === date);
+}
+
+export function loadLocalTrainingLogsRange(days = 30) {
+  const all = get(KEYS.trainingLogs) || [];
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const sinceStr = since.toISOString().slice(0, 10);
+  return all.filter((t) => t.date >= sinceStr);
+}
+
+export function deleteLocalTrainingLog(logId) {
+  const all = get(KEYS.trainingLogs) || [];
+  set(KEYS.trainingLogs, all.filter((t) => t.id !== logId));
+}
+
 // ─── データ同期用 ─────────────────────────────────────────────
 
 export function getAllLocalData() {
@@ -186,6 +225,7 @@ export function getAllLocalData() {
     mealLogs: get(KEYS.mealLogs),
     bodyMetrics: get(KEYS.bodyMetrics),
     routineMeals: get(KEYS.routineMeals),
+    trainingLogs: get(KEYS.trainingLogs),
   };
 }
 

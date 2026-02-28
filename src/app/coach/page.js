@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, loadBodyMetrics } from "@/lib/db";
 import AuthGate from "@/components/AuthGate";
-import { Lock, CheckCircle, Bot, Settings, BarChart3, Target, ShoppingCart, Lightbulb, UtensilsCrossed, RefreshCw, PenLine, ClipboardList } from "lucide-react";
+import { Lock, CheckCircle, Bot, Settings, BarChart3, Target, ShoppingCart, Lightbulb, UtensilsCrossed, RefreshCw, PenLine, ClipboardList, Dumbbell } from "lucide-react";
 
 export default function CoachPage() {
   const router = useRouter();
@@ -371,6 +371,18 @@ export default function CoachPage() {
                     <UtensilsCrossed size={12} strokeWidth={1.5} style={{ flexShrink: 0, marginTop: 2 }} />{result.mealTip}
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Training analysis card */}
+            {result.trainingAnalysis && (
+              <div style={{ ...S.card, background: "rgba(168,139,250,0.05)", border: "1px solid rgba(168,139,250,0.12)" }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Dumbbell size={14} strokeWidth={1.5} />トレーニング分析
+                </div>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", margin: 0, lineHeight: 1.7 }}>
+                  {result.trainingAnalysis}
+                </p>
               </div>
             )}
 

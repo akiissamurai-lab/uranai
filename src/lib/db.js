@@ -165,7 +165,7 @@ export async function migrateAllLocalData(supabase, userId) {
   try {
     const { getAllLocalData, clearAllLocalData } = await import("@/lib/local-db");
     const local = getAllLocalData();
-    if (!local || (!local.profile && !local.mealLogs && !local.bodyMetrics && !local.routineMeals)) {
+    if (!local || (!local.profile && !local.mealLogs && !local.bodyMetrics && !local.routineMeals && !local.trainingLogs)) {
       // ローカルデータなし → 同期不要、フラグだけ立てる
       localStorage.setItem(`guest_migrated_${userId}`, "true");
       localStorage.removeItem(lockKey);
@@ -257,6 +257,25 @@ export async function migrateAllLocalData(supabase, userId) {
           protein: r.protein,
           fat: r.fat,
           carbs: r.carbs,
+        });
+        if (!saved) saveErrors++;
+      }
+    }
+
+    // ── Training logs: 同日・同body_parts は重複スキップ ──
+    if (local.trainingLogs && Array.isArray(local.trainingLogs)) {
+      for (const tl of local.trainingLogs) {
+        const cloudTLs = await loadTrainingLogsByDate(supabase, userId, tl.date);
+        const isDup = cloudTLs.some(
+          (c) => JSON.stringify(c.body_parts?.sort()) === JSON.stringify(tl.body_parts?.sort()) && c.intensity === tl.intensity
+        );
+        if (isDup) continue;
+        const saved = await saveTrainingLog(supabase, userId, {
+          date: tl.date,
+          bodyParts: tl.body_parts,
+          intensity: tl.intensity,
+          durationMinutes: tl.duration_minutes,
+          notes: tl.notes,
         });
         if (!saved) saveErrors++;
       }
@@ -419,6 +438,92 @@ export async function loadBodyMetrics(supabase, userId, days = 90) {
     return [];
   }
   return data;
+}
+
+// ─── training_logs (トレーニング記録) ─────────────────────────
+
+export async function saveTrainingLog(supabase, userId, log) {
+  const { data, error } = await supabase.from("training_logs").insert({
+    user_id: userId,
+    date: log.date,
+    body_parts: log.bodyParts,
+    intensity: log.intensity || null,
+    duration_minutes: log.durationMinutes || null,
+    notes: log.notes || null,
+  }).select().single();
+
+  if (error) {
+    console.warn("saveTrainingLog error:", error.message);
+    return null;
+  }
+  return data;
+}
+
+export async function updateTrainingLog(supabase, userId, logId, updates) {
+  const updateObj = {};
+  if (updates.bodyParts !== undefined) updateObj.body_parts = updates.bodyParts;
+  if (updates.intensity !== undefined) updateObj.intensity = updates.intensity;
+  if (updates.durationMinutes !== undefined) updateObj.duration_minutes = updates.durationMinutes;
+  if (updates.notes !== undefined) updateObj.notes = updates.notes;
+
+  const { error } = await supabase
+    .from("training_logs")
+    .update(updateObj)
+    .eq("id", logId)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.warn("updateTrainingLog error:", error.message);
+    return false;
+  }
+  return true;
+}
+
+export async function loadTrainingLogsByDate(supabase, userId, date) {
+  const { data, error } = await supabase
+    .from("training_logs")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("date", date)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.warn("loadTrainingLogsByDate error:", error.message);
+    return [];
+  }
+  return data;
+}
+
+export async function loadTrainingLogsRange(supabase, userId, days = 30) {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const sinceStr = since.toISOString().slice(0, 10);
+
+  const { data, error } = await supabase
+    .from("training_logs")
+    .select("*")
+    .eq("user_id", userId)
+    .gte("date", sinceStr)
+    .order("date", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.warn("loadTrainingLogsRange error:", error.message);
+    return [];
+  }
+  return data;
+}
+
+export async function deleteTrainingLog(supabase, userId, logId) {
+  const { error } = await supabase
+    .from("training_logs")
+    .delete()
+    .eq("id", logId)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.warn("deleteTrainingLog error:", error.message);
+  }
 }
 
 // ─── 体調メモ（notes のみ保存 — weight/body_fat を壊さない） ────

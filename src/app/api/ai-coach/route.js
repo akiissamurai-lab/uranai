@@ -75,6 +75,15 @@ export async function POST(request) {
     .eq("user_id", user.id)
     .order("sort_order", { ascending: true });
 
+  // Training logs (直近7日間)
+  const { data: trainingLogs } = await supabase
+    .from("training_logs")
+    .select("*")
+    .eq("user_id", user.id)
+    .gte("date", mealSinceStr)
+    .order("date", { ascending: true })
+    .order("created_at", { ascending: true });
+
   // Meal logs (直近7日間の実際の食事記録)
   const mealSince = new Date();
   mealSince.setDate(mealSince.getDate() - 7);
@@ -120,6 +129,19 @@ export async function POST(request) {
       const dayCal = Math.round(dayP * 4 + dayF * 9 + dayC * 4);
       const items = logs.map((l) => `  - ${l.meal_index ? `[${l.meal_index}食目] ` : ""}${l.meal_name}${l.price ? ` ¥${l.price}` : ""} P${l.protein || 0}g F${l.fat || 0}g C${l.carbs || 0}g`).join("\n");
       return `${d} [合計: ${dayCal}kcal P${Math.round(dayP)}g F${Math.round(dayF)}g C${Math.round(dayC)}g ¥${dayCost}]\n${items}`;
+    }).join("\n");
+  }
+
+  // トレーニングログフォーマット
+  const bodyPartLabels = { chest: "胸", back: "背中", shoulders: "肩", arms: "腕", legs: "脚", abs: "腹", cardio: "有酸素" };
+  let trainingLogsStr = "（記録なし）";
+  if (trainingLogs && trainingLogs.length > 0) {
+    trainingLogsStr = trainingLogs.map((tl) => {
+      const parts = (tl.body_parts || []).map((p) => bodyPartLabels[p] || p).join("・");
+      let line = `${tl.date}: ${parts} 強度${tl.intensity || "?"}/5`;
+      if (tl.duration_minutes) line += ` ${tl.duration_minutes}分`;
+      if (tl.notes) line += `\n  → ${tl.notes}`;
+      return line;
     }).join("\n");
   }
 
@@ -193,6 +215,19 @@ ${routinesStr}
 【直近7日間の実際の食事記録】
 ${mealLogsStr}
 
+【直近7日間のトレーニング記録】
+${trainingLogsStr}
+
+【トレーニングデータの活用 — 厳守】
+- トレーニング記録がある場合、強度・部位・メモの内容に基づいてマクロ栄養素のアジャストを提案すること
+- 脚トレなど大筋群の高強度トレーニング翌日: 筋グリコーゲン補充のため炭水化物+20〜30gの微増を推奨
+- 高強度トレーニング翌日の体重増加: 筋グリコーゲン + 水分貯留によるものと判断し、脂肪増加と混同しないこと
+- トレーニング日: タンパク質摂取タイミング（トレ後30分以内に20〜30g）を推奨
+- 連日高強度の場合: オーバートレーニングリスクに言及し、休息日とカロリー維持を推奨
+- 有酸素運動日: 過度なカロリー制限を避け、脂質を適度に維持するよう助言
+- トレーニング記録がない日が続く場合: 活動量低下を考慮したカロリー調整を提案
+- trainingAnalysisフィールドでトレーニング内容を分析根拠として明示的に引用すること
+
 【体調メモの活用 — 厳守】
 - 体調メモ（体重推移欄に記載）は体重変動の「原因」を推定するための定性データとして扱う
 - 飲み会・外食の記載: 一時的な水分貯留・塩分過多の可能性を指摘し、翌日以降の回復プランを提示すること（非judgmental・責めない）
@@ -218,6 +253,7 @@ ${mealLogsStr}
   "summary": "2-3文の分析サマリー（体調メモがあれば分析根拠として引用）",
   "weightTrend": { "direction": "down" or "flat" or "up", "weeklyChange": 数値(kg) },
   "conditionContext": "体調メモに基づく補足分析（メモがない場合は空文字）",
+  "trainingAnalysis": "トレーニング記録に基づく栄養アジャスト提案（記録がない場合は空文字）",
   "mealAnalysis": "実際の食事記録に基づくPFC乖離分析と改善点（記録がない場合は空文字）",
   "newMacros": { "protein": 数値, "fat": 数値, "carbs": 数値, "budget": 数値 },
   "macroReason": "変更理由の1文",
