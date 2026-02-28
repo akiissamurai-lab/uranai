@@ -35,7 +35,7 @@ export default function CoachPage() {
         setHasMetrics(m && m.length > 0);
       }
       setLoading(false);
-    });
+    }).catch(() => { setLoading(false); });
   }, [supabase]);
 
   const handleAuthChange = useCallback((authUser) => {

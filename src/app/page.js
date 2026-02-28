@@ -450,6 +450,9 @@ export default function Home() {
         setUser(u || null);
         setAuthChecked(true);
       }
+    }).catch(() => {
+      // ネットワークエラー等: ゲストとして扱う
+      if (!authChecked) setAuthChecked(true);
     });
   }, [supabase, authChecked]);
 

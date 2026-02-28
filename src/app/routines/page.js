@@ -40,7 +40,7 @@ export default function RoutinesPage() {
         setRoutines(loadLocalRoutineMeals());
       }
       setLoading(false);
-    });
+    }).catch(() => { setRoutines(loadLocalRoutineMeals()); setLoading(false); });
   }, [supabase]);
 
   const showToast = (type, msg) => {

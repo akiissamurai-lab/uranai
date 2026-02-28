@@ -41,6 +41,10 @@ export default function SettingsPage() {
         setCarbsGoal(profile.carbs_goal ?? "");
       }
       setLoading(false);
+    }).catch(() => {
+      const p = loadLocalProfile();
+      if (p) { setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? ""); setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? ""); }
+      setLoading(false);
     });
   }, [supabase]);
 

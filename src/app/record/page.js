@@ -74,7 +74,7 @@ export default function RecordPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user); // null = ゲスト
       setLoading(false);
-    });
+    }).catch(() => { setLoading(false); });
   }, [supabase]);
 
   // Load routines
