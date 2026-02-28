@@ -11,7 +11,7 @@ import {
   BarChart3, Wallet, Target, Zap, PenLine, Scale, Bot, Lightbulb,
   RefreshCw, TrendingUp, UtensilsCrossed, Activity, User, Ruler,
   CalendarDays, Percent, Calculator, Settings, Flame, Dumbbell,
-  Share2, ClipboardList,
+  Share2, ClipboardList, ChevronDown,
   AlertTriangle, CheckCircle, Calendar
 } from "lucide-react";
 
@@ -692,7 +692,7 @@ function SectionCard({ num, title, summary, collapsed, onToggle, color = "#4ade8
     <div style={{
       background: collapsed ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.03)",
       border: collapsed ? "1px solid rgba(255,255,255,0.04)" : "1px solid rgba(255,255,255,0.06)",
-      borderRadius: 20, padding: collapsed ? "14px 20px" : "22px 20px", marginBottom: 14,
+      borderRadius: 22, padding: collapsed ? "16px 22px" : "24px 22px", marginBottom: 20,
       animation: "fadeUp 0.4s ease-out", transition: "all 0.3s ease",
     }}>
       <div onClick={collapsed ? onToggle : undefined} style={{
@@ -760,6 +760,7 @@ export default function Home() {
   const [todayLogs, setTodayLogs] = useState([]);
   const [profileGoals, setProfileGoals] = useState(null);
   const [streak, setStreak] = useState(0);
+  const [plannerOpen, setPlannerOpen] = useState(false);
   const suggestAbortRef = useRef(null);
 
   // 初回auth check（AuthGateとは独立して即座にチェック）
@@ -1035,7 +1036,7 @@ export default function Home() {
 
     const plan = solveMealPlan(budget, protein, calories, excludedIds, excludedCats);
     setResult(plan); setAiAdvice(null); setAiError(null); setAiLoading(true);
-    setActiveTab("ai"); setExpandedMeal(null); setStep("result");
+    setActiveTab("ai"); setExpandedMeal(null); setStep("result"); setPlannerOpen(true);
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth" }), 150);
 
     const entry = { weight, goal, budget, protein: Math.round(plan.totals.protein), cal: Math.round(plan.totals.cal), cost: Math.round(plan.totals.cost) };
@@ -1162,34 +1163,7 @@ export default function Home() {
           <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
         </div>
       </header>
-      {/* 履歴ボタン（ログイン済み＆履歴ありのみ） */}
-      {user && history.length > 0 && (
-        <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 6px" }}>
-          <button onClick={() => setShowHistory(!showHistory)} style={{
-            padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
-            background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
-            color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
-          }}>履歴</button>
-        </div>
-      )}
-
       <main style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 100px" }}>
-
-        {/* History panel (ログイン済みのみ) */}
-        {user && showHistory && history.length > 0 && (
-          <div style={{ background: "rgba(168,139,250,0.05)", border: "1px solid rgba(168,139,250,0.12)", borderRadius: 16, padding: "14px 16px", marginBottom: 14, animation: "fadeUp 0.3s ease-out" }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#c4b5fd", marginBottom: 10 }}>過去のプラン</div>
-            {history.slice(0, 5).map((h, i) => (
-              <div key={h.id || i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < Math.min(history.length, 5) - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", fontSize: 12 }}>
-                <span style={{ color: "rgba(255,255,255,0.4)" }}>{h.date}</span>
-                <span style={{ color: "rgba(255,255,255,0.6)" }}>
-                  {h.budget ? `¥${Number(h.budget).toLocaleString()}` : ""}
-                </span>
-                <span style={{ fontFamily: "var(--font-mono)", color: "#4ade80" }}>P{h.protein}g ¥{h.cost}</span>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* ─── ストリーク ─── */}
         {streak > 0 && (
@@ -1198,9 +1172,9 @@ export default function Home() {
               ? "linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.08))"
               : "rgba(255,255,255,0.03)",
             border: `1px solid ${streak >= 7 ? "rgba(251,191,36,0.2)" : "rgba(255,255,255,0.06)"}`,
-            borderRadius: 18,
-            padding: "16px 20px",
-            marginBottom: 14,
+            borderRadius: 22,
+            padding: "18px 22px",
+            marginBottom: 20,
             display: "flex",
             alignItems: "center",
             gap: 14,
@@ -1222,67 +1196,80 @@ export default function Home() {
           </div>
         )}
 
-        {/* ─── 今日の進捗ダッシュボード ─── */}
-        {profileGoals && (profileGoals.budget || profileGoals.protein_goal) && todayLogs.length > 0 && (
+        {/* ─── きょうの記録 ─── */}
+        {profileGoals && (profileGoals.budget || profileGoals.protein_goal) && (
           <div style={{
             background: "rgba(255,255,255,0.03)",
             border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: 24,
-            padding: "20px 18px",
-            marginBottom: 14,
+            borderRadius: 22,
+            padding: "22px 20px",
+            marginBottom: 20,
             animation: "fadeUp 0.4s ease-out",
           }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.7)", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
-              <BarChart3 size={16} strokeWidth={1.5} color="rgba(255,255,255,0.7)" /> 今日の進捗
+            <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.7)", marginBottom: 18, display: "flex", alignItems: "center", gap: 6 }}>
+              <BarChart3 size={16} strokeWidth={1.5} color="rgba(255,255,255,0.7)" /> きょうの記録
             </div>
 
-            {/* PFC ドーナツ3連 */}
-            {(profileGoals.protein_goal || profileGoals.fat_goal || profileGoals.carbs_goal) && (
-              <div style={{ display: "flex", gap: 4, marginBottom: profileGoals.budget ? 18 : 0, justifyContent: "center" }}>
-                {profileGoals.protein_goal && <MacroDonut label="タンパク質" current={todayTotals.protein} goal={profileGoals.protein_goal} color="#f87171" bgColor="rgba(248,113,113,0.1)" unit="g" />}
-                {profileGoals.fat_goal && <MacroDonut label="脂質" current={todayTotals.fat} goal={profileGoals.fat_goal} color="#facc15" bgColor="rgba(250,204,21,0.1)" unit="g" />}
-                {profileGoals.carbs_goal && <MacroDonut label="炭水化物" current={todayTotals.carbs} goal={profileGoals.carbs_goal} color="#60a5fa" bgColor="rgba(96,165,250,0.1)" unit="g" />}
+            {todayLogs.length > 0 ? (
+              <>
+                {/* PFC ドーナツ3連 */}
+                {(profileGoals.protein_goal || profileGoals.fat_goal || profileGoals.carbs_goal) && (
+                  <div style={{ display: "flex", gap: 4, marginBottom: profileGoals.budget ? 18 : 0, justifyContent: "center" }}>
+                    {profileGoals.protein_goal && <MacroDonut label="タンパク質" current={todayTotals.protein} goal={profileGoals.protein_goal} color="#f87171" bgColor="rgba(248,113,113,0.1)" unit="g" />}
+                    {profileGoals.fat_goal && <MacroDonut label="脂質" current={todayTotals.fat} goal={profileGoals.fat_goal} color="#facc15" bgColor="rgba(250,204,21,0.1)" unit="g" />}
+                    {profileGoals.carbs_goal && <MacroDonut label="炭水化物" current={todayTotals.carbs} goal={profileGoals.carbs_goal} color="#60a5fa" bgColor="rgba(96,165,250,0.1)" unit="g" />}
+                  </div>
+                )}
+
+                {/* 予算ゲージ */}
+                {profileGoals.budget && (
+                  <BudgetGauge spent={todayTotals.price} total={profileGoals.budget} />
+                )}
+
+                {/* シェアボタン */}
+                <button
+                  onClick={() => handleShareImage(todayTotals, profileGoals, setShareStatus)}
+                  disabled={shareStatus === "generating"}
+                  style={{
+                    width: "100%",
+                    marginTop: 16,
+                    padding: "12px 0",
+                    borderRadius: 12,
+                    border: "none",
+                    background: shareStatus === "shared" || shareStatus === "downloaded"
+                      ? "rgba(34,197,94,0.15)"
+                      : shareStatus === "error"
+                        ? "rgba(239,68,68,0.1)"
+                        : "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(236,72,153,0.12))",
+                    color: shareStatus === "shared" || shareStatus === "downloaded"
+                      ? "#4ade80"
+                      : shareStatus === "error"
+                        ? "#f87171"
+                        : "#f97316",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: shareStatus === "generating" ? "wait" : "pointer",
+                    transition: "all 0.2s",
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  {shareStatus === "generating" ? "生成中..."
+                    : shareStatus === "shared" ? "シェア完了"
+                    : shareStatus === "downloaded" ? "保存完了"
+                    : shareStatus === "error" ? "エラーが発生しました"
+                    : "シェアする"}
+                </button>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", lineHeight: 1.7 }}>
+                  今日はまだ記録がないよ
+                </div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>
+                  「食事」タブから記録しよう
+                </div>
               </div>
             )}
-
-            {/* 予算ゲージ */}
-            {profileGoals.budget && (
-              <BudgetGauge spent={todayTotals.price} total={profileGoals.budget} />
-            )}
-
-            {/* シェアボタン */}
-            <button
-              onClick={() => handleShareImage(todayTotals, profileGoals, setShareStatus)}
-              disabled={shareStatus === "generating"}
-              style={{
-                width: "100%",
-                marginTop: 16,
-                padding: "11px 0",
-                borderRadius: 12,
-                border: "none",
-                background: shareStatus === "shared" || shareStatus === "downloaded"
-                  ? "rgba(34,197,94,0.15)"
-                  : shareStatus === "error"
-                    ? "rgba(239,68,68,0.1)"
-                    : "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(236,72,153,0.12))",
-                color: shareStatus === "shared" || shareStatus === "downloaded"
-                  ? "#4ade80"
-                  : shareStatus === "error"
-                    ? "#f87171"
-                    : "#f97316",
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: shareStatus === "generating" ? "wait" : "pointer",
-                transition: "all 0.2s",
-                letterSpacing: 0.3,
-              }}
-            >
-              {shareStatus === "generating" ? "生成中..."
-                : shareStatus === "shared" ? "シェア完了"
-                : shareStatus === "downloaded" ? "保存完了"
-                : shareStatus === "error" ? "エラーが発生しました"
-                : "シェアする"}
-            </button>
           </div>
         )}
 
@@ -1291,14 +1278,14 @@ export default function Home() {
           <div style={{
             background: "linear-gradient(135deg, rgba(139,92,246,0.08), rgba(34,197,94,0.06))",
             border: "1px solid rgba(139,92,246,0.18)",
-            borderRadius: 20, padding: "20px 18px", marginBottom: 14,
+            borderRadius: 22, padding: "22px 20px", marginBottom: 20,
             animation: "fadeUp 0.4s ease-out",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <Bot size={22} strokeWidth={1.5} color="#c084fc" />
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>AIメニュー提案</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>今日の残り予算・PFCに合った一食を提案</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>次の1食</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>残りの予算とPFCにぴったりな一食</div>
               </div>
             </div>
 
@@ -1338,7 +1325,7 @@ export default function Home() {
                 boxShadow: "0 4px 20px rgba(139,92,246,0.3)",
                 letterSpacing: 0.5,
               }}>
-                メニューを提案
+                提案する
               </button>
             )}
 
@@ -1346,7 +1333,7 @@ export default function Home() {
             {aiSuggestLoading && (
               <div style={{ padding: 20, borderRadius: 15, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", textAlign: "center" }}>
                 <div style={{ marginBottom: 8, animation: "pulse 2s infinite" }}><Bot size={28} strokeWidth={1.5} color="#c084fc" /></div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>メニューを分析中...</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>考え中...</div>
               </div>
             )}
 
@@ -1355,10 +1342,10 @@ export default function Home() {
               <div style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)" }}>
                 <div style={{ fontSize: 12, color: "#fca5a5", lineHeight: 1.5 }}>{aiSuggestError}</div>
                 <button onClick={handleSuggestMeal} style={{
-                  marginTop: 8, padding: "6px 12px", borderRadius: 8,
+                  marginTop: 10, padding: "8px 14px", borderRadius: 10,
                   border: "1px solid rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.08)",
-                  color: "#fca5a5", fontSize: 11, cursor: "pointer",
-                }}>再試行</button>
+                  color: "#fca5a5", fontSize: 12, cursor: "pointer",
+                }}>もう一度</button>
               </div>
             )}
 
@@ -1409,14 +1396,14 @@ export default function Home() {
                     cursor: aiSuggestRecorded ? "default" : "pointer",
                     boxShadow: aiSuggestRecorded ? "none" : "0 4px 16px rgba(34,197,94,0.25)",
                   }}>
-                    {aiSuggestRecorded ? "記録完了" : "この食事を記録する"}
+                    {aiSuggestRecorded ? "記録完了" : "記録する"}
                   </button>
                   <button onClick={handleSuggestMeal} style={{
                     flex: 1, padding: "11px", borderRadius: 11,
                     border: "1px solid rgba(139,92,246,0.25)", background: "rgba(139,92,246,0.08)",
                     color: "#c4b5fd", fontSize: 12, fontWeight: 600, cursor: "pointer",
                   }}>
-                    別の提案
+                    ほかの案
                   </button>
                 </div>
               </div>
@@ -1424,8 +1411,51 @@ export default function Home() {
           </div>
         )}
 
+        {/* ═══════ Getting Started (new users) ═══════ */}
+        {!profileGoals && todayLogs.length === 0 && streak === 0 && (
+          <div style={{ textAlign: "center", padding: "40px 20px", marginBottom: 20 }}>
+            <Calculator size={36} strokeWidth={1.5} color="rgba(255,255,255,0.15)" />
+            <div style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.5)", marginTop: 14 }}>まずは食材プランを作ってみよう</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", marginTop: 6, lineHeight: 1.6 }}>予算にあわせた最適な食材プランをAIが提案するよ</div>
+          </div>
+        )}
+
+        {/* ═══════ MEAL PLANNER ═══════ */}
+        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 22, overflow: "hidden", marginBottom: 20 }}>
+          <button onClick={() => setPlannerOpen(!plannerOpen)} style={{ width: "100%", padding: "20px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "transparent", border: "none", cursor: "pointer" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg, rgba(34,197,94,0.15), rgba(59,130,246,0.1))", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Calculator size={20} strokeWidth={1.5} color="#4ade80" />
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>食材プランを作る</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>予算にあわせた最適な食材プラン</div>
+              </div>
+            </div>
+            <ChevronDown size={20} strokeWidth={1.5} color="rgba(255,255,255,0.3)" style={{ transform: plannerOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s ease" }} />
+          </button>
+          {plannerOpen && (
+          <div style={{ padding: "4px 10px 20px", animation: "fadeUp 0.3s ease-out" }}>
+            {user && history.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <button onClick={() => setShowHistory(!showHistory)} style={{ padding: "6px 12px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: showHistory ? "rgba(168,139,250,0.1)" : "transparent", color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s" }}>履歴</button>
+                {showHistory && (
+                  <div style={{ background: "rgba(168,139,250,0.05)", border: "1px solid rgba(168,139,250,0.12)", borderRadius: 16, padding: "14px 16px", marginTop: 10, animation: "fadeUp 0.3s ease-out" }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#c4b5fd", marginBottom: 10 }}>履歴</div>
+                    {history.slice(0, 5).map((h, i) => (
+                      <div key={h.id || i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < Math.min(history.length, 5) - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", fontSize: 12 }}>
+                        <span style={{ color: "rgba(255,255,255,0.4)" }}>{h.date}</span>
+                        <span style={{ color: "rgba(255,255,255,0.6)" }}>{h.budget ? `¥${Number(h.budget).toLocaleString()}` : ""}</span>
+                        <span style={{ fontFamily: "var(--font-mono)", color: "#4ade80" }}>P{h.protein}g ¥{h.cost}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
         {/* STEP 1: PROFILE */}
-        <SectionCard num="1" title="プロフィール" summary={profileSummary}
+        <SectionCard num="1" title="あなたのこと" summary={profileSummary}
           collapsed={step === "result"} onToggle={() => setStep("params")}>
 
           {/* Gender */}
@@ -1494,7 +1524,7 @@ export default function Home() {
             background: "rgba(168,139,250,0.03)", border: "1px dashed rgba(168,139,250,0.15)",
           }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(168,139,250,0.7)", marginBottom: 14 }}>
-              より正確な分析のためのオプション（任意）
+              もっと詳しく（なくてもOK）
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.55)", display: "flex", alignItems: "center", gap: 4 }}><Ruler size={13} strokeWidth={1.5} /> 身長</label>
@@ -1547,7 +1577,7 @@ export default function Home() {
                 </div>
               )}
               <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", lineHeight: 1.6, marginTop: 10 }}>
-                目標体重と期限を設定すると、1日あたりの最適なカロリー増減ペースを逆算します
+                目標と期限を入れると、毎日どれくらいのペースか計算するよ
               </div>
             </div>
           </div>
@@ -1564,7 +1594,7 @@ export default function Home() {
 
         {/* STEP 2: PARAMS */}
         {(step === "params" || step === "result") && (
-          <SectionCard num="2" title="予算 & 栄養目標" summary={`¥${budget} P${protein}g ${calories}kcal`}
+          <SectionCard num="2" title="予算とバランス" summary={`¥${budget} P${protein}g ${calories}kcal`}
             collapsed={step === "result"} onToggle={() => setStep("params")} color="#60a5fa" bgColor="rgba(59,130,246,0.15)">
 
             {calcBasis && (
@@ -1573,12 +1603,12 @@ export default function Home() {
               </div>
             )}
 
-            <SliderInput label="食費予算/日" value={budget} setValue={setBudget} min={200} max={5000} step={50} color="#22c55e" prefix="¥" editable />
-            <SliderInput label="目標タンパク質" value={protein} setValue={setProtein} min={50} max={250} step={5} color="#f97316" suffix="g" editable />
-            <SliderInput label="目標カロリー" value={calories} setValue={setCalories} min={1000} max={4000} step={50} color="#3b82f6" suffix="kcal" editable />
+            <SliderInput label="1日の食費" value={budget} setValue={setBudget} min={200} max={5000} step={50} color="#22c55e" prefix="¥" editable />
+            <SliderInput label="タンパク質の目標" value={protein} setValue={setProtein} min={50} max={250} step={5} color="#f97316" suffix="g" editable />
+            <SliderInput label="カロリーの目標" value={calories} setValue={setCalories} min={1000} max={4000} step={50} color="#3b82f6" suffix="kcal" editable />
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}><Settings size={13} strokeWidth={1.5} /> カテゴリ除外</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}><Settings size={13} strokeWidth={1.5} /> 外す食材</label>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {["meat", "fish", "dairy", "soy", "supp"].map(cat => (
                   <Pill key={cat} active={excludedCats.includes(cat)} onClick={() => setExcludedCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])}>
@@ -1594,7 +1624,7 @@ export default function Home() {
               color: "rgba(255,255,255,0.4)", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "space-between",
               marginBottom: showFoodPicker ? 10 : 16, transition: "all 0.2s",
             }}>
-              <span>個別に食材を除外 {excludedIds.length > 0 && `(${excludedIds.length}件)`}</span>
+              <span>食材を選んで外す {excludedIds.length > 0 && `(${excludedIds.length}件)`}</span>
               <span style={{ fontSize: 10, transform: showFoodPicker ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}>▼</span>
             </button>
 
@@ -1619,7 +1649,7 @@ export default function Home() {
               boxShadow: aiLoading ? "none" : "0 8px 32px rgba(34,197,94,0.3)", fontFamily: "'Noto Sans JP',sans-serif", letterSpacing: 1,
               transition: "transform 0.15s, box-shadow 0.15s, opacity 0.2s",
             }}>
-              {aiLoading ? <span>AI分析中 <TypingDots /></span> : "AIプランを生成"}
+              {aiLoading ? <span>分析中 <TypingDots /></span> : "プランを作る"}
             </button>
           </SectionCard>
         )}
@@ -1646,12 +1676,12 @@ export default function Home() {
               <MacroRing label="カロリー" value={result.totals.cal} max={calories} color="#22c55e" unit="kcal" ideal={calories} />
             </div>
 
-            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-              <div style={{ flex: 1, padding: "12px", borderRadius: 13, background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.12)", textAlign: "center" }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+              <div style={{ flex: 1, padding: "14px", borderRadius: 14, background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.12)", textAlign: "center" }}>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 3 }}>P効率</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 700, color: "#f97316" }}>{ppYen}g<span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>/¥100</span></div>
               </div>
-              <div style={{ flex: 1.5, padding: "12px", borderRadius: 13, background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.12)", textAlign: "center" }}>
+              <div style={{ flex: 1.5, padding: "14px", borderRadius: 14, background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.12)", textAlign: "center" }}>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 3 }}>PFC比率</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "#3b82f6" }}>
                   {Math.round(result.totals.protein * 4 / result.totals.cal * 100)} : {Math.round(result.totals.fat * 9 / result.totals.cal * 100)} : {Math.round(result.totals.carbs * 4 / result.totals.cal * 100)}
@@ -1660,8 +1690,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 3, marginBottom: 14, background: "rgba(255,255,255,0.03)", borderRadius: 11, padding: 3 }}>
-              {[{ id: "ai", label: `AI献立${aiLoading ? "..." : ""}` }, { id: "plan", label: "買い物" }, { id: "tips", label: "Tips" }].map(tab => (
+            <div style={{ display: "flex", gap: 3, marginBottom: 20, background: "rgba(255,255,255,0.03)", borderRadius: 12, padding: 3 }}>
+              {[{ id: "ai", label: `献立${aiLoading ? "..." : ""}` }, { id: "plan", label: "買い物" }, { id: "tips", label: "コツ" }].map(tab => (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                   flex: 1, padding: "9px 6px", borderRadius: 9, border: "none",
                   background: activeTab === tab.id ? "rgba(34,197,94,0.15)" : "transparent",
@@ -1677,23 +1707,23 @@ export default function Home() {
                 {aiLoading && (
                   <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "28px 20px", textAlign: "center" }}>
                     <div style={{ marginBottom: 12, animation: "pulse 2s infinite" }}><Bot size={32} strokeWidth={1.5} color="#4ade80" /></div>
-                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 5 }}>献立を分析中...</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 5 }}>献立を考え中...</div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{profileSummary} <TypingDots /></div>
                   </div>
                 )}
                 {aiError && (
                   <div style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)", borderRadius: 14, padding: "14px 16px" }}>
                     <div style={{ fontSize: 12, color: "#fca5a5", lineHeight: 1.5 }}>{aiError}</div>
-                    <button onClick={handleGenerate} style={{ marginTop: 8, padding: "7px 14px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.08)", color: "#fca5a5", fontSize: 11, cursor: "pointer" }}>再試行</button>
+                    <button onClick={handleGenerate} style={{ marginTop: 10, padding: "8px 14px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.08)", color: "#fca5a5", fontSize: 12, cursor: "pointer" }}>もう一度</button>
                   </div>
                 )}
                 {aiAdvice && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <div style={{ background: "linear-gradient(135deg,rgba(34,197,94,0.07),rgba(59,130,246,0.05))", border: "1px solid rgba(34,197,94,0.12)", borderRadius: 15, padding: "16px" }}>
-                      <div style={{ fontSize: 11, color: "#4ade80", fontWeight: 600, marginBottom: 7 }}>AIパーソナルコーチ</div>
+                      <div style={{ fontSize: 11, color: "#4ade80", fontWeight: 600, marginBottom: 7 }}>AIからのアドバイス</div>
                       <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 1.75 }}><StreamText text={aiAdvice.personalMessage} /></div>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.45)" }}>本日の献立</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.45)" }}>きょうの献立</div>
                     {aiAdvice.meals?.map((meal, i) => {
                       const bg = ["rgba(249,115,22,0.1)", "rgba(34,197,94,0.1)", "rgba(59,130,246,0.1)", "rgba(168,139,250,0.1)"];
                       const fb = ["M", "L", "D", "S"];
@@ -1722,7 +1752,7 @@ export default function Home() {
                     })}
                     {aiAdvice.weeklyTip && (
                       <div style={{ background: "rgba(168,139,250,0.05)", border: "1px solid rgba(168,139,250,0.1)", borderRadius: 14, padding: "14px 16px" }}>
-                        <div style={{ fontSize: 11, color: "#c4b5fd", fontWeight: 600, marginBottom: 5 }}>週間アドバイス</div>
+                        <div style={{ fontSize: 11, color: "#c4b5fd", fontWeight: 600, marginBottom: 5 }}>今週のコツ</div>
                         <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>{aiAdvice.weeklyTip}</div>
                       </div>
                     )}
@@ -1803,12 +1833,12 @@ export default function Home() {
             </div>
 
             {/* Actions */}
-            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button onClick={handleGenerate} disabled={aiLoading} style={{
                 flex: 1, padding: "14px", borderRadius: 13, border: "1px solid rgba(34,197,94,0.25)",
                 background: "rgba(34,197,94,0.06)", color: "#4ade80", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: aiLoading ? 0.5 : 1,
                 minHeight: 48, transition: "all 0.15s",
-              }}>再生成</button>
+              }}>もう一度</button>
               <button onClick={handleShare} style={{
                 flex: 1, padding: "14px", borderRadius: 13, border: "1px solid rgba(255,255,255,0.1)",
                 background: shareMsg ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)",
@@ -1818,6 +1848,9 @@ export default function Home() {
             </div>
           </div>
         )}
+          </div>
+          )}
+        </div>
       </main>
 
       <style>{`
