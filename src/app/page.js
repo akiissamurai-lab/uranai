@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createClient } from "@/lib/supabase";
+import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage } from "@/lib/db";
+import AuthGate from "@/components/AuthGate";
 
 /*
  * マクロ飯ビルダー v3 — Next.js App Router version
@@ -349,8 +352,53 @@ export default function Home() {
   const [calcBasis, setCalcBasis] = useState("");
   const resultRef = useRef(null);
   const abortRef = useRef(null);
+  const supabaseRef = useRef(null);
+  if (!supabaseRef.current) supabaseRef.current = createClient();
+  const supabase = supabaseRef.current;
+
+  const [user, setUser] = useState(null);
+  const profileSaveTimer = useRef(null);
 
   useEffect(() => { setHistory(loadHistory()); }, []);
+
+  // Auth状態変化: ログイン時にDB読み込み + localStorage移行
+  const handleAuthChange = useCallback(async (authUser) => {
+    setUser(authUser);
+    if (authUser) {
+      // プロフィール復元
+      const profile = await loadProfile(supabase, authUser.id);
+      if (profile) {
+        if (profile.weight) setWeight(profile.weight);
+        if (profile.height) setHeight(profile.height);
+        if (profile.age) setAge(profile.age);
+        if (profile.body_fat) setBodyFat(profile.body_fat);
+        if (profile.gender) setGender(profile.gender);
+        if (profile.goal) setGoal(profile.goal);
+        if (profile.activity) setActivity(profile.activity);
+        if (profile.goal_weight) setGoalWeight(profile.goal_weight);
+        if (profile.budget) setBudget(profile.budget);
+      }
+      // localStorage→DB移行
+      await migrateFromLocalStorage(supabase, authUser.id);
+      // DB履歴読み込み
+      const plans = await loadMealPlans(supabase, authUser.id);
+      if (plans.length > 0) {
+        setHistory(plans.map(p => ({
+          id: p.id,
+          date: new Date(p.created_at).toLocaleDateString("ja-JP"),
+          weight: null,
+          goal: null,
+          budget: p.budget,
+          protein: Math.round(p.total_protein || 0),
+          cal: Math.round(p.total_cal || 0),
+          cost: Math.round(p.total_cost || 0),
+        })));
+      }
+    } else {
+      // ログアウト時: localStorageの履歴に戻す
+      setHistory(loadHistory());
+    }
+  }, [supabase]);
 
   const bmi = (height && weight) ? (weight / ((height / 100) ** 2)).toFixed(1) : null;
   const bmiCat = bmi ? (bmi < 18.5 ? "低体重" : bmi < 25 ? "普通" : bmi < 30 ? "肥満1度" : "肥満2度+") : null;
@@ -373,6 +421,16 @@ export default function Home() {
       setCalcBasis(`簡易計算: 体重${weight}kg × ${goal === "bulk" ? 35 : goal === "reduce" ? 25 : 30}kcal${bodyFat ? `（除脂肪体重${Math.round(lean)}kgでP計算）` : ""}`);
     }
   }, [weight, goal, activity, age, height, bodyFat, gender]);
+
+  // ログイン中: プロフィール自動保存 (2秒デバウンス)
+  useEffect(() => {
+    if (!user) return;
+    if (profileSaveTimer.current) clearTimeout(profileSaveTimer.current);
+    profileSaveTimer.current = setTimeout(() => {
+      saveProfile(supabase, user.id, { weight, height, age, bodyFat, gender, goal, activity, goalWeight, budget });
+    }, 2000);
+    return () => { if (profileSaveTimer.current) clearTimeout(profileSaveTimer.current); };
+  }, [user, supabase, weight, height, age, bodyFat, gender, goal, activity, goalWeight, budget]);
 
   const daysLeft = deadline ? Math.max(0, Math.ceil((new Date(deadline) - new Date()) / 86400000)) : null;
 
@@ -401,7 +459,38 @@ export default function Home() {
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth" }), 150);
 
     const entry = { weight, goal, budget, protein: Math.round(plan.totals.protein), cal: Math.round(plan.totals.cal), cost: Math.round(plan.totals.cost) };
-    setHistory(saveHistory(entry));
+    if (!user) {
+      setHistory(saveHistory(entry));
+    }
+
+    // ログイン中: DBに保存
+    if (user) {
+      saveMealPlan(supabase, user.id, {
+        budget,
+        proteinTarget: protein,
+        calorieTarget: calories,
+        totalProtein: plan.totals.protein,
+        totalFat: plan.totals.fat,
+        totalCarbs: plan.totals.carbs,
+        totalCal: plan.totals.cal,
+        totalCost: plan.totals.cost,
+        items: plan.items.map(i => ({ id: i.id, name: i.name, servings: i.servings, cost: i.cost, protein: i.protein, fat: i.fat, carbs: i.carbs, cal: i.cal })),
+      }).then(() => {
+        // DB履歴を再読み込み
+        loadMealPlans(supabase, user.id).then(plans => {
+          if (plans.length > 0) {
+            setHistory(plans.map(p => ({
+              id: p.id,
+              date: new Date(p.created_at).toLocaleDateString("ja-JP"),
+              weight: null, goal: null, budget: p.budget,
+              protein: Math.round(p.total_protein || 0),
+              cal: Math.round(p.total_cal || 0),
+              cost: Math.round(p.total_cost || 0),
+            })));
+          }
+        });
+      });
+    }
 
     try {
       const excl = [...excludedCats.map(c => CAT_LABELS[c]), ...excludedIds.map(id => FOOD_DB.find(f => f.id === id)?.name)].filter(Boolean).join("、");
@@ -420,7 +509,7 @@ export default function Home() {
     } finally {
       if (!ctrl.signal.aborted) setAiLoading(false);
     }
-  }, [budget, protein, calories, excludedIds, excludedCats, goal, weight, activity, height, bodyFat, age, deadline, bmi, daysLeft, gender, validate, goalWeight]);
+  }, [budget, protein, calories, excludedIds, excludedCats, goal, weight, activity, height, bodyFat, age, deadline, bmi, daysLeft, gender, validate, goalWeight, user, supabase]);
 
   const handleShare = () => {
     if (!result) return;
@@ -462,13 +551,16 @@ export default function Home() {
             <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: 0, letterSpacing: 1.5, textTransform: "uppercase" }}>AI Macro × Budget Optimizer</p>
           </div>
         </div>
-        {history.length > 0 && (
-          <button onClick={() => setShowHistory(!showHistory)} style={{
-            padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
-            background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
-            color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s",
-          }}>📜 履歴</button>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {history.length > 0 && (
+            <button onClick={() => setShowHistory(!showHistory)} style={{
+              padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+              background: showHistory ? "rgba(168,139,250,0.1)" : "transparent",
+              color: showHistory ? "#c4b5fd" : "rgba(255,255,255,0.35)", fontSize: 11, cursor: "pointer", transition: "all 0.2s",
+            }}>📜 履歴</button>
+          )}
+          <AuthGate supabase={supabase} onAuthChange={handleAuthChange} />
+        </div>
       </header>
 
       <main style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 100px" }}>
