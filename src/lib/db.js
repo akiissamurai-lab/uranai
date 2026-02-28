@@ -578,6 +578,38 @@ export async function loadMealLogsRange(supabase, userId, days = 7) {
   return data;
 }
 
+// ─── ストリーク計算（連続記録日数） ────────────────────────
+
+function countStreak(datesDesc) {
+  if (datesDesc.length === 0) return 0;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+  // ストリークは今日か昨日から始まる
+  if (datesDesc[0] !== todayStr && datesDesc[0] !== yesterdayStr) return 0;
+  let streak = 1;
+  for (let i = 1; i < datesDesc.length; i++) {
+    const prev = new Date(datesDesc[i - 1] + "T00:00");
+    const curr = new Date(datesDesc[i] + "T00:00");
+    if ((prev - curr) / 86400000 === 1) streak++;
+    else break;
+  }
+  return streak;
+}
+
+export async function loadMealLogStreak(supabase, userId) {
+  const since = new Date(); since.setDate(since.getDate() - 90);
+  const { data, error } = await supabase
+    .from("meal_logs")
+    .select("date")
+    .eq("user_id", userId)
+    .gte("date", since.toISOString().slice(0, 10))
+    .order("date", { ascending: false });
+  if (error || !data) return 0;
+  const unique = [...new Set(data.map(d => d.date))].sort().reverse();
+  return countStreak(unique);
+}
+
 export async function loadBodyMetricByDate(supabase, userId, date) {
   const { data, error } = await supabase
     .from("body_metrics")

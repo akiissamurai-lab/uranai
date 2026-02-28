@@ -84,6 +84,25 @@ export function deleteLocalMealLog(logId) {
   set(KEYS.mealLogs, all);
 }
 
+// ─── ストリーク計算（連続記録日数） ─────────────────────────
+export function loadLocalMealLogStreak() {
+  const all = get(KEYS.mealLogs) || {};
+  const dates = Object.keys(all).filter(d => (all[d] || []).length > 0).sort().reverse();
+  if (dates.length === 0) return 0;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+  if (dates[0] !== todayStr && dates[0] !== yesterdayStr) return 0;
+  let streak = 1;
+  for (let i = 1; i < dates.length; i++) {
+    const prev = new Date(dates[i - 1] + "T00:00");
+    const curr = new Date(dates[i] + "T00:00");
+    if ((prev - curr) / 86400000 === 1) streak++;
+    else break;
+  }
+  return streak;
+}
+
 // ─── Body Metrics ─────────────────────────────────────────────
 
 export function saveLocalBodyMetric({ date, weight, bodyFat, notes, weightNight, bodyFatNight }) {

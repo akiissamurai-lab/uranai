@@ -5,8 +5,54 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap, UtensilsCrossed, ScrollText, Lock } from "lucide-react";
+import { Target, Wallet, Zap, UtensilsCrossed, ScrollText, Lock, ChevronDown } from "lucide-react";
 import { LegalViewer } from "@/components/TermsModal";
+
+/* ── Stepper Component ── */
+function Stepper({ value, onChange, min, max, step = 1, color = "#22c55e", unit = "", large = false }) {
+  const numVal = value !== "" && value != null ? Number(value) : null;
+  const canDec = numVal != null && numVal > min;
+  const canInc = numVal == null || numVal < max;
+
+  const handleDec = () => {
+    if (numVal == null) return;
+    onChange(Math.max(min, numVal - step));
+  };
+  const handleInc = () => {
+    if (numVal == null) onChange(min);
+    else onChange(Math.min(max, numVal + step));
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: large ? 20 : 14 }}>
+      <button type="button" onClick={handleDec} disabled={!canDec} style={{
+        width: large ? 52 : 44, height: large ? 52 : 44, borderRadius: 14, border: "1px solid rgba(255,255,255,0.1)",
+        background: canDec ? "rgba(255,255,255,0.06)" : "transparent",
+        color: canDec ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.12)",
+        fontSize: large ? 24 : 20, cursor: canDec ? "pointer" : "not-allowed",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        transition: "all 0.15s",
+      }}>−</button>
+      <div style={{ textAlign: "center", minWidth: large ? 100 : 70 }}>
+        <span style={{
+          fontSize: large ? 36 : 28, fontWeight: 700, color: numVal != null ? color : "rgba(255,255,255,0.15)",
+          fontFamily: "'Space Mono',monospace",
+        }}>
+          {numVal != null ? numVal : "—"}
+        </span>
+        {unit && <span style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", marginLeft: 4 }}>{unit}</span>}
+      </div>
+      <button type="button" onClick={handleInc} disabled={!canInc} style={{
+        width: large ? 52 : 44, height: large ? 52 : 44, borderRadius: 14, border: "1px solid rgba(255,255,255,0.1)",
+        background: canInc ? "rgba(255,255,255,0.06)" : "transparent",
+        color: canInc ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.12)",
+        fontSize: large ? 24 : 20, cursor: canInc ? "pointer" : "not-allowed",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        transition: "all 0.15s",
+      }}>+</button>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -17,7 +63,7 @@ export default function SettingsPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null); // { type: "success" | "error", msg }
+  const [toast, setToast] = useState(null);
 
   const [goalWeight, setGoalWeight] = useState("");
   const [budget, setBudget] = useState("");
@@ -25,17 +71,25 @@ export default function SettingsPage() {
   const [fatGoal, setFatGoal] = useState("");
   const [carbsGoal, setCarbsGoal] = useState("");
   const [mealCount, setMealCount] = useState(3);
-  const [legalTab, setLegalTab] = useState(null); // null = closed, "terms" | "privacy"
+  const [legalTab, setLegalTab] = useState(null);
+
+  // Progressive disclosure: PFC hidden by default unless already set
+  const [pfcOpen, setPfcOpen] = useState(false);
 
   useEffect(() => {
     const authTimeout = setTimeout(() => {
       const p = loadLocalProfile();
-      if (p) { setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? ""); setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? ""); setMealCount(p.meal_count ?? 3); }
+      if (p) {
+        setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? "");
+        setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? "");
+        setMealCount(p.meal_count ?? 3);
+        if (p.protein_goal || p.fat_goal || p.carbs_goal) setPfcOpen(true);
+      }
       setLoading(false);
     }, 5000);
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       clearTimeout(authTimeout);
-      setUser(user); // null = ゲスト
+      setUser(user);
 
       let profile;
       if (user) {
@@ -50,12 +104,18 @@ export default function SettingsPage() {
         setFatGoal(profile.fat_goal ?? "");
         setCarbsGoal(profile.carbs_goal ?? "");
         setMealCount(profile.meal_count ?? 3);
+        if (profile.protein_goal || profile.fat_goal || profile.carbs_goal) setPfcOpen(true);
       }
       setLoading(false);
     }).catch(() => {
       clearTimeout(authTimeout);
       const p = loadLocalProfile();
-      if (p) { setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? ""); setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? ""); setMealCount(p.meal_count ?? 3); }
+      if (p) {
+        setGoalWeight(p.goal_weight ?? ""); setBudget(p.budget ?? "");
+        setProteinGoal(p.protein_goal ?? ""); setFatGoal(p.fat_goal ?? ""); setCarbsGoal(p.carbs_goal ?? "");
+        setMealCount(p.meal_count ?? 3);
+        if (p.protein_goal || p.fat_goal || p.carbs_goal) setPfcOpen(true);
+      }
       setLoading(false);
     });
     return () => clearTimeout(authTimeout);
@@ -68,7 +128,6 @@ export default function SettingsPage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-
     setSaving(true);
     try {
       const data = {
@@ -91,9 +150,9 @@ export default function SettingsPage() {
           meal_count: data.mealCount,
         });
       }
-      showToast("success", "保存完了");
+      showToast("success", "保存しました");
     } catch {
-      showToast("error", "保存に失敗しました");
+      showToast("error", "保存できませんでした");
     } finally {
       setSaving(false);
     }
@@ -120,136 +179,105 @@ export default function SettingsPage() {
         <button onClick={() => router.push("/")} style={styles.backBtn} aria-label="戻る">
           ← 戻る
         </button>
-        <h1 style={styles.title}>プロフィール設定</h1>
+        <h1 style={styles.title}>設定</h1>
       </header>
 
       <main style={styles.main}>
         <form onSubmit={handleSave}>
-          {/* 目標体重 */}
+
+          {/* ── 目標体重 ── */}
           <div style={styles.card}>
-            <h2 style={styles.sectionTitle}><Target size={14} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />目標体重</h2>
-            <div style={styles.inputRow}>
-              <label style={styles.label}>目標体重</label>
-              <div style={styles.inputWrap}>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={goalWeight}
-                  onChange={(e) => setGoalWeight(e.target.value)}
-                  placeholder="—"
-                  step="0.1"
-                  min="30"
-                  max="200"
-                  style={styles.input}
-                />
-                <span style={styles.suffix}>kg</span>
+            <div style={styles.cardLabel}>
+              <Target size={16} strokeWidth={1.5} color="#4ade80" />
+              <span>目標体重</span>
+            </div>
+            <Stepper
+              value={goalWeight} onChange={setGoalWeight}
+              min={30} max={200} step={0.5}
+              color="#4ade80" unit="kg" large
+            />
+          </div>
+
+          {/* ── 1日の食費 ── */}
+          <div style={styles.card}>
+            <div style={styles.cardLabel}>
+              <Wallet size={16} strokeWidth={1.5} color="#facc15" />
+              <span>1日の食費</span>
+            </div>
+            <Stepper
+              value={budget} onChange={setBudget}
+              min={0} max={10000} step={100}
+              color="#facc15" unit="円" large
+            />
+          </div>
+
+          {/* ── 食事の回数 ── */}
+          <div style={styles.card}>
+            <div style={styles.cardLabel}>
+              <UtensilsCrossed size={16} strokeWidth={1.5} color="#60a5fa" />
+              <span>食事の回数</span>
+            </div>
+            <Stepper
+              value={mealCount} onChange={setMealCount}
+              min={2} max={5} step={1}
+              color="#60a5fa" unit="回" large
+            />
+          </div>
+
+          {/* ── PFC 目標（折りたたみ）── */}
+          <div style={styles.card}>
+            <button
+              type="button"
+              onClick={() => setPfcOpen(!pfcOpen)}
+              style={styles.accordionBtn}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Zap size={16} strokeWidth={1.5} color="#a78bfa" />
+                <span style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>PFC目標</span>
+                {!pfcOpen && (proteinGoal || fatGoal || carbsGoal) && (
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>
+                    {proteinGoal ? `P${proteinGoal}` : ""}{fatGoal ? ` F${fatGoal}` : ""}{carbsGoal ? ` C${carbsGoal}` : ""}
+                  </span>
+                )}
+              </div>
+              <ChevronDown size={18} strokeWidth={1.5} color="rgba(255,255,255,0.3)" style={{
+                transition: "transform 0.25s ease",
+                transform: pfcOpen ? "rotate(180deg)" : "rotate(0deg)",
+              }} />
+            </button>
+
+            <div style={{
+              maxHeight: pfcOpen ? 500 : 0,
+              overflow: "hidden",
+              transition: "max-height 0.3s ease, opacity 0.25s ease",
+              opacity: pfcOpen ? 1 : 0,
+            }}>
+              <div style={{ paddingTop: 20 }}>
+                {/* P */}
+                <div style={styles.pfcRow}>
+                  <div style={{ ...styles.pfcDot, background: "#f87171" }} />
+                  <span style={{ ...styles.pfcLabel, color: "#f87171" }}>P</span>
+                  <Stepper value={proteinGoal} onChange={setProteinGoal} min={0} max={500} step={5} color="#f87171" unit="g" />
+                </div>
+
+                {/* F */}
+                <div style={styles.pfcRow}>
+                  <div style={{ ...styles.pfcDot, background: "#facc15" }} />
+                  <span style={{ ...styles.pfcLabel, color: "#facc15" }}>F</span>
+                  <Stepper value={fatGoal} onChange={setFatGoal} min={0} max={300} step={5} color="#facc15" unit="g" />
+                </div>
+
+                {/* C */}
+                <div style={styles.pfcRow}>
+                  <div style={{ ...styles.pfcDot, background: "#60a5fa" }} />
+                  <span style={{ ...styles.pfcLabel, color: "#60a5fa" }}>C</span>
+                  <Stepper value={carbsGoal} onChange={setCarbsGoal} min={0} max={1000} step={5} color="#60a5fa" unit="g" />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* 食費予算 */}
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}><Wallet size={14} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />1日の食費予算</h2>
-            <div style={styles.inputRow}>
-              <label style={styles.label}>予算</label>
-              <div style={styles.inputWrap}>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  placeholder="—"
-                  step="100"
-                  min="0"
-                  max="10000"
-                  style={styles.input}
-                />
-                <span style={styles.suffix}>円/日</span>
-              </div>
-            </div>
-          </div>
-
-          {/* PFC バランス */}
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}><Zap size={14} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />PFCバランス目標</h2>
-            <p style={styles.hint}>設定するとメインページの自動計算を上書きします</p>
-
-            <div style={styles.inputRow}>
-              <label style={{ ...styles.label, color: "#f87171" }}>P タンパク質</label>
-              <div style={styles.inputWrap}>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={proteinGoal}
-                  onChange={(e) => setProteinGoal(e.target.value)}
-                  placeholder="—"
-                  min="0"
-                  max="500"
-                  style={{ ...styles.input, color: "#f87171" }}
-                />
-                <span style={styles.suffix}>g</span>
-              </div>
-            </div>
-
-            <div style={styles.inputRow}>
-              <label style={{ ...styles.label, color: "#facc15" }}>F 脂質</label>
-              <div style={styles.inputWrap}>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={fatGoal}
-                  onChange={(e) => setFatGoal(e.target.value)}
-                  placeholder="—"
-                  min="0"
-                  max="500"
-                  style={{ ...styles.input, color: "#facc15" }}
-                />
-                <span style={styles.suffix}>g</span>
-              </div>
-            </div>
-
-            <div style={styles.inputRow}>
-              <label style={{ ...styles.label, color: "#60a5fa" }}>C 炭水化物</label>
-              <div style={styles.inputWrap}>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={carbsGoal}
-                  onChange={(e) => setCarbsGoal(e.target.value)}
-                  placeholder="—"
-                  min="0"
-                  max="1000"
-                  style={{ ...styles.input, color: "#60a5fa" }}
-                />
-                <span style={styles.suffix}>g</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 食事回数 */}
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}><UtensilsCrossed size={14} strokeWidth={1.5} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />1日の食事回数</h2>
-            <p style={styles.hint}>食事記録ページのセクション数が変わります</p>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
-              <button type="button" onClick={() => setMealCount((prev) => Math.max(2, prev - 1))} disabled={mealCount <= 2} style={{
-                width: 40, height: 40, borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)",
-                background: mealCount <= 2 ? "transparent" : "rgba(255,255,255,0.06)",
-                color: mealCount <= 2 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.6)",
-                fontSize: 20, cursor: mealCount <= 2 ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>-</button>
-              <span style={{ fontSize: 28, fontWeight: 700, color: "#22c55e", fontFamily: "'Space Mono',monospace", minWidth: 40, textAlign: "center" }}>{mealCount}</span>
-              <button type="button" onClick={() => setMealCount((prev) => Math.min(5, prev + 1))} disabled={mealCount >= 5} style={{
-                width: 40, height: 40, borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)",
-                background: mealCount >= 5 ? "transparent" : "rgba(255,255,255,0.06)",
-                color: mealCount >= 5 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.6)",
-                fontSize: 20, cursor: mealCount >= 5 ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>+</button>
-            </div>
-          </div>
-
-          {/* 保存ボタン */}
+          {/* Save */}
           <button type="submit" disabled={saving} style={{
             ...styles.saveBtn,
             background: saving ? "#555" : "linear-gradient(135deg, #22c55e, #16a34a)",
@@ -259,65 +287,31 @@ export default function SettingsPage() {
           </button>
         </form>
 
-        {/* 法的情報リンク */}
-        <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 4, paddingBottom: 8 }}>
-          <button
-            onClick={() => setLegalTab("terms")}
-            style={{
-              background: "none",
-              border: "none",
-              color: "rgba(255,255,255,0.3)",
-              fontSize: 12,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "8px 12px",
-            }}
-          >
+        {/* Legal links */}
+        <div style={{ marginTop: 32, display: "flex", justifyContent: "center", gap: 4, paddingBottom: 8 }}>
+          <button onClick={() => setLegalTab("terms")} style={styles.legalBtn}>
             <ScrollText size={12} strokeWidth={1.5} />
             利用規約
           </button>
           <span style={{ color: "rgba(255,255,255,0.12)", fontSize: 12, lineHeight: "36px" }}>|</span>
-          <button
-            onClick={() => setLegalTab("privacy")}
-            style={{
-              background: "none",
-              border: "none",
-              color: "rgba(255,255,255,0.3)",
-              fontSize: 12,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "8px 12px",
-            }}
-          >
+          <button onClick={() => setLegalTab("privacy")} style={styles.legalBtn}>
             <Lock size={12} strokeWidth={1.5} />
             プライバシーポリシー
           </button>
         </div>
       </main>
 
-      {/* 法的情報モーダル */}
       {legalTab && <LegalViewer initialTab={legalTab} onClose={() => setLegalTab(null)} />}
 
       {/* Toast */}
       {toast && (
         <div style={{
-          position: "fixed",
-          bottom: 30,
-          left: "50%",
-          transform: "translateX(-50%)",
-          padding: "12px 24px",
-          borderRadius: 12,
+          position: "fixed", bottom: 30, left: "50%", transform: "translateX(-50%)",
+          padding: "12px 24px", borderRadius: 12,
           background: toast.type === "success" ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)",
           border: `1px solid ${toast.type === "success" ? "rgba(34,197,94,0.4)" : "rgba(239,68,68,0.4)"}`,
           color: toast.type === "success" ? "#4ade80" : "#f87171",
-          fontSize: 14,
-          fontWeight: 600,
-          zIndex: 9999,
-          animation: "fadeUp 0.3s ease-out",
+          fontSize: 14, fontWeight: 600, zIndex: 9999, animation: "fadeUp 0.3s ease-out",
         }}>
           {toast.msg}
         </div>
@@ -342,7 +336,7 @@ const styles = {
     overflow: "hidden",
   },
   header: {
-    padding: "18px 24px 10px",
+    padding: "20px 24px 12px",
     maxWidth: 480,
     margin: "0 auto",
     display: "flex",
@@ -350,8 +344,8 @@ const styles = {
     gap: 12,
   },
   backBtn: {
-    padding: "6px 12px",
-    borderRadius: 8,
+    padding: "8px 14px",
+    borderRadius: 10,
     border: "1px solid rgba(255,255,255,0.15)",
     background: "rgba(255,255,255,0.05)",
     color: "rgba(255,255,255,0.6)",
@@ -368,71 +362,74 @@ const styles = {
   main: {
     maxWidth: 480,
     margin: "0 auto",
-    padding: "0 16px 100px",
+    padding: "8px 16px 100px",
   },
   card: {
     background: "rgba(255,255,255,0.03)",
     border: "1px solid rgba(255,255,255,0.06)",
-    borderRadius: 20,
-    padding: "22px 20px",
-    marginBottom: 14,
+    borderRadius: 22,
+    padding: "28px 24px",
+    marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 14,
+  cardLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 24,
+    fontSize: 15,
     fontWeight: 600,
     color: "rgba(255,255,255,0.6)",
-    margin: "0 0 16px",
+    justifyContent: "center",
   },
-  hint: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.3)",
-    margin: "-8px 0 16px",
-  },
-  inputRow: {
+  accordionBtn: {
+    width: "100%",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: "rgba(255,255,255,0.5)",
-  },
-  inputWrap: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 10,
-    padding: "7px 10px",
-  },
-  input: {
-    width: 80,
     background: "transparent",
     border: "none",
-    outline: "none",
-    color: "#22c55e",
-    fontFamily: "'Space Mono',monospace",
-    fontSize: 17,
-    fontWeight: 700,
-    textAlign: "right",
+    cursor: "pointer",
+    padding: 0,
   },
-  suffix: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.35)",
+  pfcRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
+  pfcDot: {
+    width: 8,
+    height: 8,
+    borderRadius: "50%",
+    flexShrink: 0,
+  },
+  pfcLabel: {
+    fontSize: 15,
+    fontWeight: 700,
+    width: 20,
+    flexShrink: 0,
   },
   saveBtn: {
     width: "100%",
-    padding: "14px 0",
-    borderRadius: 14,
+    padding: "16px 0",
+    borderRadius: 16,
     border: "none",
     color: "#fff",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 700,
     letterSpacing: 0.5,
-    marginTop: 8,
+    marginTop: 12,
     boxShadow: "0 4px 20px rgba(34,197,94,0.3)",
+  },
+  legalBtn: {
+    background: "none",
+    border: "none",
+    color: "rgba(255,255,255,0.3)",
+    fontSize: 12,
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    padding: "8px 12px",
   },
 };

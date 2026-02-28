@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
-import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage, migrateAllLocalData, loadMealLogs, saveMealLog } from "@/lib/db";
-import { loadLocalProfile, saveLocalProfile, loadLocalMealLogs } from "@/lib/local-db";
+import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage, migrateAllLocalData, loadMealLogs, saveMealLog, loadMealLogStreak } from "@/lib/db";
+import { loadLocalProfile, saveLocalProfile, loadLocalMealLogs, loadLocalMealLogStreak } from "@/lib/local-db";
 import AuthGate from "@/components/AuthGate";
 import html2canvas from "html2canvas";
 import WelcomeLanding from "@/components/WelcomeLanding";
@@ -759,6 +759,7 @@ export default function Home() {
   const [aiSuggestRecorded, setAiSuggestRecorded] = useState(false);
   const [todayLogs, setTodayLogs] = useState([]);
   const [profileGoals, setProfileGoals] = useState(null);
+  const [streak, setStreak] = useState(0);
   const suggestAbortRef = useRef(null);
 
   // 初回auth check（AuthGateとは独立して即座にチェック）
@@ -895,13 +896,15 @@ export default function Home() {
     }
   }, [supabase]);
 
-  // ─── Load today's meal_logs + profileGoals for remaining calculation ───
+  // ─── Load today's meal_logs + profileGoals + streak ───
   useEffect(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
     if (user) {
       loadMealLogs(supabase, user.id, todayStr).then(setTodayLogs);
+      loadMealLogStreak(supabase, user.id).then(setStreak);
     } else {
       setTodayLogs(loadLocalMealLogs(todayStr));
+      setStreak(loadLocalMealLogStreak());
       // ゲスト: localStorageからprofileGoals読み込み
       const gp = loadLocalProfile();
       if (gp) {
@@ -1185,6 +1188,37 @@ export default function Home() {
                 <span style={{ fontFamily: "var(--font-mono)", color: "#4ade80" }}>P{h.protein}g ¥{h.cost}</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ─── ストリーク ─── */}
+        {streak > 0 && (
+          <div style={{
+            background: streak >= 7
+              ? "linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.08))"
+              : "rgba(255,255,255,0.03)",
+            border: `1px solid ${streak >= 7 ? "rgba(251,191,36,0.2)" : "rgba(255,255,255,0.06)"}`,
+            borderRadius: 18,
+            padding: "16px 20px",
+            marginBottom: 14,
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            animation: "fadeUp 0.4s ease-out",
+          }}>
+            <span style={{ fontSize: 28 }}>🔥</span>
+            <div>
+              <div style={{
+                fontSize: 20, fontWeight: 800,
+                color: streak >= 7 ? "#fbbf24" : "#4ade80",
+                fontFamily: "'Space Mono',monospace",
+              }}>
+                {streak}<span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)", marginLeft: 4 }}>日連続</span>
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+                {streak >= 30 ? "すごい！1ヶ月継続中" : streak >= 14 ? "2週間突破！この調子" : streak >= 7 ? "1週間達成！" : streak >= 3 ? "いい感じ！続けよう" : "記録を続けよう"}
+              </div>
+            </div>
           </div>
         )}
 
