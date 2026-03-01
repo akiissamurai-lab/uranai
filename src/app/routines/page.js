@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { saveRoutineMeal, loadRoutineMeals, deleteRoutineMeal } from "@/lib/db";
 import { saveLocalRoutineMeal, loadLocalRoutineMeals, deleteLocalRoutineMeal } from "@/lib/local-db";
-import { Plus, Trash2, ClipboardList, UtensilsCrossed, Search } from "lucide-react";
+import { Plus, Trash2, ClipboardList, UtensilsCrossed, Search, Sparkles } from "lucide-react";
 import { searchFoods, calcForServing } from "@/lib/food-db";
 
 const COLOR_OPTIONS = [
@@ -41,6 +41,7 @@ export default function RoutinesPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedFood, setSelectedFood] = useState(null);
   const [servingSize, setServingSize] = useState("");
+  const [aiEstimating, setAiEstimating] = useState(false);
 
   const handleNameChange = (val) => {
     setMealName(val);
@@ -77,6 +78,49 @@ export default function RoutinesPage() {
     setFat(String(calc.fat));
     setCarbs(String(calc.carbs));
     setPrice(String(calc.price));
+  };
+
+  // AI estimation fallback
+  const handleAiEstimate = async () => {
+    if (!mealName.trim() || aiEstimating) return;
+    setAiEstimating(true);
+    try {
+      const res = await fetch("/api/macro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(20000),
+        body: JSON.stringify({
+          foodQuery: mealName.trim(),
+          prompt: `以下の食品・料理の1食分の標準的な栄養素を推定してください。JSON形式のみで回答してください。他のテキストは一切不要です。
+
+食品名: ${mealName.trim()}
+
+回答形式（厳守）:
+{"p":数値,"f":数値,"c":数値,"cal":数値,"price":数値,"serving":"量の説明"}
+
+p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), price=目安価格(円), serving=1食分の量の説明（例: "1膳150g", "1個60g"）`
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const raw = data.content;
+        const text = (Array.isArray(raw) ? raw[0]?.text : typeof raw === "string" ? raw : "").trim();
+        const jsonMatch = text.match(/\{[^}]+\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.p != null) setProtein(String(Math.round(parsed.p)));
+          if (parsed.f != null) setFat(String(Math.round(parsed.f)));
+          if (parsed.c != null) setCarbs(String(Math.round(parsed.c)));
+          if (parsed.price != null) setPrice(String(Math.round(parsed.price)));
+          showToast("success", "AIでPFCを推定しました");
+        }
+      }
+    } catch (e) {
+      console.warn("AI estimation failed:", e);
+      showToast("error", "AI推定に失敗しました");
+    } finally {
+      setAiEstimating(false);
+    }
   };
 
   // Auth (ゲストも許可) + load data
@@ -294,13 +338,13 @@ export default function RoutinesPage() {
             </div>
 
             {/* Suggestions dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
+            {showSuggestions && (suggestions.length > 0 || mealName.trim().length >= 2) && (
               <div style={{
                 background: "rgba(20,24,35,0.98)", border: "1px solid rgba(255,255,255,0.1)",
                 borderRadius: "0 0 12px 12px", borderTop: "none",
                 maxHeight: 180, overflowY: "auto", marginTop: -2,
               }}>
-                {suggestions.map((food, i) => (
+                {suggestions.length > 0 ? suggestions.map((food, i) => (
                   <button key={i} type="button" onClick={() => handleSelectFood(food)} style={{
                     width: "100%", padding: "10px 14px", border: "none", background: "transparent",
                     cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -319,12 +363,28 @@ export default function RoutinesPage() {
                       <span style={{ color: "rgba(255,255,255,0.3)" }}>¥{food.price}</span>
                     </div>
                   </button>
-                ))}
+                )) : mealName.trim().length >= 2 && (
+                  <div style={{ padding: "10px 14px" }}>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>
+                      該当する食品が見つかりません
+                    </div>
+                    <button type="button" onClick={handleAiEstimate} disabled={aiEstimating} style={{
+                      width: "100%", padding: "10px 0", borderRadius: 10, border: "1px solid rgba(168,139,250,0.25)",
+                      background: "rgba(168,139,250,0.08)", color: "#a78bfa", fontSize: 13, fontWeight: 600,
+                      cursor: aiEstimating ? "not-allowed" : "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      opacity: aiEstimating ? 0.6 : 1, transition: "all 0.2s",
+                    }}>
+                      <Sparkles size={14} strokeWidth={1.5} />
+                      {aiEstimating ? "推定中..." : `「${mealName.trim()}」のPFCをAIで推定`}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {showSuggestions && suggestions.length > 0 && <div style={{ height: 12 }} />}
+          {showSuggestions && (suggestions.length > 0 || mealName.trim().length >= 2) && <div style={{ height: 12 }} />}
 
           {/* Serving size adjuster (when food is selected from DB) */}
           {selectedFood && (

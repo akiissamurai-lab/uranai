@@ -202,8 +202,9 @@ export function searchFoods(query) {
     if (name.includes(expanded) || cat.includes(expanded)) return { food: f, score: 3 };
     if (name.includes(q) || cat.includes(q)) return { food: f, score: 3 };
 
-    // 逆方向一致（DB側の名前がクエリに含まれる場合 — 「鶏むね肉のサラダ」→「鶏むね肉」ヒット）
-    if (q.length >= 3 && name.length >= 2 && q.includes(name)) return { food: f, score: 2 };
+    // 逆方向一致（DB側の名前がクエリに含まれ、かつDB名がクエリの主要部分を占める場合のみ）
+    // 例: 「鶏むね肉のサラダ」→「鶏むね肉」OK（5/9=56%）、「ハンバーグ弁当」→「弁当」NG（2/6=33%）
+    if (q.length >= 3 && name.length >= 3 && q.includes(name) && name.length / q.length >= 0.5) return { food: f, score: 2 };
 
     return null;
   }).filter(Boolean);
