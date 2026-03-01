@@ -333,28 +333,28 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
             <div style={S.sheetFieldWrap}>
               <label style={{ ...S.sheetFieldLabel, color: "#f87171" }}>P</label>
               <div style={S.sheetNumWrap}>
-                <input type="number" inputMode="decimal" value={protein} onChange={(e) => setProtein(e.target.value)} placeholder="—" min="0" style={{ ...S.sheetNumInput, color: "#f87171" }} />
+                <input type="number" inputMode="decimal" step="any" value={protein} onChange={(e) => setProtein(e.target.value)} placeholder="—" min="0" style={{ ...S.sheetNumInput, color: "#f87171" }} />
                 <span style={S.sheetUnit}>g</span>
               </div>
             </div>
             <div style={S.sheetFieldWrap}>
               <label style={{ ...S.sheetFieldLabel, color: "#facc15" }}>F</label>
               <div style={S.sheetNumWrap}>
-                <input type="number" inputMode="decimal" value={fat} onChange={(e) => setFat(e.target.value)} placeholder="—" min="0" style={{ ...S.sheetNumInput, color: "#facc15" }} />
+                <input type="number" inputMode="decimal" step="any" value={fat} onChange={(e) => setFat(e.target.value)} placeholder="—" min="0" style={{ ...S.sheetNumInput, color: "#facc15" }} />
                 <span style={S.sheetUnit}>g</span>
               </div>
             </div>
             <div style={S.sheetFieldWrap}>
               <label style={{ ...S.sheetFieldLabel, color: "#60a5fa" }}>C</label>
               <div style={S.sheetNumWrap}>
-                <input type="number" inputMode="decimal" value={carbs} onChange={(e) => setCarbs(e.target.value)} placeholder="—" min="0" style={{ ...S.sheetNumInput, color: "#60a5fa" }} />
+                <input type="number" inputMode="decimal" step="any" value={carbs} onChange={(e) => setCarbs(e.target.value)} placeholder="—" min="0" style={{ ...S.sheetNumInput, color: "#60a5fa" }} />
                 <span style={S.sheetUnit}>g</span>
               </div>
             </div>
             <div style={S.sheetFieldWrap}>
               <label style={S.sheetFieldLabel}>¥</label>
               <div style={S.sheetNumWrap}>
-                <input type="number" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="—" min="0" style={S.sheetNumInput} />
+                <input type="number" inputMode="numeric" step="any" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="—" min="0" style={S.sheetNumInput} />
                 <span style={S.sheetUnit}>円</span>
               </div>
             </div>

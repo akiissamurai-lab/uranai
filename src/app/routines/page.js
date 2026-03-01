@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { saveRoutineMeal, loadRoutineMeals, deleteRoutineMeal } from "@/lib/db";
 import { saveLocalRoutineMeal, loadLocalRoutineMeals, deleteLocalRoutineMeal } from "@/lib/local-db";
-import { Plus, Trash2, ClipboardList, UtensilsCrossed } from "lucide-react";
+import { Plus, Trash2, ClipboardList, UtensilsCrossed, Search } from "lucide-react";
+import { searchFoods, calcForServing } from "@/lib/food-db";
 
 const COLOR_OPTIONS = [
   "#4ade80", "#f87171", "#60a5fa", "#facc15",
@@ -34,6 +35,49 @@ export default function RoutinesPage() {
   const [protein, setProtein] = useState("");
   const [fat, setFat] = useState("");
   const [carbs, setCarbs] = useState("");
+
+  // Food DB autocomplete
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedFood, setSelectedFood] = useState(null);
+  const [servingSize, setServingSize] = useState("");
+
+  const handleNameChange = (val) => {
+    setMealName(val);
+    if (val.length >= 1) {
+      const results = searchFoods(val);
+      setSuggestions(results);
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+    if (selectedFood) { setSelectedFood(null); setServingSize(""); }
+  };
+
+  const handleSelectFood = (food) => {
+    setMealName(food.name);
+    setSelectedFood(food);
+    setServingSize(String(food.serving));
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setProtein(String(food.p));
+    setFat(String(food.f));
+    setCarbs(String(food.c));
+    setPrice(String(food.price));
+  };
+
+  const handleServingChange = (val) => {
+    setServingSize(val);
+    if (!selectedFood || val === "") return;
+    const g = Number(val);
+    if (isNaN(g) || g <= 0) return;
+    const calc = calcForServing(selectedFood, g);
+    setProtein(String(calc.protein));
+    setFat(String(calc.fat));
+    setCarbs(String(calc.carbs));
+    setPrice(String(calc.price));
+  };
 
   // Auth (ゲストも許可) + load data
   useEffect(() => {
@@ -88,6 +132,10 @@ export default function RoutinesPage() {
       setProtein("");
       setFat("");
       setCarbs("");
+      setSelectedFood(null);
+      setServingSize("");
+      setSuggestions([]);
+      setShowSuggestions(false);
     } else {
       showToast("error", "追加に失敗しました");
     }
@@ -223,18 +271,85 @@ export default function RoutinesPage() {
             </div>
           </div>
 
-          {/* Meal name */}
-          <div style={{ marginBottom: 12 }}>
+          {/* Meal name with food DB autocomplete */}
+          <div style={{ position: "relative", marginBottom: showSuggestions ? 0 : 12 }}>
             <label style={S.fieldLabel}>メニュー名（必須）</label>
-            <input
-              type="text"
-              value={mealName}
-              onChange={(e) => setMealName(e.target.value)}
-              placeholder="例: サラダチキン定食"
-              required
-              style={S.textInput}
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                type="text"
+                value={mealName}
+                onChange={(e) => handleNameChange(e.target.value)}
+                onFocus={() => { if (mealName.length >= 1) setShowSuggestions(true); }}
+                placeholder="例: 鶏むね肉、サラダチキン定食"
+                required
+                autoComplete="off"
+                style={S.textInput}
+              />
+              <Search size={14} strokeWidth={1.5} color="rgba(255,255,255,0.2)" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+            </div>
+
+            {/* Suggestions dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div style={{
+                background: "rgba(20,24,35,0.98)", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "0 0 12px 12px", borderTop: "none",
+                maxHeight: 180, overflowY: "auto", marginTop: -2,
+              }}>
+                {suggestions.map((food, i) => (
+                  <button key={i} type="button" onClick={() => handleSelectFood(food)} style={{
+                    width: "100%", padding: "10px 14px", border: "none", background: "transparent",
+                    cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    borderBottom: i < suggestions.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)" }}>{food.name}</div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
+                        {food.serving}{food.unit}あたり
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, fontSize: 10, fontFamily: "'Space Mono',monospace" }}>
+                      <span style={{ color: "#f87171" }}>P{food.p}</span>
+                      <span style={{ color: "#facc15" }}>F{food.f}</span>
+                      <span style={{ color: "#60a5fa" }}>C{food.c}</span>
+                      <span style={{ color: "rgba(255,255,255,0.3)" }}>¥{food.price}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          {showSuggestions && suggestions.length > 0 && <div style={{ height: 12 }} />}
+
+          {/* Serving size adjuster (when food is selected from DB) */}
+          {selectedFood && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 14,
+              padding: "10px 14px", borderRadius: 12,
+              background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.12)",
+            }}>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", flexShrink: 0 }}>量</span>
+              <input
+                type="number" inputMode="decimal" step="any" value={servingSize}
+                onChange={(e) => handleServingChange(e.target.value)}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#4ade80", fontSize: 16, fontWeight: 700, fontFamily: "'Space Mono',monospace", textAlign: "center", minWidth: 0 }}
+              />
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", flexShrink: 0 }}>{selectedFood.unit}</span>
+              <div style={{ display: "flex", gap: 4 }}>
+                {[0.5, 1, 1.5, 2].map(mult => {
+                  const val = Math.round(selectedFood.serving * mult);
+                  const isActive = servingSize === String(val);
+                  return (
+                    <button key={mult} type="button" onClick={() => handleServingChange(String(val))} style={{
+                      padding: "4px 8px", borderRadius: 8, border: `1px solid ${isActive ? "rgba(74,222,128,0.4)" : "rgba(255,255,255,0.08)"}`,
+                      background: isActive ? "rgba(74,222,128,0.15)" : "transparent",
+                      color: isActive ? "#4ade80" : "rgba(255,255,255,0.3)", fontSize: 10, fontWeight: 600, cursor: "pointer",
+                    }}>{mult === 1 ? "1食" : `×${mult}`}</button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Price + PFC grid */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>

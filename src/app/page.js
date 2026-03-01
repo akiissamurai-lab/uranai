@@ -957,6 +957,33 @@ export default function Home() {
   const remainingCarbs = profileGoals?.carbs_goal ? profileGoals.carbs_goal - todayTotals.carbs : null;
   const canSuggest = user && profileGoals && (profileGoals.budget || profileGoals.protein_goal);
 
+  // ─── ミニAIコメント（ルールベース — API不要で瞬時表示）───
+  const aiComment = (() => {
+    if (!profileGoals || (!profileGoals.budget && !profileGoals.protein_goal)) return null;
+    const hour = new Date().getHours();
+    const pPct = profileGoals?.protein_goal ? todayTotals.protein / profileGoals.protein_goal : null;
+    const fPct = profileGoals?.fat_goal ? todayTotals.fat / profileGoals.fat_goal : null;
+    const cPct = profileGoals?.carbs_goal ? todayTotals.carbs / profileGoals.carbs_goal : null;
+    const budgetLeft = profileGoals?.budget ? profileGoals.budget - todayTotals.price : null;
+    const allPfcMet = [pPct, fPct, cPct].filter(v => v !== null).length > 0
+      && [pPct, fPct, cPct].filter(v => v !== null).every(v => v >= 0.85);
+
+    if (todayLogs.length === 0) {
+      if (hour < 10) return { icon: "🌅", text: "おはよう！今日も記録していこう" };
+      if (hour < 14) return { icon: "🍽️", text: "お昼はもう食べた？記録していこう" };
+      if (hour < 18) return { icon: "☕", text: "午後もがんばろう。何か食べた？" };
+      return { icon: "🌙", text: "今日の食事を振り返って記録しよう" };
+    }
+    if (allPfcMet) return { icon: "🎉", text: "PFCバランスいい感じ！今日は完璧" };
+    if (pPct !== null && pPct < 0.3 && hour >= 14) return { icon: "💪", text: "タンパク質がまだ足りないかも。プロテインで補給？" };
+    if (budgetLeft !== null && budgetLeft <= 0) return { icon: "⚠️", text: "予算超過中…明日は少し控えめにしよう" };
+    if (budgetLeft !== null && budgetLeft > 0 && budgetLeft < 300) return { icon: "💰", text: `残り¥${Math.round(budgetLeft)}。低コスト食材で乗り切ろう` };
+    if (todayLogs.length >= 3) return { icon: "✅", text: "3食以上記録済み！いいペース" };
+    if (streak >= 7) return { icon: "🔥", text: `${streak}日連続記録中！素晴らしい` };
+    if (hour >= 20 && todayLogs.length > 0) return { icon: "🌙", text: "今日もお疲れさま。最後の記録を忘れずに" };
+    return { icon: "👍", text: "いい調子！この勢いで記録を続けよう" };
+  })();
+
   const bmi = (height && weight) ? (weight / ((height / 100) ** 2)).toFixed(1) : null;
   const bmiCat = bmi ? (bmi < 18.5 ? "低体重" : bmi < 25 ? "普通" : bmi < 30 ? "肥満1度" : "肥満2度+") : null;
   const bmiCol = bmi ? (bmi < 18.5 ? "#60a5fa" : bmi < 25 ? "#4ade80" : bmi < 30 ? "#fbbf24" : "#ef4444") : "#4ade80";
@@ -1226,68 +1253,119 @@ export default function Home() {
             marginBottom: 20,
             animation: "fadeUp 0.4s ease-out",
           }}>
+            {/* ミニAIコメント */}
+            {aiComment && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10, marginBottom: 18,
+                padding: "10px 14px",
+                background: "linear-gradient(135deg, rgba(139,92,246,0.06), rgba(34,197,94,0.04))",
+                borderRadius: 14,
+                border: "1px solid rgba(139,92,246,0.1)",
+              }}>
+                <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>{aiComment.icon}</span>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 1.5, fontWeight: 500 }}>{aiComment.text}</div>
+              </div>
+            )}
+
             <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.7)", marginBottom: 18, display: "flex", alignItems: "center", gap: 6 }}>
               <BarChart3 size={16} strokeWidth={1.5} color="rgba(255,255,255,0.7)" /> 今日の進捗
             </div>
 
+            {/* PFC ドーナツ3連 — 常時表示（ログ0件なら0%表示） */}
+            {(profileGoals.protein_goal || profileGoals.fat_goal || profileGoals.carbs_goal) && (
+              <div style={{ display: "flex", gap: 4, marginBottom: 14, justifyContent: "center" }}>
+                {profileGoals.protein_goal && <MacroDonut label="タンパク質" current={todayTotals.protein} goal={profileGoals.protein_goal} color="#f87171" bgColor="rgba(248,113,113,0.1)" unit="g" />}
+                {profileGoals.fat_goal && <MacroDonut label="脂質" current={todayTotals.fat} goal={profileGoals.fat_goal} color="#facc15" bgColor="rgba(250,204,21,0.1)" unit="g" />}
+                {profileGoals.carbs_goal && <MacroDonut label="炭水化物" current={todayTotals.carbs} goal={profileGoals.carbs_goal} color="#60a5fa" bgColor="rgba(96,165,250,0.1)" unit="g" />}
+              </div>
+            )}
+
+            {/* カロリー合計 / 目標 */}
+            {calories > 0 && (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "baseline", gap: 6, marginBottom: profileGoals.budget ? 16 : 0, padding: "6px 0" }}>
+                <Flame size={14} strokeWidth={1.5} color="#f97316" />
+                <span style={{ fontSize: 22, fontWeight: 800, color: "#f97316", fontFamily: "var(--font-mono)" }}>
+                  {Math.round(todayTotals.protein * 4 + todayTotals.fat * 9 + todayTotals.carbs * 4)}
+                </span>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>/ {calories} kcal</span>
+              </div>
+            )}
+
+            {/* 予算ゲージ — 常時表示 */}
+            {profileGoals.budget && (
+              <BudgetGauge spent={todayTotals.price} total={profileGoals.budget} />
+            )}
+
+            {/* 記録あり → シェアボタン / 記録なし → アクションカード */}
             {todayLogs.length > 0 ? (
-              <>
-                {/* PFC ドーナツ3連 */}
-                {(profileGoals.protein_goal || profileGoals.fat_goal || profileGoals.carbs_goal) && (
-                  <div style={{ display: "flex", gap: 4, marginBottom: profileGoals.budget ? 18 : 0, justifyContent: "center" }}>
-                    {profileGoals.protein_goal && <MacroDonut label="タンパク質" current={todayTotals.protein} goal={profileGoals.protein_goal} color="#f87171" bgColor="rgba(248,113,113,0.1)" unit="g" />}
-                    {profileGoals.fat_goal && <MacroDonut label="脂質" current={todayTotals.fat} goal={profileGoals.fat_goal} color="#facc15" bgColor="rgba(250,204,21,0.1)" unit="g" />}
-                    {profileGoals.carbs_goal && <MacroDonut label="炭水化物" current={todayTotals.carbs} goal={profileGoals.carbs_goal} color="#60a5fa" bgColor="rgba(96,165,250,0.1)" unit="g" />}
-                  </div>
-                )}
-
-                {/* 予算ゲージ */}
-                {profileGoals.budget && (
-                  <BudgetGauge spent={todayTotals.price} total={profileGoals.budget} />
-                )}
-
-                {/* シェアボタン */}
-                <button
-                  onClick={() => handleShareImage(todayTotals, profileGoals, setShareStatus)}
-                  disabled={shareStatus === "generating"}
-                  style={{
-                    width: "100%",
-                    marginTop: 16,
-                    padding: "12px 0",
-                    borderRadius: 12,
-                    border: "none",
-                    background: shareStatus === "shared" || shareStatus === "downloaded"
-                      ? "rgba(34,197,94,0.15)"
-                      : shareStatus === "error"
-                        ? "rgba(239,68,68,0.1)"
-                        : "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(236,72,153,0.12))",
-                    color: shareStatus === "shared" || shareStatus === "downloaded"
-                      ? "#4ade80"
-                      : shareStatus === "error"
-                        ? "#f87171"
-                        : "#f97316",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: shareStatus === "generating" ? "wait" : "pointer",
-                    transition: "all 0.2s",
-                    letterSpacing: 0.3,
-                  }}
-                >
-                  {shareStatus === "generating" ? "生成中..."
-                    : shareStatus === "shared" ? "シェア完了"
-                    : shareStatus === "downloaded" ? "保存完了"
-                    : shareStatus === "error" ? "エラーが発生しました"
-                    : "シェアする"}
-                </button>
-              </>
+              <button
+                onClick={() => handleShareImage(todayTotals, profileGoals, setShareStatus)}
+                disabled={shareStatus === "generating"}
+                style={{
+                  width: "100%",
+                  marginTop: 16,
+                  padding: "12px 0",
+                  borderRadius: 12,
+                  border: "none",
+                  background: shareStatus === "shared" || shareStatus === "downloaded"
+                    ? "rgba(34,197,94,0.15)"
+                    : shareStatus === "error"
+                      ? "rgba(239,68,68,0.1)"
+                      : "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(236,72,153,0.12))",
+                  color: shareStatus === "shared" || shareStatus === "downloaded"
+                    ? "#4ade80"
+                    : shareStatus === "error"
+                      ? "#f87171"
+                      : "#f97316",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: shareStatus === "generating" ? "wait" : "pointer",
+                  transition: "all 0.2s",
+                  letterSpacing: 0.3,
+                }}
+              >
+                {shareStatus === "generating" ? "生成中..."
+                  : shareStatus === "shared" ? "シェア完了"
+                  : shareStatus === "downloaded" ? "保存完了"
+                  : shareStatus === "error" ? "エラーが発生しました"
+                  : "シェアする"}
+              </button>
             ) : (
-              <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", lineHeight: 1.7 }}>
-                  今日はまだ記録がないよ
-                </div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>
-                  「食事」タブから記録しよう
-                </div>
+              <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
+                <a href="/record" style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "14px 16px", borderRadius: 14,
+                  background: "rgba(34,197,94,0.06)",
+                  border: "1px solid rgba(34,197,94,0.15)",
+                  textDecoration: "none", cursor: "pointer",
+                  transition: "all 0.2s",
+                }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <UtensilsCrossed size={18} strokeWidth={1.5} color="#4ade80" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#4ade80" }}>食事を記録する</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>PFC・金額をサクッと入力</div>
+                  </div>
+                  <ChevronDown size={16} strokeWidth={1.5} color="rgba(255,255,255,0.2)" style={{ transform: "rotate(-90deg)" }} />
+                </a>
+                <a href="/record" style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "14px 16px", borderRadius: 14,
+                  background: "rgba(96,165,250,0.06)",
+                  border: "1px solid rgba(96,165,250,0.15)",
+                  textDecoration: "none", cursor: "pointer",
+                  transition: "all 0.2s",
+                }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(96,165,250,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Scale size={18} strokeWidth={1.5} color="#60a5fa" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#60a5fa" }}>体重を記録する</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>朝夜の体重をトラッキング</div>
+                  </div>
+                  <ChevronDown size={16} strokeWidth={1.5} color="rgba(255,255,255,0.2)" style={{ transform: "rotate(-90deg)" }} />
+                </a>
               </div>
             )}
           </div>
