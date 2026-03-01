@@ -764,50 +764,20 @@ export default function Home() {
   const [plannerOpen, setPlannerOpen] = useState(false);
   const suggestAbortRef = useRef(null);
 
-  // 初回auth check — AuthGateを待たず直接プロフィール読み込みを開始
-  const initialAuthDone = useRef(false);
+  // auth/confirm からのエラーリダイレクトを検出（1回のみ）
   useEffect(() => {
-    if (initialAuthDone.current) return;
-    initialAuthDone.current = true;
-
-    console.log("[AUTH] Initial auth check starting...");
-
-    // タイムアウト保護: 5秒以内にauth確認できなければゲストモードへ
-    const authTimeout = setTimeout(() => {
-      console.warn("[AUTH] Initial auth check TIMEOUT (5s)");
-      if (!authChecked) setAuthChecked(true);
-    }, 5000);
-
-    supabase.auth.getUser().then(({ data: { user: u } }) => {
-      clearTimeout(authTimeout);
-      console.log("[AUTH] Initial auth check result:", u?.email || "no user");
-      if (u) {
-        // ユーザー発見 → 直接 handleAuthChange を呼ぶ
-        // AuthGateからの重複呼び出しは authHandled ガードで防止
-        handleAuthChange(u);
-      } else {
-        setAuthChecked(true);
-      }
-    }).catch((e) => {
-      clearTimeout(authTimeout);
-      console.error("[AUTH] Initial auth check FAILED:", e);
-      setAuthChecked(true);
-    });
-
-    // auth/confirm からのエラーリダイレクトを検出
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("auth_error")) {
-        const desc = params.get("error_desc") || "認証に失敗しました。もう一度お試しください。";
-        setAuthError(desc);
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.searchParams.delete("auth_error");
-        cleanUrl.searchParams.delete("error_desc");
-        window.history.replaceState({}, "", cleanUrl.pathname);
-        setTimeout(() => setAuthError(null), 10000);
-      }
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("auth_error")) {
+      const desc = params.get("error_desc") || "認証に失敗しました。もう一度お試しください。";
+      setAuthError(desc);
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("auth_error");
+      cleanUrl.searchParams.delete("error_desc");
+      window.history.replaceState({}, "", cleanUrl.pathname);
+      setTimeout(() => setAuthError(null), 10000);
     }
-  }, [supabase, handleAuthChange, authChecked]);
+  }, []);
 
   // ローディングタイムアウト: 8秒超えたらフォールバックUI表示
   useEffect(() => {
@@ -849,8 +819,10 @@ export default function Home() {
     console.log("[AUTH] handleAuthChange called, user:", authUser?.email || "null");
 
     // 同じユーザーで既にプロフィール読込済みならスキップ（AuthGateからの重複呼び出し防止）
-    if (authUser && authHandled.current === authUser.id && loginProfileReady) {
-      console.log("[AUTH] Already loaded for this user, skipping");
+    if (authUser && authHandled.current === authUser.id) {
+      console.log("[AUTH] Already handled for this user, skipping");
+      setUser(authUser);
+      setAuthChecked(true);
       return;
     }
 
@@ -931,6 +903,34 @@ export default function Home() {
       setAiSuggest(null);
     }
   }, [supabase]);
+
+  // 初回auth check — handleAuthChange定義後に配置（依存解決）
+  const initialAuthDone = useRef(false);
+  useEffect(() => {
+    if (initialAuthDone.current) return;
+    initialAuthDone.current = true;
+
+    console.log("[AUTH] Initial auth check starting...");
+    const authTimeout = setTimeout(() => {
+      console.warn("[AUTH] Initial auth check TIMEOUT (5s) — forcing guest mode");
+      setAuthChecked(true);
+    }, 5000);
+
+    supabase.auth.getUser().then(({ data: { user: u } }) => {
+      clearTimeout(authTimeout);
+      console.log("[AUTH] Initial auth check result:", u?.email || "no user");
+      if (u) {
+        handleAuthChange(u);
+      } else {
+        setAuthChecked(true);
+      }
+    }).catch((e) => {
+      clearTimeout(authTimeout);
+      console.error("[AUTH] Initial auth check FAILED:", e);
+      setAuthChecked(true);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ─── Load today's meal_logs + profileGoals + streak ───
   useEffect(() => {
