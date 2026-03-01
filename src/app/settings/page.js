@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, isDbError } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare, User, Trash2, AlertTriangle } from "lucide-react";
+import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare, User, Trash2, AlertTriangle, HelpCircle } from "lucide-react";
 import { LegalViewer } from "@/components/TermsModal";
 
 /* ── Inline Warning ── */
@@ -20,6 +20,69 @@ function InlineWarning({ message }) {
     }}>
       <span style={{ flexShrink: 0, fontSize: 13 }}>!</span>
       <span>{message}</span>
+    </div>
+  );
+}
+
+/* ── FAQ Section ── */
+const FAQ_ITEMS = [
+  { q: "食事の記録はどうやるの？", a: "検索欄に「鶏むね肉」などと入力するだけで、AIがPFCと価格を瞬時に推測します。手動での入力も可能です。" },
+  { q: "すべて無料で使えますか？", a: "はい、現在の機能はすべて無料でご利用いただけます。" },
+  { q: "「予算最適化」とは何ですか？", a: "目標のPFCを満たしつつ、1日の食費をいかに安く抑えるかをAIがアドバイスする、当アプリ独自の機能です。" },
+  { q: "アカウントやデータは削除できますか？", a: "はい。この設定画面の下部から、いつでもアカウントと全データを完全に削除できます。" },
+];
+
+function FaqSection() {
+  const [openIdx, setOpenIdx] = useState(null);
+  return (
+    <div style={{ marginTop: 32 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, justifyContent: "center" }}>
+        <HelpCircle size={16} strokeWidth={1.5} color="rgba(255,255,255,0.4)" />
+        <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>よくある質問</span>
+      </div>
+      <div style={{
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 18,
+        overflow: "hidden",
+      }}>
+        {FAQ_ITEMS.map((item, i) => {
+          const isOpen = openIdx === i;
+          return (
+            <div key={i} style={{ borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+              <button
+                onClick={() => setOpenIdx(isOpen ? null : i)}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "16px 18px", background: "transparent", border: "none", cursor: "pointer",
+                  textAlign: "left", gap: 10,
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.65)", lineHeight: 1.5 }}>
+                  {item.q}
+                </span>
+                <ChevronDown size={14} strokeWidth={1.5} color="rgba(255,255,255,0.25)" style={{
+                  flexShrink: 0, transition: "transform 0.2s ease",
+                  transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                }} />
+              </button>
+              <div style={{
+                maxHeight: isOpen ? 200 : 0,
+                overflow: "hidden",
+                transition: "max-height 0.25s ease, opacity 0.2s ease",
+                opacity: isOpen ? 1 : 0,
+              }}>
+                <p style={{
+                  margin: 0, padding: "0 18px 16px",
+                  fontSize: 12, lineHeight: 1.7, color: "rgba(255,255,255,0.4)",
+                }}>
+                  {item.a}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -505,6 +568,9 @@ export default function SettingsPage() {
           </div>
           <span style={{ marginLeft: "auto", fontSize: 14, color: "rgba(255,255,255,0.2)" }}>›</span>
         </a>
+
+        {/* ── FAQ ── */}
+        <FaqSection />
 
         {/* Legal links */}
         <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 4, paddingBottom: 8 }}>
