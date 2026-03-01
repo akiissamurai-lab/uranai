@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, isDbError } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare, User, Trash2, AlertTriangle, HelpCircle } from "lucide-react";
+import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare, User, Trash2, AlertTriangle, HelpCircle, Coffee } from "lucide-react";
 import { LegalViewer } from "@/components/TermsModal";
 
 /* ── Inline Warning ── */
@@ -575,6 +575,39 @@ export default function SettingsPage() {
 
         {/* ── FAQ ── */}
         <FaqSection />
+
+        {/* ── Ko-fi 支援ボタン ── */}
+        <a
+          href="https://ko-fi.com/datsudebu"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex", alignItems: "center", gap: 12,
+            marginTop: 28, padding: "14px 18px", borderRadius: 16,
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.06)",
+            textDecoration: "none", cursor: "pointer",
+            transition: "all 0.2s ease",
+          }}
+        >
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: "rgba(255,206,84,0.1)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <Coffee size={18} strokeWidth={1.5} color="#ffce54" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>
+              開発者にコーヒーを奢る
+            </div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
+              サーバー代の支援にご協力ください
+            </div>
+          </div>
+          <span style={{ marginLeft: "auto", fontSize: 14, color: "rgba(255,255,255,0.2)" }}>›</span>
+        </a>
 
         {/* Legal links */}
         <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 4, paddingBottom: 8 }}>
