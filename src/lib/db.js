@@ -353,7 +353,7 @@ export async function saveRoutineMeal(supabase, userId, meal) {
 
   if (error) {
     console.error("saveRoutineMeal error:", error.message, error.details, error.hint);
-    return null;
+    return { _error: error.message };
   }
   return data;
 }

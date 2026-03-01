@@ -127,7 +127,7 @@ export default function RoutinesPage() {
     }
     setSaving(false);
 
-    if (saved) {
+    if (saved && !saved._error) {
       showToast("success", "追加完了");
       setRoutines((prev) => [...prev, saved]);
       setMealName("");
@@ -141,7 +141,8 @@ export default function RoutinesPage() {
       setSuggestions([]);
       setShowSuggestions(false);
     } else {
-      showToast("error", "追加に失敗しました。ブラウザコンソールを確認してください");
+      const errMsg = saved?._error || "不明なエラー";
+      showToast("error", `追加失敗: ${errMsg}`);
     }
   };
 
