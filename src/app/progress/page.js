@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { saveBodyMetric, loadBodyMetrics, loadBodyMetricByDate, loadProfile, loadTrainingLogsRange } from "@/lib/db";
-import { saveLocalBodyMetric, loadLocalBodyMetrics, loadLocalBodyMetricByDate, loadLocalProfile, loadLocalTrainingLogsRange } from "@/lib/local-db";
+import { saveBodyMetric, loadBodyMetrics, loadBodyMetricByDate, loadProfile, loadTrainingLogsRange, loadMealLogsRange } from "@/lib/db";
+import { saveLocalBodyMetric, loadLocalBodyMetrics, loadLocalBodyMetricByDate, loadLocalProfile, loadLocalTrainingLogsRange, loadLocalMealLogsRange } from "@/lib/local-db";
 import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from "recharts";
-import { PenLine, Scale, Dumbbell, Star, ChevronDown } from "lucide-react";
+import { PenLine, Scale, Dumbbell, Star, ChevronDown, Target, TrendingDown, TrendingUp, Minus } from "lucide-react";
 
 const BODY_PART_LABELS = {
   chest: { label: "胸", color: "#f87171" },
@@ -69,6 +69,11 @@ export default function ProgressPage() {
   const [range, setRange] = useState(90);
   const [goalWeight, setGoalWeight] = useState(null);
 
+  // Weekly review
+  const [weeklyMealLogs, setWeeklyMealLogs] = useState([]);
+  const [startWeight, setStartWeight] = useState(null);
+  const [calorieGoal, setCalorieGoal] = useState(null);
+
   // Training stats
   const [trainingLogs, setTrainingLogs] = useState([]);
   const [trainingOpen, setTrainingOpen] = useState(false);
@@ -85,8 +90,14 @@ export default function ProgressPage() {
 
   useEffect(() => {
     if (loading) return;
-    if (user) { loadProfile(supabase, user.id).then(p => { if (p?.goal_weight) setGoalWeight(Number(p.goal_weight)); }); }
-    else { const p = loadLocalProfile(); if (p?.goal_weight) setGoalWeight(Number(p.goal_weight)); }
+    const applyProfile = (p) => {
+      if (!p) return;
+      if (p.goal_weight) setGoalWeight(Number(p.goal_weight));
+      if (p.weight) setStartWeight(Number(p.weight));
+      if (p.calorie_goal) setCalorieGoal(Number(p.calorie_goal));
+    };
+    if (user) { loadProfile(supabase, user.id).then(applyProfile); }
+    else { applyProfile(loadLocalProfile()); }
   }, [user, loading, supabase]);
 
   useEffect(() => {
@@ -99,6 +110,13 @@ export default function ProgressPage() {
     if (loading) return;
     if (user) { loadTrainingLogsRange(supabase, user.id, 30).then(setTrainingLogs); }
     else { setTrainingLogs(loadLocalTrainingLogsRange(30)); }
+  }, [supabase, user, loading]);
+
+  // Weekly meal logs for review
+  useEffect(() => {
+    if (loading) return;
+    if (user) { loadMealLogsRange(supabase, user.id, 7).then(setWeeklyMealLogs); }
+    else { setWeeklyMealLogs(loadLocalMealLogsRange(7)); }
   }, [supabase, user, loading]);
 
   useEffect(() => {
@@ -191,6 +209,84 @@ export default function ProgressPage() {
     const days = Math.abs(remaining / slope);
     const eta = new Date(); eta.setDate(eta.getDate() + Math.round(days));
     return { remaining: Math.abs(remaining), weekly: weeklyRate, eta: `${eta.getFullYear()}年${eta.getMonth() + 1}月` };
+  })();
+
+  // Goal progress bar
+  const goalProgress = (() => {
+    if (!goalWeight) return null;
+    const latestW = morningWeights.length > 0 ? morningWeights[morningWeights.length - 1] : null;
+    const effectiveStart = startWeight || (morningWeights.length > 0 ? morningWeights[0] : null);
+    if (!latestW || !effectiveStart) return { hasData: false };
+    const totalToLose = effectiveStart - goalWeight;
+    const lost = effectiveStart - latestW;
+    const pct = totalToLose !== 0 ? Math.min(100, Math.max(0, (lost / totalToLose) * 100)) : 100;
+    const remaining = Math.abs(+(latestW - goalWeight).toFixed(1));
+    return { hasData: true, pct: +pct.toFixed(1), remaining, latestW, effectiveStart };
+  })();
+
+  // Weekly review
+  const weeklyReview = (() => {
+    const dailyCals = {};
+    for (const log of weeklyMealLogs) {
+      const d = log.date;
+      const cal = ((log.protein || 0) * 4) + ((log.fat || 0) * 9) + ((log.carbs || 0) * 4);
+      dailyCals[d] = (dailyCals[d] || 0) + cal;
+    }
+    const days = Object.keys(dailyCals);
+    const daysWithData = days.length;
+    if (daysWithData < 1) return null;
+
+    const totalCal = Object.values(dailyCals).reduce((a, b) => a + b, 0);
+    const avgCal = Math.round(totalCal / daysWithData);
+
+    // Weight change over 7 days
+    const recentMetrics = metrics.filter(m => {
+      const d = new Date(m.date + "T00:00");
+      const ago = new Date(); ago.setDate(ago.getDate() - 8);
+      return d >= ago && m.weight != null;
+    });
+    let weightChange = null;
+    let weightFrom = null;
+    let weightTo = null;
+    if (recentMetrics.length >= 2) {
+      weightFrom = Number(recentMetrics[0].weight);
+      weightTo = Number(recentMetrics[recentMetrics.length - 1].weight);
+      weightChange = +(weightTo - weightFrom).toFixed(1);
+    }
+
+    // Rule-based feedback
+    let feedback = { icon: "", text: "" };
+    const calUnder = calorieGoal ? avgCal <= calorieGoal : null;
+
+    if (daysWithData < 2) {
+      feedback = { icon: "📝", text: "データが増えると分析精度が上がるよ。毎日記録しよう！" };
+    } else if (weightChange !== null && calUnder !== null) {
+      if (weightChange < -0.1 && calUnder) {
+        feedback = { icon: "🔥", text: "いいペース！カロリー管理と体重減少が一致してる" };
+      } else if (Math.abs(weightChange) <= 0.1 && calUnder) {
+        feedback = { icon: "💪", text: "カロリーは抑えてる。体重は遅れて反映されるから継続！" };
+      } else if (weightChange > 0.1 && !calUnder) {
+        feedback = { icon: "⚠️", text: "カロリーオーバー気味。食事内容を見直してみよう" };
+      } else if (weightChange < -0.1 && !calUnder) {
+        feedback = { icon: "🤔", text: "体重は減ってるけどカロリーオーバー。運動効果かも？" };
+      } else if (weightChange > 0.1 && calUnder) {
+        feedback = { icon: "🧐", text: "カロリーは抑えてるのに増加。水分変動かも。長期トレンドを見よう" };
+      } else {
+        feedback = { icon: "📊", text: "安定してる。このペースを維持しよう" };
+      }
+    } else if (weightChange !== null) {
+      if (weightChange < -0.1) feedback = { icon: "📉", text: `${Math.abs(weightChange)}kg減。いい調子！` };
+      else if (weightChange > 0.1) feedback = { icon: "📈", text: `${weightChange}kg増。食事を振り返ってみよう` };
+      else feedback = { icon: "➡️", text: "体重は安定。現状維持中" };
+    } else if (calUnder !== null) {
+      feedback = calUnder
+        ? { icon: "✅", text: "カロリー目標内。この調子！" }
+        : { icon: "⚠️", text: `平均${avgCal - calorieGoal}kcalオーバー。少し調整しよう` };
+    } else {
+      feedback = { icon: "ℹ️", text: "ホーム画面でカロリー目標を設定すると比較できます" };
+    }
+
+    return { avgCal, daysWithData, weightChange, weightFrom, weightTo, feedback };
   })();
 
   // Training stats
@@ -395,24 +491,72 @@ export default function ProgressPage() {
           </div>
         )}
 
-        {/* ─── GOAL PREDICTION ─── */}
-        {goalPrediction && (
-          <div style={{ ...S.card, padding: "18px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(168,139,250,0.1)", border: "1px solid rgba(168,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ fontSize: 20 }}>🎯</span>
+        {/* ─── GOAL PROGRESS ─── */}
+        {goalWeight && (
+          <div style={{ ...S.card, padding: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <Target size={16} strokeWidth={2} color="#a78bfa" />
+              <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>目標</span>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>目標まで</span>
-                <span style={{ fontSize: 22, fontWeight: 700, color: "#a78bfa", fontFamily: "'Space Mono',monospace" }}>{goalPrediction.remaining}</span>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>kg</span>
+
+            {goalProgress?.hasData ? (
+              <>
+                {/* Progress bar */}
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%", borderRadius: 4,
+                      background: goalProgress.pct >= 80 ? "linear-gradient(90deg, #22c55e, #4ade80)" : goalProgress.pct >= 40 ? "linear-gradient(90deg, #f59e0b, #fbbf24)" : "linear-gradient(90deg, #a78bfa, #c4b5fd)",
+                      width: `${goalProgress.pct}%`, transition: "width 0.6s ease",
+                    }} />
+                  </div>
+                </div>
+
+                {/* Labels row */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>現在</div>
+                    <span style={{ fontSize: 20, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                      {goalProgress.latestW.toFixed(1)}
+                    </span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>kg</span>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginBottom: 2 }}>あと</div>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "#a78bfa", fontFamily: "'Space Mono',monospace" }}>
+                      {goalProgress.remaining}
+                    </span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>kg</span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>目標</div>
+                    <span style={{ fontSize: 20, fontWeight: 700, color: "rgba(168,139,250,0.7)", fontFamily: "'Space Mono',monospace" }}>
+                      {goalWeight.toFixed(1)}
+                    </span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>kg</span>
+                  </div>
+                </div>
+
+                {/* ETA / pace info from existing goalPrediction */}
+                {goalPrediction && (
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+                    {goalPrediction.eta
+                      ? <>週 <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{Math.abs(goalPrediction.weekly).toFixed(1)}</span>kgペース → <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{goalPrediction.eta}頃</span></>
+                      : goalPrediction.weekly === 0 ? "データが増えると予測が表示されます" : "現在のペースでは目標に近づいていません"}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: "8px 0" }}>
+                <Scale size={24} strokeWidth={1.5} color="rgba(168,139,250,0.3)" />
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", margin: "8px 0 0" }}>
+                  体重を記録すると目標までの進捗が表示されます
+                </p>
+                <p style={{ fontSize: 11, color: "rgba(168,139,250,0.5)", margin: "4px 0 0" }}>
+                  目標: {goalWeight.toFixed(1)}kg
+                </p>
               </div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>
-                {goalPrediction.eta
-                  ? <>週 <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{Math.abs(goalPrediction.weekly).toFixed(1)}</span>kgペース → <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{goalPrediction.eta}頃</span></>
-                  : goalPrediction.weekly === 0 ? "データが増えると予測が表示されます" : "現在のペースでは目標に近づいていません"}
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -517,6 +661,72 @@ export default function ProgressPage() {
         {chartData.length === 1 && (
           <div style={{ ...S.card, textAlign: "center", padding: "20px" }}>
             <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", margin: 0 }}>あと1日分でグラフが見れます</p>
+          </div>
+        )}
+
+        {/* ─── WEEKLY REVIEW ─── */}
+        {weeklyReview && (
+          <div style={{ ...S.card, padding: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 16 }}>📊</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>7日間レビュー</span>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginLeft: "auto" }}>{weeklyReview.daysWithData}日分のデータ</span>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+              {/* Avg calories */}
+              <div style={{ flex: 1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 6 }}>平均カロリー</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#fbbf24", fontFamily: "'Space Mono',monospace" }}>
+                  {weeklyReview.avgCal.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>kcal/日</div>
+                {calorieGoal && (
+                  <div style={{ fontSize: 10, color: weeklyReview.avgCal <= calorieGoal ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.6)", marginTop: 4 }}>
+                    目標 {calorieGoal.toLocaleString()} kcal
+                  </div>
+                )}
+              </div>
+
+              {/* Weight change */}
+              <div style={{ flex: 1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 6 }}>体重変動</div>
+                {weeklyReview.weightChange !== null ? (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                      {weeklyReview.weightChange < -0.1 ? <TrendingDown size={16} color="#4ade80" strokeWidth={2} /> :
+                       weeklyReview.weightChange > 0.1 ? <TrendingUp size={16} color="#f87171" strokeWidth={2} /> :
+                       <Minus size={16} color="rgba(255,255,255,0.4)" strokeWidth={2} />}
+                      <span style={{
+                        fontSize: 22, fontWeight: 700, fontFamily: "'Space Mono',monospace",
+                        color: weeklyReview.weightChange < -0.1 ? "#4ade80" : weeklyReview.weightChange > 0.1 ? "#f87171" : "rgba(255,255,255,0.5)",
+                      }}>
+                        {weeklyReview.weightChange > 0 ? "+" : ""}{weeklyReview.weightChange}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>kg</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>
+                      {weeklyReview.weightFrom.toFixed(1)} → {weeklyReview.weightTo.toFixed(1)}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 18, color: "rgba(255,255,255,0.15)" }}>—</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>2日以上の記録で表示</div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Feedback */}
+            <div style={{
+              background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
+              borderRadius: 12, padding: "12px 14px",
+              display: "flex", alignItems: "flex-start", gap: 10,
+            }}>
+              <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.4 }}>{weeklyReview.feedback.icon}</span>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{weeklyReview.feedback.text}</span>
+            </div>
           </div>
         )}
 

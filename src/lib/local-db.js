@@ -84,6 +84,21 @@ export function deleteLocalMealLog(logId) {
   set(KEYS.mealLogs, all);
 }
 
+// ─── meal_logs 範囲取得（週次レビュー用） ─────────────────────
+export function loadLocalMealLogsRange(days = 7) {
+  const all = get(KEYS.mealLogs) || {};
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const sinceStr = since.toISOString().slice(0, 10);
+  const result = [];
+  for (const [dateKey, logs] of Object.entries(all)) {
+    if (dateKey >= sinceStr) {
+      result.push(...logs);
+    }
+  }
+  return result.sort((a, b) => a.date.localeCompare(b.date));
+}
+
 // ─── ストリーク計算（連続記録日数） ─────────────────────────
 export function loadLocalMealLogStreak() {
   const all = get(KEYS.mealLogs) || {};
