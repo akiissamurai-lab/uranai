@@ -1,9 +1,10 @@
-import { getRatelimit, getIP } from "@/lib/ratelimit";
+import { getRatelimit, getIP, getDailyMacroLimit } from "@/lib/ratelimit";
 import { createClient } from "@/lib/supabase-server";
 import { AI } from "@/lib/constants";
+import { lookupCache, storeCache } from "@/lib/pfc-cache";
 
 export async function POST(request) {
-  // ── Rate Limit（最優先で判定）────────────────────────────────
+  // ── Rate Limit（バースト保護 — 最優先で判定）────────────────────
   const limiter = getRatelimit();
   if (limiter) {
     try {
@@ -62,7 +63,7 @@ export async function POST(request) {
     return Response.json({ error: "不正なリクエスト形式です" }, { status: 400 });
   }
 
-  const { prompt } = body;
+  const { prompt, foodQuery } = body;
   if (!prompt || typeof prompt !== "string") {
     return Response.json({ error: "prompt（文字列）が必要です" }, { status: 400 });
   }
@@ -74,7 +75,61 @@ export async function POST(request) {
     );
   }
 
-  // ── Anthropic API 呼び出し（タイムアウト付き）─────────────────
+  // ── PFC キャッシュ検索（foodQuery がある場合のみ）──────────────
+  // キャッシュヒット = AI コストゼロ → 日次リミットを消費しない
+  if (foodQuery && typeof foodQuery === "string") {
+    const cached = await lookupCache(foodQuery);
+    if (cached) {
+      const cacheResponse = {
+        p: Number(cached.protein),
+        f: Number(cached.fat),
+        c: Number(cached.carbs),
+        cal: Number(cached.calories),
+        price: Number(cached.price),
+        serving: cached.serving || "",
+      };
+      return Response.json({
+        content: [{ type: "text", text: JSON.stringify(cacheResponse) }],
+        _cached: true,
+      });
+    }
+  }
+
+  // ── 日次ハードリミット（10回/日 — ユーザー単位）────────────────
+  // キャッシュミスの場合のみここに到達（= 実際に AI API を叩く）
+  const identifier = user?.id || getIP(request);
+  let dailyRemaining = null;
+  const dailyLimiter = getDailyMacroLimit();
+  if (dailyLimiter) {
+    try {
+      const { success, limit, remaining, reset } = await dailyLimiter.limit(identifier);
+      dailyRemaining = remaining;
+
+      if (!success) {
+        const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+        return Response.json(
+          {
+            error: "本日のAI推測回数の上限（10回）に達しました。明日またお試しください 🌙",
+            retryAfter,
+            limitType: "daily",
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(retryAfter),
+              "X-RateLimit-Limit": String(limit),
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Type": "daily",
+            },
+          }
+        );
+      }
+    } catch (e) {
+      console.error("Daily limit check failed:", e.message);
+    }
+  }
+
+  // ── Anthropic API 呼び出し（Haiku — タイムアウト付き）──────────
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -84,7 +139,7 @@ export async function POST(request) {
         "anthropic-version": AI.API_VERSION,
       },
       body: JSON.stringify({
-        model: AI.MODEL,
+        model: AI.MACRO_MODEL,
         max_tokens: AI.MACRO_MAX_TOKENS,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -108,7 +163,29 @@ export async function POST(request) {
     }
 
     const data = await res.json();
-    return Response.json(data);
+
+    // ── キャッシュ保存（food estimation のみ — fire-and-forget）───
+    if (foodQuery && typeof foodQuery === "string") {
+      try {
+        const raw = data.content?.map((b) => b.text || "").join("") || "";
+        const jsonMatch = raw.match(/\{[^}]+\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          storeCache(foodQuery, parsed, AI.MACRO_MODEL).catch(() => {});
+        }
+      } catch {
+        // キャッシュ保存失敗は無視（レスポンスに影響しない）
+      }
+    }
+
+    return Response.json(data, {
+      headers: {
+        ...(dailyRemaining != null && {
+          "X-RateLimit-Remaining": String(dailyRemaining),
+          "X-RateLimit-Type": "daily",
+        }),
+      },
+    });
   } catch (e) {
     if (e.name === "TimeoutError" || e.name === "AbortError") {
       console.error("Anthropic API timeout:", e.message);

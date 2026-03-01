@@ -1,4 +1,4 @@
-import { getRatelimit, getIP } from "@/lib/ratelimit";
+import { getRatelimit, getIP, getWeeklyCoachLimit } from "@/lib/ratelimit";
 import { createClient } from "@/lib/supabase-server";
 import { AI } from "@/lib/constants";
 
@@ -39,6 +39,39 @@ export async function POST(request) {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return Response.json({ error: "認証が必要です。ログインしてください。" }, { status: 401 });
+  }
+
+  // ── 週次ハードリミット（2回/週 — ユーザー単位）────────────────
+  let weeklyRemaining = null;
+  const weeklyLimiter = getWeeklyCoachLimit();
+  if (weeklyLimiter) {
+    try {
+      const { success, limit, remaining, reset } = await weeklyLimiter.limit(user.id);
+      weeklyRemaining = remaining;
+
+      if (!success) {
+        const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+        const retryDays = Math.ceil(retryAfter / 86400);
+        return Response.json(
+          {
+            error: `AIコーチの週間利用回数の上限（2回）に達しました。${retryDays}日後に再度ご利用いただけます 📅`,
+            retryAfter,
+            limitType: "weekly",
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(retryAfter),
+              "X-RateLimit-Limit": String(limit),
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Type": "weekly",
+            },
+          }
+        );
+      }
+    } catch (e) {
+      console.error("Weekly limit check failed:", e.message);
+    }
   }
 
   // ── データ取得 ───────────────────────────────────────────────
@@ -287,7 +320,7 @@ ${trainingLogsStr}
         "anthropic-version": AI.API_VERSION,
       },
       body: JSON.stringify({
-        model: AI.MODEL,
+        model: AI.COACH_MODEL,
         max_tokens: AI.COACH_MAX_TOKENS,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -318,7 +351,17 @@ ${trainingLogsStr}
       .replace(/,\s*]/g, "]");
 
     const result = JSON.parse(cleaned);
-    return Response.json({ result });
+    return Response.json(
+      { result },
+      {
+        headers: {
+          ...(weeklyRemaining != null && {
+            "X-RateLimit-Remaining": String(weeklyRemaining),
+            "X-RateLimit-Type": "weekly",
+          }),
+        },
+      }
+    );
   } catch (e) {
     if (e.name === "TimeoutError" || e.name === "AbortError") {
       console.error("AI Coach API timeout:", e.message);

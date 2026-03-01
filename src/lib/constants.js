@@ -1,6 +1,7 @@
 // ─── AI / Anthropic ─────────────────────────────────────────────
 export const AI = {
-  MODEL: "claude-sonnet-4-20250514",
+  MACRO_MODEL: "claude-3-5-haiku-20241022",  // PFC推測・食事アドバイス（コスト最適化）
+  COACH_MODEL: "claude-sonnet-4-20250514",   // AIコーチ分析（品質重視）
   API_VERSION: "2023-06-01",
   MACRO_MAX_TOKENS: 1000,
   COACH_MAX_TOKENS: 2500,
@@ -13,6 +14,16 @@ export const RATE_LIMIT = {
   REQUESTS: 3,
   WINDOW: "60 s",
   PREFIX: "macro-builder",
+};
+
+// ─── Daily/Weekly Hard Limits (Upstash) ─────────────────────────
+export const DAILY_LIMIT = {
+  MACRO_REQUESTS: 10,
+  MACRO_WINDOW: "1 d",
+  MACRO_PREFIX: "daily-macro",
+  COACH_REQUESTS: 2,
+  COACH_WINDOW: "7 d",
+  COACH_PREFIX: "weekly-coach",
 };
 
 // ─── Supabase 環境変数 ─────────────────────────────────────────

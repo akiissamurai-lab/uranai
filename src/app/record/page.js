@@ -176,6 +176,7 @@ function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) 
         headers: { "Content-Type": "application/json" },
         signal: AbortSignal.timeout(20000),
         body: JSON.stringify({
+          foodQuery: mealName.trim(),
           prompt: `以下の食品・料理の1食分の標準的な栄養素を推定してください。JSON形式のみで回答してください。他のテキストは一切不要です。
 
 食品名: ${mealName.trim()}
