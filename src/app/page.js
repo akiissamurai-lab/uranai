@@ -779,14 +779,7 @@ export default function Home() {
     }
   }, []);
 
-  // ローディングタイムアウト: 8秒超えたらフォールバックUI表示
-  useEffect(() => {
-    if (!authChecked || (user && !loginProfileReady)) {
-      const timer = setTimeout(() => setLoadingTimeout(true), 8000);
-      return () => clearTimeout(timer);
-    }
-    setLoadingTimeout(false);
-  }, [authChecked, user, loginProfileReady]);
+  // (loadingTimeout useEffect removed — ローディングゲート廃止のため不要)
 
   useEffect(() => { setHistory(loadHistory()); }, []);
 
@@ -1155,45 +1148,8 @@ export default function Home() {
   // ─── LP: 初見ユーザー向けウェルカムページ ───
   const hasSetup = goalWeight !== "" || (profileGoals && (profileGoals.budget || profileGoals.protein_goal || profileGoals.fat_goal || profileGoals.carbs_goal));
 
-  // auth確認中 or ログイン済みプロフィール読込中はローディング画面を表示（フラッシュ防止）
-  if (!authChecked || (user && !loginProfileReady)) {
-    return (
-      <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", color: "white", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
-        {loadingTimeout ? (
-          <>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.3)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-              <AlertTriangle size={24} strokeWidth={1.5} color="#fbbf24" />
-            </div>
-            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>読み込みに時間がかかっています</p>
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginBottom: 20, textAlign: "center", lineHeight: 1.5 }}>通信環境を確認するか、下のボタンで続行してください</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 300 }}>
-              <button onClick={() => location.reload()} style={{
-                padding: "10px 20px", borderRadius: 10, border: "none",
-                background: "linear-gradient(135deg, #22c55e, #16a34a)", color: "#fff",
-                fontSize: 13, fontWeight: 600, cursor: "pointer", width: "100%",
-              }}>再読み込み</button>
-              <button onClick={() => { setUser(null); setLoginProfileReady(false); setAuthChecked(true); }} style={{
-                padding: "10px 20px", borderRadius: 10,
-                border: "1px solid rgba(74,222,128,0.3)", background: "rgba(74,222,128,0.08)",
-                color: "#4ade80", fontSize: 13, fontWeight: 600, cursor: "pointer", width: "100%",
-              }}>ゲストモードで続行</button>
-              <button onClick={async () => { await supabase.auth.signOut(); location.reload(); }} style={{
-                padding: "10px 20px", borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
-                color: "rgba(255,255,255,0.35)", fontSize: 12, cursor: "pointer", width: "100%",
-              }}>ログアウトしてやり直す</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 30px rgba(34,197,94,0.3)", marginBottom: 16, animation: "pulse 1.5s ease-in-out infinite" }}><Activity size={24} strokeWidth={1.5} color="white" /></div>
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>読み込み中...</p>
-            <style>{`@keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.7; } }`}</style>
-          </>
-        )}
-      </div>
-    );
-  }
+  // ローディングゲート廃止 — ゲストデータで即座に表示、プロフィル読込後に上書き
+  // authChecked / loginProfileReady は内部ロジックでのみ使用
 
   // ウェルカムLP: 初見ユーザー（プロフィール未設定）
   if (!hasSetup) {
