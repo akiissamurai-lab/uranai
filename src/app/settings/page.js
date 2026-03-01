@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, isDbError } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare, User, Trash2, AlertTriangle, HelpCircle, Coffee } from "lucide-react";
+import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare, User, Trash2, AlertTriangle, HelpCircle, Coffee, Pencil } from "lucide-react";
 import { LegalViewer } from "@/components/TermsModal";
 
 /* ── Inline Warning ── */
@@ -202,6 +202,9 @@ export default function SettingsPage() {
   // Progressive disclosure: PFC hidden by default unless already set
   const [pfcOpen, setPfcOpen] = useState(false);
 
+  // 保存後はサマリー表示、編集ボタンで再展開
+  const [isEditing, setIsEditing] = useState(true);
+
   useEffect(() => {
     const authTimeout = setTimeout(() => {
       const p = loadLocalProfile();
@@ -212,6 +215,7 @@ export default function SettingsPage() {
         setGender(p.gender ?? ""); setAge(p.age ?? ""); setGoalBodyFat(p.goal_body_fat ?? "");
         if (p.protein_goal || p.fat_goal || p.carbs_goal || p.calorie_goal) setPfcOpen(true);
         if (p.gender || p.age) setProfileOpen(true);
+        if (p.goal_weight || p.budget || p.protein_goal) setIsEditing(false);
       }
       setLoading(false);
     }, 5000);
@@ -236,6 +240,7 @@ export default function SettingsPage() {
         setGender(profile.gender ?? ""); setAge(profile.age ?? ""); setGoalBodyFat(profile.goal_body_fat ?? "");
         if (profile.protein_goal || profile.fat_goal || profile.carbs_goal || profile.calorie_goal) setPfcOpen(true);
         if (profile.gender || profile.age) setProfileOpen(true);
+        if (profile.goal_weight || profile.budget || profile.protein_goal) setIsEditing(false);
       }
       setLoading(false);
     }).catch(() => {
@@ -248,6 +253,7 @@ export default function SettingsPage() {
         setGender(p.gender ?? ""); setAge(p.age ?? ""); setGoalBodyFat(p.goal_body_fat ?? "");
         if (p.protein_goal || p.fat_goal || p.carbs_goal || p.calorie_goal) setPfcOpen(true);
         if (p.gender || p.age) setProfileOpen(true);
+        if (p.goal_weight || p.budget || p.protein_goal) setIsEditing(false);
       }
       setLoading(false);
     });
@@ -295,7 +301,7 @@ export default function SettingsPage() {
         });
       }
       if (isDbError(saveResult)) { showToast("error", "保存に失敗: " + saveResult._error); }
-      else { showToast("success", "保存しました"); }
+      else { showToast("success", "保存しました"); setIsEditing(false); }
     } catch {
       showToast("error", "保存できませんでした");
     } finally {
@@ -350,6 +356,19 @@ export default function SettingsPage() {
     );
   }
 
+  const summaryRow = {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "12px 0",
+    borderBottom: "1px solid rgba(255,255,255,0.04)",
+  };
+  const summaryLabel = {
+    display: "flex", alignItems: "center", gap: 8,
+    fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.45)",
+  };
+  const summaryValue = {
+    fontSize: 14, fontWeight: 700, fontFamily: "'Space Mono',monospace",
+  };
+
   return (
     <div style={styles.page}>
       {/* Background orbs */}
@@ -365,6 +384,7 @@ export default function SettingsPage() {
       </header>
 
       <main style={styles.main}>
+        {isEditing ? (
         <form onSubmit={handleSave}>
 
           {/* ── 目標体重・体脂肪率 ── */}
@@ -557,6 +577,103 @@ export default function SettingsPage() {
             {saving ? "保存中..." : "保存する"}
           </button>
         </form>
+        ) : (
+        /* ── サマリー表示（保存済み） ── */
+        <div style={{ ...styles.card, padding: "24px 20px", animation: "settingsFadeIn 0.3s ease-out" }}>
+          {/* 目標体重 */}
+          <div style={summaryRow}>
+            <div style={summaryLabel}>
+              <Target size={14} strokeWidth={1.5} color="#4ade80" />
+              <span>目標体重</span>
+            </div>
+            <span style={{ ...summaryValue, color: goalWeight ? "#4ade80" : "rgba(255,255,255,0.2)" }}>
+              {goalWeight ? `${goalWeight} kg` : "未設定"}
+            </span>
+          </div>
+
+          {/* 目標体脂肪率 */}
+          {(goalBodyFat || goalWeight) && (
+          <div style={summaryRow}>
+            <div style={summaryLabel}>
+              <Target size={14} strokeWidth={1.5} color="#60a5fa" />
+              <span>体脂肪率</span>
+            </div>
+            <span style={{ ...summaryValue, color: goalBodyFat ? "#60a5fa" : "rgba(255,255,255,0.2)" }}>
+              {goalBodyFat ? `${goalBodyFat} %` : "未設定"}
+            </span>
+          </div>
+          )}
+
+          {/* プロフィール */}
+          {(gender || age) && (
+          <div style={summaryRow}>
+            <div style={summaryLabel}>
+              <User size={14} strokeWidth={1.5} color="#f472b6" />
+              <span>プロフィール</span>
+            </div>
+            <span style={{ ...summaryValue, color: "#f472b6" }}>
+              {gender === "male" ? "男性" : gender === "female" ? "女性" : ""}{gender && age ? " / " : ""}{age ? `${age}歳` : ""}
+            </span>
+          </div>
+          )}
+
+          {/* 食費 */}
+          <div style={summaryRow}>
+            <div style={summaryLabel}>
+              <Wallet size={14} strokeWidth={1.5} color="#facc15" />
+              <span>食費</span>
+            </div>
+            <span style={{ ...summaryValue, color: budget ? "#facc15" : "rgba(255,255,255,0.2)" }}>
+              {budget ? `${Number(budget).toLocaleString()} 円` : "未設定"}
+            </span>
+          </div>
+
+          {/* 食事の回数 */}
+          <div style={summaryRow}>
+            <div style={summaryLabel}>
+              <UtensilsCrossed size={14} strokeWidth={1.5} color="#60a5fa" />
+              <span>食事</span>
+            </div>
+            <span style={{ ...summaryValue, color: "#60a5fa" }}>
+              {mealCount} 回
+            </span>
+          </div>
+
+          {/* PFC・カロリー */}
+          {(proteinGoal || fatGoal || carbsGoal || calorieGoal) && (
+          <div style={summaryRow}>
+            <div style={summaryLabel}>
+              <Zap size={14} strokeWidth={1.5} color="#a78bfa" />
+              <span>PFC</span>
+            </div>
+            <span style={{ ...summaryValue, color: "#a78bfa", fontSize: 12 }}>
+              {[
+                proteinGoal ? `P${proteinGoal}` : null,
+                fatGoal ? `F${fatGoal}` : null,
+                carbsGoal ? `C${carbsGoal}` : null,
+                calorieGoal ? `${calorieGoal}kcal` : null,
+              ].filter(Boolean).join("  ")}
+            </span>
+          </div>
+          )}
+
+          {/* 編集するボタン */}
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "14px 0", marginTop: 20, borderRadius: 14, border: "none",
+              background: "linear-gradient(135deg, rgba(34,197,94,0.15), rgba(22,163,106,0.15))",
+              color: "#4ade80", fontSize: 14, fontWeight: 600, cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            <Pencil size={14} strokeWidth={2} />
+            編集する
+          </button>
+        </div>
+        )}
 
         {/* Feedback */}
         <a
@@ -810,6 +927,10 @@ export default function SettingsPage() {
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(10px) translateX(-50%); }
           to { opacity: 1; transform: translateY(0) translateX(-50%); }
+        }
+        @keyframes settingsFadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
