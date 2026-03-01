@@ -779,7 +779,7 @@ export default function RecordPage() {
       {/* ── Header ── */}
       <header style={S.header}>
         <button onClick={() => router.push("/")} style={S.backBtn}>← 戻る</button>
-        <h1 style={S.title}>きろく</h1>
+        <h1 style={S.title}>食事の記録</h1>
       </header>
 
       <main style={S.main}>
