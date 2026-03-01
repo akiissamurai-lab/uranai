@@ -764,23 +764,34 @@ export default function Home() {
   const [plannerOpen, setPlannerOpen] = useState(false);
   const suggestAbortRef = useRef(null);
 
-  // 初回auth check（AuthGateとは独立して即座にチェック）
+  // 初回auth check — AuthGateを待たず直接プロフィール読み込みを開始
+  const initialAuthDone = useRef(false);
   useEffect(() => {
+    if (initialAuthDone.current) return;
+    initialAuthDone.current = true;
+
+    console.log("[AUTH] Initial auth check starting...");
+
     // タイムアウト保護: 5秒以内にauth確認できなければゲストモードへ
     const authTimeout = setTimeout(() => {
+      console.warn("[AUTH] Initial auth check TIMEOUT (5s)");
       if (!authChecked) setAuthChecked(true);
     }, 5000);
 
     supabase.auth.getUser().then(({ data: { user: u } }) => {
       clearTimeout(authTimeout);
-      if (!authChecked) {
-        setUser(u || null);
+      console.log("[AUTH] Initial auth check result:", u?.email || "no user");
+      if (u) {
+        // ユーザー発見 → 直接 handleAuthChange を呼ぶ
+        // AuthGateからの重複呼び出しは authHandled ガードで防止
+        handleAuthChange(u);
+      } else {
         setAuthChecked(true);
       }
-    }).catch(() => {
+    }).catch((e) => {
       clearTimeout(authTimeout);
-      // ネットワークエラー等: ゲストとして扱う
-      if (!authChecked) setAuthChecked(true);
+      console.error("[AUTH] Initial auth check FAILED:", e);
+      setAuthChecked(true);
     });
 
     // auth/confirm からのエラーリダイレクトを検出
@@ -789,16 +800,14 @@ export default function Home() {
       if (params.get("auth_error")) {
         const desc = params.get("error_desc") || "認証に失敗しました。もう一度お試しください。";
         setAuthError(desc);
-        // URLからパラメータを除去（履歴汚染防止）
         const cleanUrl = new URL(window.location.href);
         cleanUrl.searchParams.delete("auth_error");
         cleanUrl.searchParams.delete("error_desc");
         window.history.replaceState({}, "", cleanUrl.pathname);
-        // 10秒後に自動消去
         setTimeout(() => setAuthError(null), 10000);
       }
     }
-  }, [supabase, authChecked]);
+  }, [supabase, handleAuthChange, authChecked]);
 
   // ローディングタイムアウト: 8秒超えたらフォールバックUI表示
   useEffect(() => {
@@ -835,29 +844,25 @@ export default function Home() {
   }, []);
 
   // Auth状態変化: ログイン時にDB読み込み + localStorage移行
+  const authHandled = useRef(null); // 二重実行防止: 最後に処理したユーザーID
   const handleAuthChange = useCallback(async (authUser) => {
+    console.log("[AUTH] handleAuthChange called, user:", authUser?.email || "null");
+
+    // 同じユーザーで既にプロフィール読込済みならスキップ（AuthGateからの重複呼び出し防止）
+    if (authUser && authHandled.current === authUser.id && loginProfileReady) {
+      console.log("[AUTH] Already loaded for this user, skipping");
+      return;
+    }
+
     setUser(authUser);
     setAuthChecked(true);
     if (authUser) {
-      // セッション有効性の二重確認（期限切れトークンでの操作を防止）
-      try {
-        const { data: { user: verified } } = await supabase.auth.getUser();
-        if (!verified) {
-          console.warn("Session token invalid, falling back to guest mode");
-          setUser(null);
-          setLoginProfileReady(false);
-          return;
-        }
-      } catch (e) {
-        console.error("Auth verification failed:", e);
-        setUser(null);
-        setLoginProfileReady(false);
-        return;
-      }
-
+      authHandled.current = authUser.id;
       // プロフィール復元（失敗しても loginProfileReady は必ずセット）
+      console.log("[AUTH] Loading profile for:", authUser.id);
       try {
         const profile = await loadProfile(supabase, authUser.id);
+        console.log("[AUTH] Profile loaded:", profile ? "found" : "null/empty");
         if (profile) {
           if (profile.weight) setWeight(profile.weight);
           if (profile.height) setHeight(profile.height);
@@ -880,17 +885,22 @@ export default function Home() {
           });
         }
       } catch (e) {
-        console.error("Profile load failed:", e);
+        console.error("[AUTH] Profile load FAILED:", e);
       } finally {
+        console.log("[AUTH] Setting loginProfileReady = true");
         setLoginProfileReady(true);
       }
 
       // データ移行（ローディング解除後にバックグラウンド実行）
       try {
         await migrateAllLocalData(supabase, authUser.id);
+      } catch (e) {
+        console.error("[AUTH] Migration failed:", e);
+      }
+      try {
         await migrateFromLocalStorage(supabase, authUser.id);
       } catch (e) {
-        console.error("Data migration failed:", e);
+        console.error("[AUTH] Legacy migration failed:", e);
       }
 
       // DB履歴読み込み
@@ -909,10 +919,11 @@ export default function Home() {
           })));
         }
       } catch (e) {
-        console.error("Meal plans load failed:", e);
+        console.error("[AUTH] Meal plans load failed:", e);
       }
     } else {
       // ログアウト時: localStorageの履歴に戻す
+      authHandled.current = null;
       setLoginProfileReady(false);
       setHistory(loadHistory());
       setProfileGoals(null);
@@ -1154,17 +1165,22 @@ export default function Home() {
               <AlertTriangle size={24} strokeWidth={1.5} color="#fbbf24" />
             </div>
             <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>読み込みに時間がかかっています</p>
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginBottom: 20, textAlign: "center", lineHeight: 1.5 }}>通信環境を確認してください</p>
-            <div style={{ display: "flex", gap: 10 }}>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginBottom: 20, textAlign: "center", lineHeight: 1.5 }}>通信環境を確認するか、下のボタンで続行してください</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 300 }}>
               <button onClick={() => location.reload()} style={{
                 padding: "10px 20px", borderRadius: 10, border: "none",
                 background: "linear-gradient(135deg, #22c55e, #16a34a)", color: "#fff",
-                fontSize: 13, fontWeight: 600, cursor: "pointer",
+                fontSize: 13, fontWeight: 600, cursor: "pointer", width: "100%",
               }}>再読み込み</button>
+              <button onClick={() => { setUser(null); setLoginProfileReady(false); setAuthChecked(true); }} style={{
+                padding: "10px 20px", borderRadius: 10,
+                border: "1px solid rgba(74,222,128,0.3)", background: "rgba(74,222,128,0.08)",
+                color: "#4ade80", fontSize: 13, fontWeight: 600, cursor: "pointer", width: "100%",
+              }}>ゲストモードで続行</button>
               <button onClick={async () => { await supabase.auth.signOut(); location.reload(); }} style={{
                 padding: "10px 20px", borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.15)", background: "transparent",
-                color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
+                color: "rgba(255,255,255,0.35)", fontSize: 12, cursor: "pointer", width: "100%",
               }}>ログアウトしてやり直す</button>
             </div>
           </>
