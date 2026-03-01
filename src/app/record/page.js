@@ -903,7 +903,7 @@ export default function RecordPage() {
           <div style={{ marginTop: 20 }}>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginBottom: 10, fontWeight: 600 }}>
               {date === today() ? "今日" : new Date(date + "T00:00").toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}の記録
-              <span style={{ marginLeft: 8, color: "rgba(255,255,255,0.2)" }}>{filteredLogs.length}件</span>
+              <span style={{ marginLeft: 8, color: "rgba(255,255,255,0.35)" }}>{filteredLogs.length}件</span>
             </div>
             {filteredLogs.map((log) => (
               <div key={log.id} style={S.logItem}>
@@ -947,11 +947,11 @@ export default function RecordPage() {
             <div style={{ display: "flex", justifyContent: "space-around" }}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 28, fontWeight: 800, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>{totalCal}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontWeight: 400 }}>kcal</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>kcal</div>
               </div>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 24, fontWeight: 800, color: "#facc15", fontFamily: "'Space Mono',monospace" }}>¥{totals.price.toLocaleString()}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontWeight: 400 }}>食費</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>食費</div>
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "space-around", marginTop: 12 }}>

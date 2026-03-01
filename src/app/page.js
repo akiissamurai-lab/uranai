@@ -255,8 +255,8 @@ function BudgetGauge({ spent, total }) {
         <div style={{ height: "100%", width: `${Math.min(pct * 100, 100)}%`, borderRadius: 4, background: barColor, transition: "width 0.5s ease" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>¥0</span>
-        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>¥{total.toLocaleString()}</span>
+        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>¥0</span>
+        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>¥{total.toLocaleString()}</span>
       </div>
     </div>
   );
@@ -589,7 +589,7 @@ function MacroRing({ label, value, max, color, unit, ideal }) {
         <text x="40" y="49" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="8" fontFamily="var(--font-sans)">{unit}</text>
       </svg>
       <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginTop: -4 }}>{label}</div>
-      {ideal && <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", marginTop: 2 }}>目標 {ideal}{unit}</div>}
+      {ideal && <div style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>目標 {ideal}{unit}</div>}
     </div>
   );
 }
@@ -608,7 +608,7 @@ function SliderInput({ label, value, setValue, min, max, step, color, suffix = "
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={e => setValue(+e.target.value)}
         style={{ width: "100%", height: 6, borderRadius: 3, appearance: "none", background: `linear-gradient(to right,${color} ${pct}%,rgba(255,255,255,0.08) ${pct}%)`, cursor: "pointer", outline: "none" }} />
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.2)", marginTop: 3 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 3 }}>
         <span>{prefix}{min.toLocaleString()}{suffix}</span><span>{prefix}{max.toLocaleString()}{suffix}</span>
       </div>
     </div>
@@ -1736,7 +1736,7 @@ export default function Home() {
                       onChange={() => setExcludedIds(prev => prev.includes(f.id) ? prev.filter(x => x !== f.id) : [...prev, f.id])}
                       style={{ accentColor: "#ef4444", width: 14, height: 14 }} />
                     <span style={{ textDecoration: excludedIds.includes(f.id) ? "line-through" : "none" }}>{f.name}</span>
-                    <span style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,0.2)" }}>P{f.protein}g ¥{f.cost}</span>
+                    <span style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,0.3)" }}>P{f.protein}g ¥{f.cost}</span>
                   </label>
                 ))}
               </div>

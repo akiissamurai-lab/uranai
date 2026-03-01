@@ -583,7 +583,7 @@ export default function ProgressPage() {
             <p style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.4)", margin: "12px 0 4px" }}>
               上のフォームから記録しよう
             </p>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)", margin: 0 }}>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", margin: 0 }}>
               2日以上でグラフが表示されます
             </p>
           </div>
@@ -686,7 +686,7 @@ export default function ProgressPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <span style={{ fontSize: 16 }}>📊</span>
               <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>7日間レビュー</span>
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginLeft: "auto" }}>{weeklyReview.daysWithData}日分のデータ</span>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginLeft: "auto" }}>{weeklyReview.daysWithData}日分のデータ</span>
             </div>
 
             <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>

@@ -5,8 +5,24 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { loadProfile, saveProfile, isDbError } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
-import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare, User } from "lucide-react";
+import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare, User, Trash2, AlertTriangle } from "lucide-react";
 import { LegalViewer } from "@/components/TermsModal";
+
+/* ── Inline Warning ── */
+function InlineWarning({ message }) {
+  if (!message) return null;
+  return (
+    <div style={{
+      marginTop: 10, padding: "8px 12px", borderRadius: 10,
+      background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.15)",
+      fontSize: 11, color: "#fbbf24", lineHeight: 1.6,
+      display: "flex", alignItems: "flex-start", gap: 6,
+    }}>
+      <span style={{ flexShrink: 0, fontSize: 13 }}>!</span>
+      <span>{message}</span>
+    </div>
+  );
+}
 
 /* ── Stepper Component (tap-to-edit) ── */
 function Stepper({ value, onChange, min, max, step = 1, color = "#22c55e", unit = "", large = false }) {
@@ -116,6 +132,9 @@ export default function SettingsPage() {
   const [goalBodyFat, setGoalBodyFat] = useState("");
   const [legalTab, setLegalTab] = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [deleteStep, setDeleteStep] = useState(0); // 0=hidden, 1=confirm, 2=typing
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   // Progressive disclosure: PFC hidden by default unless already set
   const [pfcOpen, setPfcOpen] = useState(false);
@@ -219,6 +238,27 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (deleteInput !== "削除") return;
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/user/delete", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        showToast("error", body.error || "削除に失敗しました");
+        setDeleting(false);
+        return;
+      }
+      // ローカルデータもクリア
+      localStorage.clear();
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch {
+      showToast("error", "削除できませんでした");
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     const sk = { background: "rgba(255,255,255,0.04)", borderRadius: 12, animation: "shimmer 1.5s ease-in-out infinite" };
     return (
@@ -271,11 +311,16 @@ export default function SettingsPage() {
               min={30} max={200} step={0.5}
               color="#4ade80" unit="kg" large
             />
+            <InlineWarning message={
+              goalWeight !== "" && Number(goalWeight) < 45
+                ? "目標体重が45kg未満です。低体重は健康リスクがあります。医師にご相談ください。"
+                : null
+            } />
             <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)", marginTop: 18, paddingTop: 18 }}>
               <div style={{ ...styles.cardLabel, marginBottom: 10 }}>
                 <Target size={16} strokeWidth={1.5} color="#60a5fa" />
                 <span>目標体脂肪率</span>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginLeft: 4 }}>任意</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>任意</span>
               </div>
               <Stepper
                 value={goalBodyFat} onChange={setGoalBodyFat}
@@ -295,7 +340,7 @@ export default function SettingsPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <User size={16} strokeWidth={1.5} color="#f472b6" />
                 <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>プロフィール</span>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>任意</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>任意</span>
                 {!profileOpen && (gender || age) && (
                   <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>
                     {gender === "male" ? "男性" : gender === "female" ? "女性" : ""}{gender && age ? " / " : ""}{age ? `${age}歳` : ""}
@@ -349,6 +394,11 @@ export default function SettingsPage() {
               min={0} max={10000} step={100}
               color="#facc15" unit="円" large
             />
+            <InlineWarning message={
+              budget !== "" && Number(budget) > 0 && Number(budget) < 500
+                ? "1日500円未満では十分な栄養を確保するのが困難です。"
+                : null
+            } />
           </div>
 
           {/* ── 食事の回数 ── */}
@@ -421,6 +471,11 @@ export default function SettingsPage() {
                     <span style={{ ...styles.pfcLabel, color: "#f97316", width: "auto", fontSize: 13 }}>Cal</span>
                     <Stepper value={calorieGoal} onChange={setCalorieGoal} min={0} max={8000} step={50} color="#f97316" unit="kcal" />
                   </div>
+                  <InlineWarning message={
+                    calorieGoal !== "" && Number(calorieGoal) > 0 && Number(calorieGoal) < 1200
+                      ? "1200kcal未満の極端なカロリー制限は筋量低下・代謝障害のリスクがあります。医師にご相談ください。"
+                      : null
+                  } />
                 </div>
               </div>
             </div>
@@ -463,6 +518,114 @@ export default function SettingsPage() {
             プライバシーポリシー
           </button>
         </div>
+
+        {/* ── アカウント削除 ── */}
+        {user && (
+          <div style={{
+            marginTop: 32,
+            padding: "20px 18px",
+            borderRadius: 16,
+            border: "1px solid rgba(239,68,68,0.15)",
+            background: "rgba(239,68,68,0.03)",
+          }}>
+            {deleteStep === 0 && (
+              <button
+                onClick={() => setDeleteStep(1)}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  padding: "10px 0", borderRadius: 10,
+                  border: "1px solid rgba(239,68,68,0.2)", background: "transparent",
+                  color: "rgba(239,68,68,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
+                }}
+              >
+                <Trash2 size={14} strokeWidth={1.5} />
+                アカウントを削除する
+              </button>
+            )}
+
+            {deleteStep === 1 && (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <AlertTriangle size={16} color="#f87171" strokeWidth={1.5} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#f87171" }}>本当に削除しますか？</span>
+                </div>
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, margin: "0 0 14px" }}>
+                  アカウントを削除すると、体重記録・食事ログ・トレーニング記録・プロフィール設定など、すべてのデータが完全に削除されます。この操作は取り消せません。
+                </p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => setDeleteStep(0)}
+                    style={{
+                      flex: 1, padding: "10px 0", borderRadius: 10,
+                      border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
+                      color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
+                    }}
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={() => setDeleteStep(2)}
+                    style={{
+                      flex: 1, padding: "10px 0", borderRadius: 10,
+                      border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)",
+                      color: "#f87171", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                    }}
+                  >
+                    削除に進む
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {deleteStep === 2 && (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <AlertTriangle size={16} color="#f87171" strokeWidth={1.5} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#f87171" }}>最終確認</span>
+                </div>
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, margin: "0 0 12px" }}>
+                  確認のため「削除」と入力してください。
+                </p>
+                <input
+                  type="text"
+                  value={deleteInput}
+                  onChange={e => setDeleteInput(e.target.value)}
+                  placeholder="削除"
+                  style={{
+                    width: "100%", padding: "10px 12px", borderRadius: 10, boxSizing: "border-box",
+                    border: "1px solid rgba(239,68,68,0.2)", background: "rgba(255,255,255,0.04)",
+                    color: "#fff", fontSize: 14, outline: "none", marginBottom: 12,
+                  }}
+                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => { setDeleteStep(0); setDeleteInput(""); }}
+                    style={{
+                      flex: 1, padding: "10px 0", borderRadius: 10,
+                      border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
+                      color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
+                    }}
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleteInput !== "削除" || deleting}
+                    style={{
+                      flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
+                      background: deleteInput === "削除" && !deleting ? "#dc2626" : "rgba(255,255,255,0.08)",
+                      color: deleteInput === "削除" && !deleting ? "#fff" : "rgba(255,255,255,0.2)",
+                      fontSize: 13, fontWeight: 700,
+                      cursor: deleteInput === "削除" && !deleting ? "pointer" : "not-allowed",
+                    }}
+                  >
+                    {deleting ? "削除中..." : "完全に削除する"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {legalTab && <LegalViewer initialTab={legalTab} onClose={() => setLegalTab(null)} />}
