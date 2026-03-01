@@ -92,8 +92,8 @@ export default function WelcomeLanding({ supabase, onAuthChange }) {
                 <Zap size={20} strokeWidth={1.5} color="#2563eb" />
               </div>
               <div>
-                <h3 style={s.cardTitle}>入力摩擦ゼロの記録</h3>
-                <p style={{ ...s.cardSub, color: "#2563eb" }}>Zero Friction Input</p>
+                <h3 style={s.cardTitle}>ワンタップ記録</h3>
+                <p style={{ ...s.cardSub, color: "#2563eb" }}>One-Tap Logging</p>
               </div>
             </div>
             <p style={s.cardBody}>
