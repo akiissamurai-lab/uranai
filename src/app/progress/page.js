@@ -75,6 +75,10 @@ export default function ProgressPage() {
   const [weeklyMealLogs, setWeeklyMealLogs] = useState([]);
   const [startWeight, setStartWeight] = useState(null);
   const [calorieGoal, setCalorieGoal] = useState(null);
+  const [proteinGoal, setProteinGoal] = useState(null);
+  const [fatGoal, setFatGoal] = useState(null);
+  const [carbsGoal, setCarbsGoal] = useState(null);
+  const [budgetGoal, setBudgetGoal] = useState(null);
 
   // Training stats
   const [trainingLogs, setTrainingLogs] = useState([]);
@@ -97,6 +101,10 @@ export default function ProgressPage() {
       if (p.goal_weight) setGoalWeight(Number(p.goal_weight));
       if (p.weight) setStartWeight(Number(p.weight));
       if (p.calorie_goal) setCalorieGoal(Number(p.calorie_goal));
+      if (p.protein_goal) setProteinGoal(Number(p.protein_goal));
+      if (p.fat_goal) setFatGoal(Number(p.fat_goal));
+      if (p.carbs_goal) setCarbsGoal(Number(p.carbs_goal));
+      if (p.budget) setBudgetGoal(Number(p.budget));
     };
     if (user) { loadProfile(supabase, user.id).then(applyProfile); }
     else { applyProfile(loadLocalProfile()); }
@@ -303,6 +311,51 @@ export default function ProgressPage() {
     }
 
     return { avgCal, daysWithData, weightChange, weightFrom, weightTo, feedback };
+  })();
+
+  // Weekly summary (for the summary card)
+  const weeklySummary = (() => {
+    if (weeklyMealLogs.length < 1) return null;
+
+    const dates = [...new Set(weeklyMealLogs.map(l => l.date))].sort();
+    const daysWithData = dates.length;
+
+    // PFC & cost per day
+    const dailyPFC = {};
+    const dailyCost = {};
+    for (const log of weeklyMealLogs) {
+      const d = log.date;
+      if (!dailyPFC[d]) dailyPFC[d] = { p: 0, f: 0, c: 0 };
+      dailyPFC[d].p += (log.protein || 0);
+      dailyPFC[d].f += (log.fat || 0);
+      dailyPFC[d].c += (log.carbs || 0);
+      dailyCost[d] = (dailyCost[d] || 0) + (log.price || 0);
+    }
+
+    const avgP = Math.round(Object.values(dailyPFC).reduce((s, d) => s + d.p, 0) / daysWithData);
+    const avgF = Math.round(Object.values(dailyPFC).reduce((s, d) => s + d.f, 0) / daysWithData);
+    const avgC = Math.round(Object.values(dailyPFC).reduce((s, d) => s + d.c, 0) / daysWithData);
+
+    const pRate = proteinGoal ? Math.min(100, Math.round((avgP / proteinGoal) * 100)) : null;
+    const fRate = fatGoal ? Math.min(100, Math.round((avgF / fatGoal) * 100)) : null;
+    const cRate = carbsGoal ? Math.min(100, Math.round((avgC / carbsGoal) * 100)) : null;
+
+    const totalSpent = Object.values(dailyCost).reduce((a, b) => a + b, 0);
+    const totalBudget = budgetGoal ? budgetGoal * daysWithData : null;
+    const savings = totalBudget != null ? totalBudget - totalSpent : null;
+
+    return {
+      daysWithData,
+      dateFrom: dates[0],
+      dateTo: dates[dates.length - 1],
+      avgP, avgF, avgC,
+      pRate, fRate, cRate,
+      totalSpent, savings,
+      weightChange: weeklyReview?.weightChange ?? null,
+      weightFrom: weeklyReview?.weightFrom ?? null,
+      weightTo: weeklyReview?.weightTo ?? null,
+      avgCal: weeklyReview?.avgCal ?? null,
+    };
   })();
 
   // Training stats
@@ -741,71 +794,203 @@ export default function ProgressPage() {
           </div>
         )}
 
-        {/* ─── WEEKLY REVIEW ─── */}
-        {weeklyReview && (
-          <div style={{ ...S.card, padding: "20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <span style={{ fontSize: 16 }}>📊</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>7日間レビュー</span>
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginLeft: "auto" }}>{weeklyReview.daysWithData}日分のデータ</span>
+        {/* ─── WEEKLY SUMMARY CARD ─── */}
+        {weeklySummary && (() => {
+          const fmtShort = (ds) => { const [, m, d] = ds.split("-"); return `${Number(m)}/${Number(d)}`; };
+          const wc = weeklySummary.weightChange;
+          const hasPfcGoals = weeklySummary.pRate != null || weeklySummary.fRate != null || weeklySummary.cRate != null;
+
+          // X share text
+          const shareText = [
+            "今週のダツデブ成果",
+            wc != null ? `体重${wc > 0 ? "+" : ""}${wc}kg` : null,
+            weeklySummary.savings != null && weeklySummary.savings > 0 ? `食費を${weeklySummary.savings.toLocaleString()}円節約` : null,
+            "#ダツデブ",
+          ].filter(Boolean).join("　");
+          const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent("https://macro-builder.vercel.app/")}`;
+
+          const PfcBar = ({ label, color, rate, avg, goal, unit }) => (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color }}>{label}</span>
+                </div>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'Space Mono',monospace" }}>
+                  {avg}{unit}{goal ? ` / ${goal}${unit}` : ""}
+                  {rate != null && <span style={{ color: rate >= 80 ? "#4ade80" : rate >= 50 ? "#fbbf24" : "#f87171", fontWeight: 700, marginLeft: 6 }}>{rate}%</span>}
+                </span>
+              </div>
+              {rate != null && (
+                <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", borderRadius: 3, width: `${rate}%`,
+                    background: `linear-gradient(90deg, ${color}, ${color}cc)`,
+                    transition: "width 0.6s ease",
+                  }} />
+                </div>
+              )}
+            </div>
+          );
+
+          return (
+          <div style={{
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid transparent",
+            borderImage: "linear-gradient(135deg, rgba(74,222,128,0.25), rgba(96,165,250,0.25), rgba(168,139,250,0.25)) 1",
+            borderRadius: 0, // borderImage doesn't work with borderRadius
+            padding: "24px 20px",
+            marginBottom: 20,
+            position: "relative",
+            overflow: "hidden",
+          }}>
+            {/* Background glow */}
+            <div style={{ position: "absolute", top: -60, right: -60, width: 160, height: 160, background: "radial-gradient(circle,rgba(74,222,128,0.06) 0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", bottom: -40, left: -40, width: 120, height: 120, background: "radial-gradient(circle,rgba(96,165,250,0.05) 0%,transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
+
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, position: "relative" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 18 }}>✨</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.75)" }}>今週のまとめ</span>
+              </div>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "'Space Mono',monospace" }}>
+                {fmtShort(weeklySummary.dateFrom)} - {fmtShort(weeklySummary.dateTo)}
+              </span>
             </div>
 
-            <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-              {/* Avg calories */}
-              <div style={{ flex: 1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 6 }}>平均カロリー</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: "#fbbf24", fontFamily: "'Space Mono',monospace" }}>
-                  {weeklyReview.avgCal.toLocaleString()}
-                </div>
-                <div style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kcal/日</div>
-                {calorieGoal && (
-                  <div style={{ fontSize: 10, color: weeklyReview.avgCal <= calorieGoal ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.6)", marginTop: 4 }}>
-                    目標 {calorieGoal.toLocaleString()} kcal
-                  </div>
-                )}
-              </div>
-
+            {/* Stats row: Weight + Savings/Cost */}
+            <div style={{ display: "flex", gap: 12, marginBottom: 20, position: "relative" }}>
               {/* Weight change */}
-              <div style={{ flex: 1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 6 }}>体重変動</div>
-                {weeklyReview.weightChange !== null ? (
+              <div style={{
+                flex: 1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: 16, padding: "16px 12px", textAlign: "center",
+              }}>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 8, fontWeight: 500, letterSpacing: 0.5 }}>体重変動</div>
+                {wc !== null ? (
                   <>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                      {weeklyReview.weightChange < -0.1 ? <TrendingDown size={16} color="#4ade80" strokeWidth={2} /> :
-                       weeklyReview.weightChange > 0.1 ? <TrendingUp size={16} color="#f87171" strokeWidth={2} /> :
-                       <Minus size={16} color="rgba(255,255,255,0.4)" strokeWidth={2} />}
+                      {wc < -0.1 ? <TrendingDown size={18} color="#4ade80" strokeWidth={2.5} /> :
+                       wc > 0.1 ? <TrendingUp size={18} color="#f87171" strokeWidth={2.5} /> :
+                       <Minus size={18} color="rgba(255,255,255,0.4)" strokeWidth={2.5} />}
                       <span style={{
-                        fontSize: 24, fontWeight: 800, fontFamily: "'Space Mono',monospace",
-                        color: weeklyReview.weightChange < -0.1 ? "#4ade80" : weeklyReview.weightChange > 0.1 ? "#f87171" : "rgba(255,255,255,0.5)",
+                        fontSize: 28, fontWeight: 800, fontFamily: "'Space Mono',monospace",
+                        color: wc < -0.1 ? "#4ade80" : wc > 0.1 ? "#f87171" : "rgba(255,255,255,0.5)",
                       }}>
-                        {weeklyReview.weightChange > 0 ? "+" : ""}{weeklyReview.weightChange}
+                        {wc > 0 ? "+" : ""}{wc}
                       </span>
                     </div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>kg</div>
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>
-                      {weeklyReview.weightFrom.toFixed(1)} → {weeklyReview.weightTo.toFixed(1)}
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginTop: 2 }}>kg</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", marginTop: 4 }}>
+                      {weeklySummary.weightFrom?.toFixed(1)} → {weeklySummary.weightTo?.toFixed(1)}
                     </div>
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: 18, color: "rgba(255,255,255,0.15)" }}>—</div>
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>2日以上の記録で表示</div>
+                    <div style={{ fontSize: 22, color: "rgba(255,255,255,0.12)", fontWeight: 700 }}>—</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", marginTop: 4 }}>2日以上の記録で表示</div>
+                  </>
+                )}
+              </div>
+
+              {/* Savings or total cost */}
+              <div style={{
+                flex: 1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: 16, padding: "16px 12px", textAlign: "center",
+              }}>
+                {weeklySummary.savings != null ? (
+                  <>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 8, fontWeight: 500, letterSpacing: 0.5 }}>
+                      {weeklySummary.savings >= 0 ? "食費節約" : "予算超過"}
+                    </div>
+                    <div style={{
+                      fontSize: 26, fontWeight: 800, fontFamily: "'Space Mono',monospace",
+                      color: weeklySummary.savings >= 0 ? "#facc15" : "#f87171",
+                    }}>
+                      ¥{Math.abs(weeklySummary.savings).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", marginTop: 6 }}>
+                      ¥{weeklySummary.totalSpent.toLocaleString()} / ¥{(budgetGoal * weeklySummary.daysWithData).toLocaleString()}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 8, fontWeight: 500, letterSpacing: 0.5 }}>食費合計</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'Space Mono',monospace", color: "#facc15" }}>
+                      ¥{weeklySummary.totalSpent.toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", marginTop: 6 }}>
+                      {weeklySummary.daysWithData}日間
+                    </div>
                   </>
                 )}
               </div>
             </div>
 
+            {/* PFC Achievement */}
+            {(weeklySummary.avgP > 0 || weeklySummary.avgF > 0 || weeklySummary.avgC > 0) && (
+            <div style={{ marginBottom: 16, position: "relative" }}>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 500, letterSpacing: 0.5, marginBottom: 12 }}>
+                PFC達成率{hasPfcGoals ? "" : "（日平均）"}
+              </div>
+              <PfcBar label="P" color="#f87171" rate={weeklySummary.pRate} avg={weeklySummary.avgP} goal={proteinGoal} unit="g" />
+              <PfcBar label="F" color="#facc15" rate={weeklySummary.fRate} avg={weeklySummary.avgF} goal={fatGoal} unit="g" />
+              <PfcBar label="C" color="#60a5fa" rate={weeklySummary.cRate} avg={weeklySummary.avgC} goal={carbsGoal} unit="g" />
+            </div>
+            )}
+
+            {/* Avg Calories */}
+            {weeklySummary.avgCal && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "10px 0", marginBottom: 16,
+              borderTop: "1px solid rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.04)",
+            }}>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>日平均カロリー</span>
+              <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "'Space Mono',monospace", color: "#fbbf24" }}>
+                {weeklySummary.avgCal.toLocaleString()}
+              </span>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>kcal</span>
+              {calorieGoal && (
+                <span style={{ fontSize: 10, color: weeklySummary.avgCal <= calorieGoal ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.5)" }}>
+                  / {calorieGoal.toLocaleString()}
+                </span>
+              )}
+            </div>
+            )}
+
             {/* Feedback */}
+            {weeklyReview?.feedback && (
             <div style={{
               background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)",
-              borderRadius: 12, padding: "12px 14px",
+              borderRadius: 12, padding: "12px 14px", marginBottom: 16,
               display: "flex", alignItems: "flex-start", gap: 10,
             }}>
               <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.4 }}>{weeklyReview.feedback.icon}</span>
               <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{weeklyReview.feedback.text}</span>
             </div>
+            )}
+
+            {/* X Share Button */}
+            <a
+              href={shareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                padding: "12px 0", borderRadius: 12,
+                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)",
+                textDecoration: "none", cursor: "pointer", transition: "all 0.2s",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(255,255,255,0.6)">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Xでシェア</span>
+            </a>
           </div>
-        )}
+          );
+        })()}
 
         {/* ─── TRAINING STATS (collapsible) ─── */}
         {trainingLogs.length > 0 && (
