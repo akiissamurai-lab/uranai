@@ -3,6 +3,7 @@ import { Inter, Noto_Sans_JP, Space_Mono } from "next/font/google";
 import SupabaseErrorBoundary from "@/components/SupabaseErrorBoundary";
 import BottomNav from "@/components/BottomNav";
 import TermsGate from "@/components/TermsModal";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -69,6 +70,7 @@ export default function RootLayout({ children }) {
           <TermsGate />
           {children}
           <BottomNav />
+          <Analytics />
         </SupabaseErrorBoundary>
       </body>
     </html>
