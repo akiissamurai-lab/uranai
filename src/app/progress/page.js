@@ -472,9 +472,9 @@ export default function ProgressPage() {
           <div style={S.statsRow}>
             {latest.weight != null && (
               <div style={S.statCard}>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>朝</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
-                  {Number(latest.weight).toFixed(1)}<span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>kg</span>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>朝</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                  {Number(latest.weight).toFixed(1)}<span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
                 </div>
                 {weightDiff && (
                   <div style={{ fontSize: 10, color: Number(weightDiff) > 0 ? "#f87171" : "#4ade80", fontFamily: "'Space Mono',monospace" }}>
@@ -485,17 +485,17 @@ export default function ProgressPage() {
             )}
             {latest.weight_night != null && (
               <div style={S.statCard}>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>夜</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: "#f59e0b", fontFamily: "'Space Mono',monospace" }}>
-                  {Number(latest.weight_night).toFixed(1)}<span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>kg</span>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>夜</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#f59e0b", fontFamily: "'Space Mono',monospace" }}>
+                  {Number(latest.weight_night).toFixed(1)}<span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
                 </div>
               </div>
             )}
             {latest.body_fat != null && (
               <div style={S.statCard}>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>体脂肪</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: "#60a5fa", fontFamily: "'Space Mono',monospace" }}>
-                  {Number(latest.body_fat).toFixed(1)}<span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>%</span>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>体脂肪</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#60a5fa", fontFamily: "'Space Mono',monospace" }}>
+                  {Number(latest.body_fat).toFixed(1)}<span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>%</span>
                 </div>
                 {fatDiff && (
                   <div style={{ fontSize: 10, color: Number(fatDiff) > 0 ? "#f87171" : "#4ade80", fontFamily: "'Space Mono',monospace" }}>
@@ -512,7 +512,7 @@ export default function ProgressPage() {
           <div style={{ ...S.card, padding: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <Target size={16} strokeWidth={2} color="#a78bfa" />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>目標</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>目標</span>
             </div>
 
             {goalProgress?.hasData ? (
@@ -532,24 +532,24 @@ export default function ProgressPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
                   <div>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>現在</div>
-                    <span style={{ fontSize: 20, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
                       {goalProgress.latestW.toFixed(1)}
                     </span>
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>kg</span>
+                    <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
                   </div>
                   <div style={{ textAlign: "center" }}>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginBottom: 2 }}>あと</div>
-                    <span style={{ fontSize: 22, fontWeight: 800, color: "#a78bfa", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 26, fontWeight: 800, color: "#a78bfa", fontFamily: "'Space Mono',monospace" }}>
                       {goalProgress.remaining}
                     </span>
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>kg</span>
+                    <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>目標</div>
-                    <span style={{ fontSize: 20, fontWeight: 700, color: "rgba(168,139,250,0.7)", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "rgba(168,139,250,0.7)", fontFamily: "'Space Mono',monospace" }}>
                       {goalWeight.toFixed(1)}
                     </span>
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>kg</span>
+                    <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
                   </div>
                 </div>
 
@@ -685,7 +685,7 @@ export default function ProgressPage() {
           <div style={{ ...S.card, padding: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <span style={{ fontSize: 16 }}>📊</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>7日間レビュー</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>7日間レビュー</span>
               <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginLeft: "auto" }}>{weeklyReview.daysWithData}日分のデータ</span>
             </div>
 
@@ -693,10 +693,10 @@ export default function ProgressPage() {
               {/* Avg calories */}
               <div style={{ flex: 1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 6 }}>平均カロリー</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#fbbf24", fontFamily: "'Space Mono',monospace" }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "#fbbf24", fontFamily: "'Space Mono',monospace" }}>
                   {weeklyReview.avgCal.toLocaleString()}
                 </div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>kcal/日</div>
+                <div style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kcal/日</div>
                 {calorieGoal && (
                   <div style={{ fontSize: 10, color: weeklyReview.avgCal <= calorieGoal ? "rgba(74,222,128,0.6)" : "rgba(248,113,113,0.6)", marginTop: 4 }}>
                     目標 {calorieGoal.toLocaleString()} kcal
@@ -714,7 +714,7 @@ export default function ProgressPage() {
                        weeklyReview.weightChange > 0.1 ? <TrendingUp size={16} color="#f87171" strokeWidth={2} /> :
                        <Minus size={16} color="rgba(255,255,255,0.4)" strokeWidth={2} />}
                       <span style={{
-                        fontSize: 22, fontWeight: 700, fontFamily: "'Space Mono',monospace",
+                        fontSize: 24, fontWeight: 800, fontFamily: "'Space Mono',monospace",
                         color: weeklyReview.weightChange < -0.1 ? "#4ade80" : weeklyReview.weightChange > 0.1 ? "#f87171" : "rgba(255,255,255,0.5)",
                       }}>
                         {weeklyReview.weightChange > 0 ? "+" : ""}{weeklyReview.weightChange}
@@ -752,7 +752,7 @@ export default function ProgressPage() {
             <button onClick={() => setTrainingOpen(!trainingOpen)} style={S.accordionBtn}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Dumbbell size={16} strokeWidth={1.5} color="#a78bfa" />
-                <span style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>トレーニング</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>トレーニング</span>
                 <span style={{ fontSize: 12, color: "#a78bfa", fontFamily: "'Space Mono',monospace", fontWeight: 700 }}>
                   週{trainingWeekCount}回
                 </span>

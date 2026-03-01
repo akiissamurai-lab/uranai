@@ -286,7 +286,7 @@ export default function CoachPage() {
             {/* New macros card */}
             {result.newMacros && (
               <div style={S.card}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
                   <Target size={14} strokeWidth={1.5} />推奨マクロ目標
                 </div>
                 {result.macroReason && (
@@ -297,31 +297,31 @@ export default function CoachPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
                   <div style={S.macroCell}>
                     <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>P</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: "#f87171", fontFamily: "var(--font-mono)" }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "#f87171", fontFamily: "var(--font-mono)" }}>
                       {result.newMacros.protein}
                     </span>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>g</span>
+                    <span style={{ fontSize: 8, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>g</span>
                   </div>
                   <div style={S.macroCell}>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>F</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: "#facc15", fontFamily: "var(--font-mono)" }}>
+                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>F</span>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "#facc15", fontFamily: "var(--font-mono)" }}>
                       {result.newMacros.fat}
                     </span>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>g</span>
+                    <span style={{ fontSize: 8, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>g</span>
                   </div>
                   <div style={S.macroCell}>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>C</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: "#60a5fa", fontFamily: "var(--font-mono)" }}>
+                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>C</span>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "#60a5fa", fontFamily: "var(--font-mono)" }}>
                       {result.newMacros.carbs}
                     </span>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>g</span>
+                    <span style={{ fontSize: 8, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>g</span>
                   </div>
                   <div style={S.macroCell}>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>予算</span>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
+                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>予算</span>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
                       ¥{result.newMacros.budget}
                     </span>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>/日</span>
+                    <span style={{ fontSize: 8, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>/日</span>
                   </div>
                 </div>
 
@@ -344,7 +344,7 @@ export default function CoachPage() {
             {/* Grocery list card */}
             {result.groceryList && result.groceryList.length > 0 && (
               <div style={S.card}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
                   <ShoppingCart size={14} strokeWidth={1.5} />週間買い物リスト
                 </div>
                 {result.groceryList.map((item, i) => (
@@ -363,7 +363,7 @@ export default function CoachPage() {
                 {result.weeklyTotal && (
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10, marginTop: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>合計（1週間分）</span>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
                       ¥{Number(result.weeklyTotal).toLocaleString()}
                     </span>
                   </div>
@@ -374,7 +374,7 @@ export default function CoachPage() {
             {/* Advice card */}
             {(result.advice || result.mealTip) && (
               <div style={{ ...S.card, background: "rgba(96,165,250,0.05)", border: "1px solid rgba(96,165,250,0.12)" }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
                   <Lightbulb size={14} strokeWidth={1.5} />改善ポイント
                 </div>
                 {result.advice && (

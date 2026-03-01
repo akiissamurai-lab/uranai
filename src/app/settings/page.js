@@ -76,7 +76,7 @@ function Stepper({ value, onChange, min, max, step = 1, color = "#22c55e", unit 
         ) : (
           <>
             <span style={{
-              fontSize: large ? 36 : 28, fontWeight: 700,
+              fontSize: large ? 36 : 28, fontWeight: 800,
               color: numVal != null ? color : "rgba(255,255,255,0.15)",
               fontFamily: "'Space Mono',monospace",
               borderBottom: `1.5px dashed ${numVal != null ? color + "30" : "rgba(255,255,255,0.06)"}`,
@@ -84,7 +84,7 @@ function Stepper({ value, onChange, min, max, step = 1, color = "#22c55e", unit 
             }}>
               {numVal != null ? numVal : "—"}
             </span>
-            {unit && <span style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", marginLeft: 4 }}>{unit}</span>}
+            {unit && <span style={{ fontSize: 11, fontWeight: 400, color: "rgba(255,255,255,0.25)", marginLeft: 4 }}>{unit}</span>}
           </>
         )}
       </div>
@@ -294,7 +294,7 @@ export default function SettingsPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <User size={16} strokeWidth={1.5} color="#f472b6" />
-                <span style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>プロフィール</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>プロフィール</span>
                 <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>任意</span>
                 {!profileOpen && (gender || age) && (
                   <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>
@@ -373,7 +373,7 @@ export default function SettingsPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Zap size={16} strokeWidth={1.5} color="#a78bfa" />
-                <span style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>PFC・カロリー目標</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>PFC・カロリー目標</span>
                 {!pfcOpen && (proteinGoal || fatGoal || carbsGoal || calorieGoal) && (
                   <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginLeft: 4 }}>
                     {proteinGoal ? `P${proteinGoal}` : ""}{fatGoal ? ` F${fatGoal}` : ""}{carbsGoal ? ` C${carbsGoal}` : ""}{calorieGoal ? ` ${calorieGoal}kcal` : ""}
@@ -445,7 +445,7 @@ export default function SettingsPage() {
         >
           <MessageSquare size={18} strokeWidth={1.5} color="#a78bfa" />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.75)" }}>フィードバックを送る</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>フィードバックを送る</div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>バグ報告・機能要望</div>
           </div>
           <span style={{ marginLeft: "auto", fontSize: 14, color: "rgba(255,255,255,0.2)" }}>›</span>

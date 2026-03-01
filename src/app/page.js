@@ -219,14 +219,14 @@ function MacroDonut({ label, current, goal, color, bgColor, unit }) {
             style={{ transition: "stroke-dashoffset 0.6s ease" }} />
         </svg>
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: activeColor, fontFamily: "var(--font-mono)", lineHeight: 1 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: activeColor, fontFamily: "var(--font-mono)", lineHeight: 1 }}>
             {Math.round(pct * 100)}
-            <span style={{ fontSize: 9, fontWeight: 600 }}>%</span>
+            <span style={{ fontSize: 8, fontWeight: 400, opacity: 0.5 }}>%</span>
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 10, fontWeight: 600, color: activeColor, marginTop: 4 }}>{label}</div>
-      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>
+      <div style={{ fontSize: 9, fontWeight: 500, color: activeColor, marginTop: 4, opacity: 0.8 }}>{label}</div>
+      <div style={{ fontSize: 8, color: "rgba(255,255,255,0.25)" }}>
         {Math.round(current)}/{goal}{unit}
       </div>
     </div>
@@ -246,8 +246,8 @@ function BudgetGauge({ spent, total }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", display: "inline-flex", alignItems: "center", gap: 4 }}><Wallet size={12} strokeWidth={1.5} /> 今日の予算</span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: remaining >= 0 ? "#4ade80" : "#f87171", fontFamily: "var(--font-mono)" }}>
+        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", display: "inline-flex", alignItems: "center", gap: 4 }}><Wallet size={11} strokeWidth={1.5} /> 今日の予算</span>
+        <span style={{ fontSize: 18, fontWeight: 800, color: remaining >= 0 ? "#4ade80" : "#f87171", fontFamily: "var(--font-mono)" }}>
           {remaining >= 0 ? `残り ¥${Math.round(remaining).toLocaleString()}` : `¥${Math.abs(Math.round(remaining)).toLocaleString()} 超過`}
         </span>
       </div>
@@ -585,11 +585,11 @@ function MacroRing({ label, value, max, color, unit, ideal }) {
         <circle cx="40" cy="40" r={r} fill="none" stroke={color} strokeWidth="7"
           strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
           transform="rotate(-90 40 40)" style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
-        <text x="40" y="36" textAnchor="middle" fill="white" fontSize="15" fontWeight="700" fontFamily="var(--font-sans)">{Math.round(value)}</text>
-        <text x="40" y="49" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="9" fontFamily="var(--font-sans)">{unit}</text>
+        <text x="40" y="36" textAnchor="middle" fill="white" fontSize="18" fontWeight="800" fontFamily="var(--font-mono)">{Math.round(value)}</text>
+        <text x="40" y="49" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="8" fontFamily="var(--font-sans)">{unit}</text>
       </svg>
-      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, marginTop: -4 }}>{label}</div>
-      {ideal && <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>目標 {ideal}{unit}</div>}
+      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginTop: -4 }}>{label}</div>
+      {ideal && <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", marginTop: 2 }}>目標 {ideal}{unit}</div>}
     </div>
   );
 }
@@ -603,7 +603,7 @@ function SliderInput({ label, value, setValue, min, max, step, color, suffix = "
         {editable ? (
           <NumInput value={value} onChange={v => setValue(v === "" ? min : v)} suffix={suffix} prefix={prefix} min={min} max={max} step={step} width={65} color={color} />
         ) : (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color }}>{prefix}{value}<span style={{ fontSize: 13 }}>{suffix}</span></span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 800, color }}>{prefix}{value}<span style={{ fontSize: 10, fontWeight: 400, opacity: 0.4 }}>{suffix}</span></span>
         )}
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={e => setValue(+e.target.value)}
@@ -1286,10 +1286,10 @@ export default function Home() {
             {calories > 0 && (
               <div style={{ display: "flex", justifyContent: "center", alignItems: "baseline", gap: 6, marginBottom: profileGoals.budget ? 16 : 0, padding: "6px 0" }}>
                 <Flame size={14} strokeWidth={1.5} color="#f97316" />
-                <span style={{ fontSize: 22, fontWeight: 800, color: "#f97316", fontFamily: "var(--font-mono)" }}>
+                <span style={{ fontSize: 28, fontWeight: 800, color: "#f97316", fontFamily: "var(--font-mono)" }}>
                   {Math.round(todayTotals.protein * 4 + todayTotals.fat * 9 + todayTotals.carbs * 4)}
                 </span>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>/ {calories} kcal</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>/ {calories} kcal</span>
               </div>
             )}
 

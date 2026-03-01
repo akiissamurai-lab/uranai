@@ -49,8 +49,8 @@ function MiniDashboard({ totals, totalCal, goals, calGoal }) {
     <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
       {items.map((it) => (
         <div key={it.label} style={{ flex: 1, textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 4, fontWeight: 600 }}>{it.label}</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: it.over ? "#ef4444" : it.color, fontFamily: "'Space Mono',monospace", marginBottom: 4 }}>
+          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", marginBottom: 4, fontWeight: 400 }}>{it.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: it.over ? "#ef4444" : it.color, fontFamily: "'Space Mono',monospace", marginBottom: 4 }}>
             {it.current}
           </div>
           <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
@@ -946,18 +946,18 @@ export default function RecordPage() {
           <div style={S.summaryCard}>
             <div style={{ display: "flex", justifyContent: "space-around" }}>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>{totalCal}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>kcal</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>{totalCal}</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontWeight: 400 }}>kcal</div>
               </div>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "#facc15", fontFamily: "'Space Mono',monospace" }}>¥{totals.price.toLocaleString()}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>食費</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "#facc15", fontFamily: "'Space Mono',monospace" }}>¥{totals.price.toLocaleString()}</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontWeight: 400 }}>食費</div>
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "space-around", marginTop: 12 }}>
-              <span style={{ fontSize: 12, color: "#f87171", fontWeight: 600 }}>P {Math.round(totals.protein)}g</span>
-              <span style={{ fontSize: 12, color: "#facc15", fontWeight: 600 }}>F {Math.round(totals.fat)}g</span>
-              <span style={{ fontSize: 12, color: "#60a5fa", fontWeight: 600 }}>C {Math.round(totals.carbs)}g</span>
+              <span style={{ fontSize: 11, color: "#f87171", fontWeight: 600 }}>P {Math.round(totals.protein)}<span style={{ fontSize: 8, fontWeight: 400, opacity: 0.5 }}>g</span></span>
+              <span style={{ fontSize: 11, color: "#facc15", fontWeight: 600 }}>F {Math.round(totals.fat)}<span style={{ fontSize: 8, fontWeight: 400, opacity: 0.5 }}>g</span></span>
+              <span style={{ fontSize: 11, color: "#60a5fa", fontWeight: 600 }}>C {Math.round(totals.carbs)}<span style={{ fontSize: 8, fontWeight: 400, opacity: 0.5 }}>g</span></span>
             </div>
           </div>
         )}
@@ -970,10 +970,10 @@ export default function RecordPage() {
           <button onClick={() => setWeightOpen(!weightOpen)} style={S.accordionBtn}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Scale size={16} strokeWidth={1.5} color="#4ade80" />
-              <span style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>体重</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>体重</span>
               {!weightOpen && morningWeight && (
-                <span style={{ fontSize: 12, color: "#4ade80", fontFamily: "'Space Mono',monospace", fontWeight: 700 }}>
-                  {morningWeight}kg
+                <span style={{ fontSize: 14, color: "#4ade80", fontFamily: "'Space Mono',monospace", fontWeight: 700 }}>
+                  {morningWeight}<span style={{ fontSize: 9, fontWeight: 400, opacity: 0.5 }}>kg</span>
                 </span>
               )}
             </div>
@@ -1051,7 +1051,7 @@ export default function RecordPage() {
           <button onClick={() => setTrainingOpen(!trainingOpen)} style={S.accordionBtn}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Dumbbell size={16} strokeWidth={1.5} color="#a78bfa" />
-              <span style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>トレーニング</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>トレーニング</span>
               {!trainingOpen && trainingLogs.length > 0 && (
                 <span style={{ fontSize: 11, color: "#a78bfa" }}>{trainingLogs.length}件</span>
               )}
@@ -1170,7 +1170,7 @@ export default function RecordPage() {
           <button onClick={() => setNotesOpen(!notesOpen)} style={S.accordionBtn}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <PenLine size={16} strokeWidth={1.5} color="#60a5fa" />
-              <span style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>メモ</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>メモ</span>
               {notesSaving && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>保存中...</span>}
               {notesSaved && !notesSaving && <span style={{ fontSize: 10, color: "#4ade80" }}>保存済み</span>}
             </div>
