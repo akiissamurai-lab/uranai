@@ -24,7 +24,7 @@ export default function WelcomeLanding({ supabase, onAuthChange }) {
           </div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>ダツデブ</div>
-            <div style={{ fontSize: 8, color: "#9ca3af", letterSpacing: 1.5, textTransform: "uppercase" }}>AI PFC × Budget Tracker</div>
+            <div style={{ fontSize: 9, color: "#9ca3af", letterSpacing: 1.5, textTransform: "uppercase" }}>AI PFC × Budget Tracker</div>
           </div>
         </div>
         <AuthGate supabase={supabase} onAuthChange={onAuthChange} onSessionExpired={() => {}} />

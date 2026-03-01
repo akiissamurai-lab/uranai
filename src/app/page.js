@@ -223,8 +223,8 @@ function MacroDonut({ label, current, goal, color, bgColor, unit }) {
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 9, fontWeight: 500, color: activeColor, marginTop: 4, opacity: 0.8 }}>{label}</div>
-      <div style={{ fontSize: 8, color: "rgba(255,255,255,0.25)" }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: activeColor, marginTop: 4 }}>{label}</div>
+      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>
         {Math.round(current)}/{goal}{unit}
       </div>
     </div>
@@ -253,8 +253,8 @@ function BudgetGauge({ spent, total }) {
         <div style={{ height: "100%", width: `${Math.min(pct * 100, 100)}%`, borderRadius: 4, background: barColor, transition: "width 0.5s ease" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>¥0</span>
-        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>¥{total.toLocaleString()}</span>
+        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>¥0</span>
+        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>¥{total.toLocaleString()}</span>
       </div>
     </div>
   );
@@ -596,10 +596,10 @@ function MacroRing({ label, value, max, color, unit, ideal }) {
           strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
           transform="rotate(-90 40 40)" style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
         <text x="40" y="36" textAnchor="middle" fill="white" fontSize="18" fontWeight="800" fontFamily="var(--font-mono)">{Math.round(value)}</text>
-        <text x="40" y="49" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="8" fontFamily="var(--font-sans)">{unit}</text>
+        <text x="40" y="49" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="9" fontFamily="var(--font-sans)">{unit}</text>
       </svg>
-      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginTop: -4 }}>{label}</div>
-      {ideal && <div style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>目標 {ideal}{unit}</div>}
+      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: -4 }}>{label}</div>
+      {ideal && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>目標 {ideal}{unit}</div>}
     </div>
   );
 }
@@ -613,7 +613,7 @@ function SliderInput({ label, value, setValue, min, max, step, color, suffix = "
         {editable ? (
           <NumInput value={value} onChange={v => setValue(v === "" ? min : v)} suffix={suffix} prefix={prefix} min={min} max={max} step={step} width={65} color={color} />
         ) : (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 800, color }}>{prefix}{value}<span style={{ fontSize: 10, fontWeight: 400, opacity: 0.4 }}>{suffix}</span></span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 800, color }}>{prefix}{value}<span style={{ fontSize: 11, fontWeight: 400, opacity: 0.5 }}>{suffix}</span></span>
         )}
       </div>
       <input type="range" min={min} max={max} step={step} value={value} onChange={e => setValue(+e.target.value)}
@@ -1520,7 +1520,7 @@ export default function Home() {
                     { label: "C", value: `${aiSuggest.carbs || 0}g`, color: "#60a5fa" },
                   ].map((item, i) => (
                     <div key={i} style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>{item.label}</div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{item.label}</div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: item.color, fontFamily: "var(--font-mono)" }}>{item.value}</div>
                     </div>
                   ))}
@@ -1643,7 +1643,7 @@ export default function Home() {
                 }}>
                   <div style={{ marginBottom: 3, display: "flex", justifyContent: "center" }}>{g.icon === "flame" ? <Flame size={20} strokeWidth={1.5} /> : g.icon === "scale" ? <Scale size={20} strokeWidth={1.5} /> : <Dumbbell size={20} strokeWidth={1.5} />}</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: goal === g.id ? "#4ade80" : "rgba(255,255,255,0.7)" }}>{g.label}</div>
-                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>{g.desc}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{g.desc}</div>
                 </button>
               ))}
             </div>
@@ -1660,7 +1660,7 @@ export default function Home() {
                   background: activity === a.id ? "rgba(59,130,246,0.1)" : "rgba(255,255,255,0.02)",
                 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: activity === a.id ? "#60a5fa" : "rgba(255,255,255,0.55)" }}>{a.label}</div>
-                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", marginTop: 2 }}>{a.desc}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{a.desc}</div>
                 </button>
               ))}
             </div>
@@ -1834,7 +1834,7 @@ export default function Home() {
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "#3b82f6" }}>
                   {Math.round(result.totals.protein * 4 / result.totals.cal * 100)} : {Math.round(result.totals.fat * 9 / result.totals.cal * 100)} : {Math.round(result.totals.carbs * 4 / result.totals.cal * 100)}
                 </div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.22)", marginTop: 2 }}>理想 P{idealPFC.p} F{idealPFC.f} C{idealPFC.c}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>理想 P{idealPFC.p} F{idealPFC.f} C{idealPFC.c}</div>
               </div>
             </div>
 
@@ -1972,7 +1972,7 @@ export default function Home() {
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.03)" : "none" }}>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 500 }}>{item.name}</div>
-                    <span style={{ fontSize: 9, color: item.color, background: `${item.color}12`, padding: "1px 6px", borderRadius: 4 }}>{item.tag}</span>
+                    <span style={{ fontSize: 10, color: item.color, background: `${item.color}12`, padding: "1px 6px", borderRadius: 4 }}>{item.tag}</span>
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", fontFamily: "var(--font-mono)" }}>{item.price}</div>
                 </div>

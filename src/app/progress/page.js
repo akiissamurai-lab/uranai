@@ -535,9 +535,9 @@ export default function ProgressPage() {
           <div style={S.statsRow}>
             {latest.weight != null && (
               <div style={S.statCard}>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>朝</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>朝</div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
-                  {Number(latest.weight).toFixed(1)}<span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
+                  {Number(latest.weight).toFixed(1)}<span style={{ fontSize: 10, fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>kg</span>
                 </div>
                 {weightDiff && (
                   <div style={{ fontSize: 10, color: Number(weightDiff) > 0 ? "#f87171" : "#4ade80", fontFamily: "var(--font-mono)" }}>
@@ -548,17 +548,17 @@ export default function ProgressPage() {
             )}
             {latest.weight_night != null && (
               <div style={S.statCard}>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>夜</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>夜</div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: "#f59e0b", fontFamily: "var(--font-mono)" }}>
-                  {Number(latest.weight_night).toFixed(1)}<span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
+                  {Number(latest.weight_night).toFixed(1)}<span style={{ fontSize: 10, fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>kg</span>
                 </div>
               </div>
             )}
             {latest.body_fat != null && (
               <div style={S.statCard}>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>体脂肪</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>体脂肪</div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: "#60a5fa", fontFamily: "var(--font-mono)" }}>
-                  {Number(latest.body_fat).toFixed(1)}<span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>%</span>
+                  {Number(latest.body_fat).toFixed(1)}<span style={{ fontSize: 10, fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>%</span>
                 </div>
                 {fatDiff && (
                   <div style={{ fontSize: 10, color: Number(fatDiff) > 0 ? "#f87171" : "#4ade80", fontFamily: "var(--font-mono)" }}>
@@ -594,25 +594,25 @@ export default function ProgressPage() {
                 {/* Labels row */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
                   <div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>現在</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 2 }}>現在</div>
                     <span style={{ fontSize: 22, fontWeight: 800, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
                       {goalProgress.latestW.toFixed(1)}
                     </span>
-                    <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
+                    <span style={{ fontSize: 10, fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>kg</span>
                   </div>
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginBottom: 2 }}>あと</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginBottom: 2 }}>あと</div>
                     <span style={{ fontSize: 26, fontWeight: 800, color: "#a78bfa", fontFamily: "var(--font-mono)" }}>
                       {goalProgress.remaining}
                     </span>
-                    <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
+                    <span style={{ fontSize: 10, fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>kg</span>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>目標</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 2 }}>目標</div>
                     <span style={{ fontSize: 22, fontWeight: 800, color: "rgba(168,139,250,0.7)", fontFamily: "var(--font-mono)" }}>
                       {goalWeight.toFixed(1)}
                     </span>
-                    <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
+                    <span style={{ fontSize: 10, fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>kg</span>
                   </div>
                 </div>
 
@@ -747,22 +747,22 @@ export default function ProgressPage() {
                 <>
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 14, height: 3, background: "#4ade80", borderRadius: 2 }} />
-                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>朝</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>朝</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 14, height: 3, background: "rgba(74,222,128,0.35)", borderRadius: 2 }} />
-                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>7日平均</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>7日平均</span>
                   </div>
                   {hasNightWeight && (
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <div style={{ width: 14, height: 3, background: "#f59e0b", borderRadius: 2 }} />
-                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>夜</span>
+                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>夜</span>
                     </div>
                   )}
                   {goalWeight && (
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <div style={{ width: 14, height: 0, borderTop: "2px dashed rgba(168,139,250,0.6)" }} />
-                      <span style={{ fontSize: 10, color: "rgba(168,139,250,0.6)" }}>目標</span>
+                      <span style={{ fontSize: 11, color: "rgba(168,139,250,0.6)" }}>目標</span>
                     </div>
                   )}
                 </>
@@ -770,16 +770,16 @@ export default function ProgressPage() {
                 <>
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 14, height: 3, background: "#60a5fa", borderRadius: 2 }} />
-                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>朝</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>朝</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 14, height: 3, background: "rgba(96,165,250,0.35)", borderRadius: 2 }} />
-                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>7日平均</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>7日平均</span>
                   </div>
                   {hasNightFat && (
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <div style={{ width: 14, height: 3, background: "#f59e0b", borderRadius: 2 }} />
-                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>夜</span>
+                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>夜</span>
                     </div>
                   )}
                 </>
@@ -866,7 +866,7 @@ export default function ProgressPage() {
                 flex: 1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
                 borderRadius: 16, padding: "16px 12px", textAlign: "center",
               }}>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 8, fontWeight: 500, letterSpacing: 0.5 }}>体重変動</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, fontWeight: 600, letterSpacing: 0.5 }}>体重変動</div>
                 {wc !== null ? (
                   <>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
@@ -880,15 +880,15 @@ export default function ProgressPage() {
                         {wc > 0 ? "+" : ""}{wc}
                       </span>
                     </div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginTop: 2 }}>kg</div>
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", marginTop: 4 }}>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>kg</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>
                       {weeklySummary.weightFrom?.toFixed(1)} → {weeklySummary.weightTo?.toFixed(1)}
                     </div>
                   </>
                 ) : (
                   <>
                     <div style={{ fontSize: 22, color: "rgba(255,255,255,0.12)", fontWeight: 700 }}>—</div>
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", marginTop: 4 }}>2日以上の記録で表示</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>2日以上の記録で表示</div>
                   </>
                 )}
               </div>
@@ -900,7 +900,7 @@ export default function ProgressPage() {
               }}>
                 {weeklySummary.savings != null ? (
                   <>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 8, fontWeight: 500, letterSpacing: 0.5 }}>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, fontWeight: 600, letterSpacing: 0.5 }}>
                       {weeklySummary.savings >= 0 ? "食費節約" : "予算超過"}
                     </div>
                     <div style={{
@@ -909,17 +909,17 @@ export default function ProgressPage() {
                     }}>
                       ¥{Math.abs(weeklySummary.savings).toLocaleString()}
                     </div>
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", marginTop: 6 }}>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 6 }}>
                       ¥{weeklySummary.totalSpent.toLocaleString()} / ¥{(budgetGoal * weeklySummary.daysWithData).toLocaleString()}
                     </div>
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 8, fontWeight: 500, letterSpacing: 0.5 }}>食費合計</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, fontWeight: 600, letterSpacing: 0.5 }}>食費合計</div>
                     <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "var(--font-mono)", color: "#facc15" }}>
                       ¥{weeklySummary.totalSpent.toLocaleString()}
                     </div>
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", marginTop: 6 }}>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 6 }}>
                       {weeklySummary.daysWithData}日間
                     </div>
                   </>
@@ -930,7 +930,7 @@ export default function ProgressPage() {
             {/* PFC Achievement */}
             {(weeklySummary.avgP > 0 || weeklySummary.avgF > 0 || weeklySummary.avgC > 0) && (
             <div style={{ marginBottom: 16, position: "relative" }}>
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 500, letterSpacing: 0.5, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 600, letterSpacing: 0.5, marginBottom: 12 }}>
                 PFC達成率{hasPfcGoals ? "" : "（日平均）"}
               </div>
               <PfcBar label="P" color="#f87171" rate={weeklySummary.pRate} avg={weeklySummary.avgP} goal={proteinGoal} unit="g" />
@@ -1014,7 +1014,7 @@ export default function ProgressPage() {
                     {weeklyDays.map((count, i) => (
                       <div key={i} style={{ flex: 1, textAlign: "center" }}>
                         <div style={{ width: "100%", height: Math.max(count * 12, 4), borderRadius: 4, background: i === 3 ? "#a78bfa" : "rgba(168,139,250,0.3)", transition: "height 0.3s" }} />
-                        <span style={{ fontSize: 9, color: i === 3 ? "#a78bfa" : "rgba(255,255,255,0.25)", marginTop: 4, display: "block" }}>
+                        <span style={{ fontSize: 10, color: i === 3 ? "#a78bfa" : "rgba(255,255,255,0.25)", marginTop: 4, display: "block" }}>
                           {i === 3 ? "今週" : `${3 - i}w前`}
                         </span>
                       </div>
@@ -1050,7 +1050,7 @@ export default function ProgressPage() {
                       <div style={{ display: "flex", gap: 4, flex: 1, flexWrap: "wrap" }}>
                         {(tl.body_parts || []).map(p => {
                           const info = BODY_PART_LABELS[p] || { label: p, color: "#a78bfa" };
-                          return <span key={p} style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 8, background: `${info.color}20`, color: info.color }}>{info.label}</span>;
+                          return <span key={p} style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 8, background: `${info.color}20`, color: info.color }}>{info.label}</span>;
                         })}
                       </div>
                       <span style={{ display: "flex", gap: 1 }}>

@@ -299,32 +299,32 @@ export default function CoachPage() {
                 )}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
                   <div style={S.macroCell}>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)" }}>P</span>
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>P</span>
                     <span style={{ fontSize: 22, fontWeight: 800, color: "#f87171", fontFamily: "var(--font-mono)" }}>
                       {result.newMacros.protein}
                     </span>
-                    <span style={{ fontSize: 8, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>g</span>
+                    <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>g</span>
                   </div>
                   <div style={S.macroCell}>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>F</span>
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>F</span>
                     <span style={{ fontSize: 22, fontWeight: 800, color: "#facc15", fontFamily: "var(--font-mono)" }}>
                       {result.newMacros.fat}
                     </span>
-                    <span style={{ fontSize: 8, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>g</span>
+                    <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>g</span>
                   </div>
                   <div style={S.macroCell}>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>C</span>
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>C</span>
                     <span style={{ fontSize: 22, fontWeight: 800, color: "#60a5fa", fontFamily: "var(--font-mono)" }}>
                       {result.newMacros.carbs}
                     </span>
-                    <span style={{ fontSize: 8, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>g</span>
+                    <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>g</span>
                   </div>
                   <div style={S.macroCell}>
-                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>予算</span>
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>予算</span>
                     <span style={{ fontSize: 18, fontWeight: 800, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
                       ¥{result.newMacros.budget}
                     </span>
-                    <span style={{ fontSize: 8, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>/日</span>
+                    <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>/日</span>
                   </div>
                 </div>
 

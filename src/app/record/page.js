@@ -49,7 +49,7 @@ function MiniDashboard({ totals, totalCal, goals, calGoal }) {
     <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
       {items.map((it) => (
         <div key={it.label} style={{ flex: 1, textAlign: "center" }}>
-          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", marginBottom: 4, fontWeight: 400 }}>{it.label}</div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 4, fontWeight: 500 }}>{it.label}</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: it.over ? "#ef4444" : it.color, fontFamily: "var(--font-mono)", marginBottom: 4 }}>
             {it.current}
           </div>
@@ -1012,7 +1012,7 @@ export default function RecordPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.8)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
                     {log.meal_index != null && (
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 6, background: "rgba(34,197,94,0.1)", color: "#4ade80", flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 6, background: "rgba(34,197,94,0.1)", color: "#4ade80", flexShrink: 0 }}>
                         {log.meal_index}食目
                       </span>
                     )}
@@ -1049,17 +1049,17 @@ export default function RecordPage() {
             <div style={{ display: "flex", justifyContent: "space-around" }}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 28, fontWeight: 800, color: "#4ade80", fontFamily: "var(--font-mono)" }}>{totalCal}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>kcal</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 400 }}>kcal</div>
               </div>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 24, fontWeight: 800, color: "#facc15", fontFamily: "var(--font-mono)" }}>¥{totals.price.toLocaleString()}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>食費</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 400 }}>食費</div>
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "space-around", marginTop: 12 }}>
-              <span style={{ fontSize: 11, color: "#f87171", fontWeight: 600 }}>P {Math.round(totals.protein)}<span style={{ fontSize: 8, fontWeight: 400, opacity: 0.5 }}>g</span></span>
-              <span style={{ fontSize: 11, color: "#facc15", fontWeight: 600 }}>F {Math.round(totals.fat)}<span style={{ fontSize: 8, fontWeight: 400, opacity: 0.5 }}>g</span></span>
-              <span style={{ fontSize: 11, color: "#60a5fa", fontWeight: 600 }}>C {Math.round(totals.carbs)}<span style={{ fontSize: 8, fontWeight: 400, opacity: 0.5 }}>g</span></span>
+              <span style={{ fontSize: 12, color: "#f87171", fontWeight: 600 }}>P {Math.round(totals.protein)}<span style={{ fontSize: 9, fontWeight: 400, opacity: 0.6 }}>g</span></span>
+              <span style={{ fontSize: 12, color: "#facc15", fontWeight: 600 }}>F {Math.round(totals.fat)}<span style={{ fontSize: 9, fontWeight: 400, opacity: 0.6 }}>g</span></span>
+              <span style={{ fontSize: 12, color: "#60a5fa", fontWeight: 600 }}>C {Math.round(totals.carbs)}<span style={{ fontSize: 9, fontWeight: 400, opacity: 0.6 }}>g</span></span>
             </div>
           </div>
         )}
@@ -1075,7 +1075,7 @@ export default function RecordPage() {
               <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>体重</span>
               {!weightOpen && morningWeight && (
                 <span style={{ fontSize: 14, color: "#4ade80", fontFamily: "var(--font-mono)", fontWeight: 700 }}>
-                  {morningWeight}<span style={{ fontSize: 9, fontWeight: 400, opacity: 0.5 }}>kg</span>
+                  {morningWeight}<span style={{ fontSize: 10, fontWeight: 400, opacity: 0.6 }}>kg</span>
                 </span>
               )}
             </div>
@@ -1361,7 +1361,7 @@ const S = {
   fieldLabel: { fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.4)", textAlign: "center" },
   numWrap: { display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "8px 8px" },
   numInput: { width: "100%", background: "transparent", border: "none", outline: "none", color: "#22c55e", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, textAlign: "right", minWidth: 0 },
-  unit: { fontSize: 11, color: "rgba(255,255,255,0.3)", flexShrink: 0 },
+  unit: { fontSize: 12, color: "rgba(255,255,255,0.35)", flexShrink: 0 },
 
   notesInput: { width: "100%", padding: "12px 14px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.7)", fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "'Noto Sans JP',sans-serif", resize: "vertical", lineHeight: 1.6 },
 
@@ -1371,8 +1371,8 @@ const S = {
   deleteBtn: { width: 32, height: 32, borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "rgba(255,255,255,0.25)", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
   routineChip: { display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "14px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, minWidth: 95, flexShrink: 0, transition: "all 0.15s" },
-  chipBadge: { fontSize: 10, fontWeight: 600, color: "#4ade80", fontFamily: "var(--font-mono)" },
-  chipPfc: { fontSize: 9, fontWeight: 600, fontFamily: "var(--font-mono)" },
+  chipBadge: { fontSize: 11, fontWeight: 600, color: "#4ade80", fontFamily: "var(--font-mono)" },
+  chipPfc: { fontSize: 10, fontWeight: 600, fontFamily: "var(--font-mono)" },
   routineAdd: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: "14px 16px", background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 18, minWidth: 75, flexShrink: 0, textDecoration: "none", color: "rgba(255,255,255,0.3)" },
 
   /* Bottom sheet styles */
@@ -1381,6 +1381,6 @@ const S = {
   sheetFieldLabel: { fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.4)", textAlign: "center" },
   sheetNumWrap: { display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "10px 8px" },
   sheetNumInput: { width: "100%", background: "transparent", border: "none", outline: "none", color: "#22c55e", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, textAlign: "right", minWidth: 0 },
-  sheetUnit: { fontSize: 11, color: "rgba(255,255,255,0.3)", flexShrink: 0 },
-  quickBtn: { flex: 1, padding: "5px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", fontSize: 10, fontWeight: 600, fontFamily: "var(--font-mono)", color: "rgba(255,255,255,0.4)", cursor: "pointer", textAlign: "center", transition: "all 0.15s" },
+  sheetUnit: { fontSize: 12, color: "rgba(255,255,255,0.35)", flexShrink: 0 },
+  quickBtn: { flex: 1, padding: "5px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", fontSize: 11, fontWeight: 600, fontFamily: "var(--font-mono)", color: "rgba(255,255,255,0.4)", cursor: "pointer", textAlign: "center", transition: "all 0.15s" },
 };

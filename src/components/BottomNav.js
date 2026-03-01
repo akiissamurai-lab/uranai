@@ -100,7 +100,7 @@ export default function BottomNav() {
               </div>
               <span
                 style={{
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: isActive ? 700 : 500,
                   color,
                   letterSpacing: 0.3,

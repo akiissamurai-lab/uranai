@@ -356,7 +356,7 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
                         {food.serving}{food.unit}あたり
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 6, fontSize: 10, fontFamily: "var(--font-mono)" }}>
+                    <div style={{ display: "flex", gap: 6, fontSize: 11, fontFamily: "var(--font-mono)" }}>
                       <span style={{ color: "#f87171" }}>P{food.p}</span>
                       <span style={{ color: "#facc15" }}>F{food.f}</span>
                       <span style={{ color: "#60a5fa" }}>C{food.c}</span>
@@ -500,7 +500,7 @@ const S = {
     padding: "14px 16px", background: "rgba(255,255,255,0.04)",
     border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, marginBottom: 8,
   },
-  badge: { fontSize: 10, fontWeight: 600, color: "#4ade80", fontFamily: "var(--font-mono)", background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 6 },
+  badge: { fontSize: 11, fontWeight: 600, color: "#4ade80", fontFamily: "var(--font-mono)", background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 6 },
   deleteBtn: { padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.08)", color: "#f87171", cursor: "pointer", flexShrink: 0, transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center" },
 
   fieldLabel: { fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.4)", display: "block", marginBottom: 4 },
