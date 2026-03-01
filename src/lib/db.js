@@ -348,10 +348,11 @@ export async function saveRoutineMeal(supabase, userId, meal) {
     protein: meal.protein ?? null,
     fat: meal.fat ?? null,
     carbs: meal.carbs ?? null,
+    sort_order: 0,
   }).select().single();
 
   if (error) {
-    console.warn("saveRoutineMeal error:", error.message);
+    console.error("saveRoutineMeal error:", error.message, error.details, error.hint);
     return null;
   }
   return data;

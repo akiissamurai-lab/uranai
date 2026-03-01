@@ -116,10 +116,14 @@ export default function RoutinesPage() {
     };
 
     let saved;
-    if (user) {
-      saved = await saveRoutineMeal(supabase, user.id, mealData);
-    } else {
-      saved = saveLocalRoutineMeal(mealData);
+    try {
+      if (user) {
+        saved = await saveRoutineMeal(supabase, user.id, mealData);
+      } else {
+        saved = saveLocalRoutineMeal(mealData);
+      }
+    } catch (err) {
+      console.error("handleAdd error:", err);
     }
     setSaving(false);
 
@@ -137,7 +141,7 @@ export default function RoutinesPage() {
       setSuggestions([]);
       setShowSuggestions(false);
     } else {
-      showToast("error", "追加に失敗しました");
+      showToast("error", "追加に失敗しました。ブラウザコンソールを確認してください");
     }
   };
 
