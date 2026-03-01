@@ -27,7 +27,7 @@ export default function WelcomeLanding({ supabase, onAuthChange }) {
             <div style={{ fontSize: 8, color: "#9ca3af", letterSpacing: 1.5, textTransform: "uppercase" }}>AI PFC × Budget Tracker</div>
           </div>
         </div>
-        <AuthGate supabase={supabase} onAuthChange={onAuthChange} />
+        <AuthGate supabase={supabase} onAuthChange={onAuthChange} onSessionExpired={() => {}} />
       </header>
 
       {/* ─── Hero Section ─── */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // In-Appブラウザ検知
 function detectInAppBrowser() {
@@ -13,15 +13,34 @@ function detectInAppBrowser() {
   return null;
 }
 
-export default function AuthGate({ supabase, onAuthChange }) {
+// ─── #9: Supabase英語エラーメッセージの日本語化ヘルパー ───
+function localizeAuthError(message) {
+  if (!message) return "認証エラーが発生しました";
+  if (message.includes("Email not confirmed")) return "メールアドレスが未確認です。確認メールのリンクをクリックしてください";
+  if (message.includes("Invalid login credentials")) return "メールアドレスまたはパスワードが正しくありません";
+  if (message.includes("already registered") || message.includes("already been registered")) return "このメールアドレスは登録済みです。ログインしてください";
+  if (message.includes("Password should be at least")) return "パスワードは6文字以上にしてください";
+  if (message.includes("valid password") || message.includes("Signup requires")) return "有効なパスワードを入力してください（6文字以上）";
+  if (message.includes("valid email") || message.includes("Unable to validate email")) return "有効なメールアドレスを入力してください";
+  if (message.includes("User not found")) return "ユーザーが見つかりません";
+  if (message.includes("Email rate limit") || message.includes("rate limit") || message.includes("Rate limit")) return "送信制限中です。しばらく待ってからお試しください";
+  if (message.includes("For security purposes")) return "セキュリティのため、しばらく待ってからお試しください";
+  if (message.includes("Signups not allowed")) return "現在新規登録を受け付けていません";
+  if (message.includes("Network") || message.includes("fetch")) return "ネットワークエラーです。接続を確認してください";
+  return message;
+}
+
+export default function AuthGate({ supabase, onAuthChange, onSessionExpired }) {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState("magic"); // magic | login | signup
-  const [status, setStatus] = useState("idle"); // idle | sending | sent | error | rate_limit
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error | rate_limit | resending
   const [errorMsg, setErrorMsg] = useState("");
   const [inAppBrowser, setInAppBrowser] = useState(null);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false); // #4: 確認メール再送
+  const prevUserRef = useRef(null); // #3: セッション切れ検知
 
   useEffect(() => {
     setInAppBrowser(detectInAppBrowser());
@@ -30,10 +49,11 @@ export default function AuthGate({ supabase, onAuthChange }) {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
+      prevUserRef.current = user;
       onAuthChange(user);
     }).catch(() => {
-      // ネットワークエラー等: ゲスト扱い
       setUser(null);
+      prevUserRef.current = null;
       onAuthChange(null);
     });
 
@@ -42,20 +62,27 @@ export default function AuthGate({ supabase, onAuthChange }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       const currentUser = session?.user ?? null;
 
+      // #8: 明示的な括弧で演算子優先度を明確化
       // セッション期限切れ・リフレッシュ失敗 → 安全にゲストモードへ
-      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED" && !session) {
+      if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
+        // #3: ユーザーが以前ログイン済みで、予期しないセッション切れの場合のみ通知
+        if (prevUserRef.current && event === "TOKEN_REFRESHED") {
+          onSessionExpired?.();
+        }
         setUser(null);
+        prevUserRef.current = null;
         onAuthChange(null);
         return;
       }
 
       // 別タブでログイン/ログアウトした場合もリアルタイム反映
+      prevUserRef.current = currentUser;
       setUser(currentUser);
       onAuthChange(currentUser);
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, onAuthChange]);
+  }, [supabase, onAuthChange, onSessionExpired]);
 
   const resetForm = () => {
     setShowForm(false);
@@ -64,15 +91,17 @@ export default function AuthGate({ supabase, onAuthChange }) {
     setEmail("");
     setPassword("");
     setMode("login");
+    setNeedsConfirmation(false);
   };
 
-  // パスワードでログイン
+  // ─── パスワードでログイン ───
   const handlePasswordLogin = async (e) => {
     e.preventDefault();
     if (!email.trim() || !password) return;
 
     setStatus("sending");
     setErrorMsg("");
+    setNeedsConfirmation(false);
 
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
@@ -81,20 +110,22 @@ export default function AuthGate({ supabase, onAuthChange }) {
 
     if (error) {
       console.error("Login error:", error.message);
+      setErrorMsg(localizeAuthError(error.message));
+      // #4: メール未確認エラー → 再送ボタンを表示
       if (error.message.includes("Email not confirmed")) {
-        setErrorMsg("メールアドレスが未確認です。受信箱の確認メールのリンクをクリックしてください");
-      } else if (error.message.includes("Invalid login credentials")) {
-        setErrorMsg("メールアドレスまたはパスワードが正しくありません");
-      } else {
-        setErrorMsg(error.message);
+        setNeedsConfirmation(true);
       }
-      setStatus("error");
+      if (error.message.includes("rate limit") || error.message.includes("Rate limit") || error.message.includes("For security purposes")) {
+        setStatus("rate_limit");
+      } else {
+        setStatus("error");
+      }
     } else {
       resetForm();
     }
   };
 
-  // パスワードでサインアップ
+  // ─── パスワードでサインアップ ───
   const handlePasswordSignup = async (e) => {
     e.preventDefault();
     if (!email.trim() || !password) return;
@@ -117,14 +148,10 @@ export default function AuthGate({ supabase, onAuthChange }) {
 
     if (error) {
       console.error("Signup error:", error.message);
-      if (error.message.includes("already registered")) {
-        setErrorMsg("このメールアドレスは登録済みです。ログインしてください");
-      } else if (error.message.includes("rate limit")) {
-        setErrorMsg("送信制限中です。しばらく待ってください");
+      setErrorMsg(localizeAuthError(error.message));
+      if (error.message.includes("rate limit") || error.message.includes("Rate limit")) {
         setStatus("rate_limit");
         return;
-      } else {
-        setErrorMsg(error.message);
       }
       setStatus("error");
     } else if (data.session) {
@@ -136,7 +163,7 @@ export default function AuthGate({ supabase, onAuthChange }) {
     }
   };
 
-  // Magic Link
+  // ─── Magic Link ───
   const handleSendMagicLink = async (e) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -153,11 +180,10 @@ export default function AuthGate({ supabase, onAuthChange }) {
 
     if (error) {
       console.error("Magic Link error:", error.message);
-      if (error.message.includes("rate limit")) {
+      setErrorMsg(localizeAuthError(error.message));
+      if (error.message.includes("rate limit") || error.message.includes("Rate limit")) {
         setStatus("rate_limit");
-        setErrorMsg("送信制限中です。しばらく待ってください");
       } else {
-        setErrorMsg(error.message);
         setStatus("error");
       }
     } else {
@@ -165,44 +191,103 @@ export default function AuthGate({ supabase, onAuthChange }) {
     }
   };
 
+  // ─── #4: 確認メール再送 ───
+  const handleResendConfirmation = async () => {
+    if (!email.trim()) return;
+    setStatus("resending");
+    setErrorMsg("");
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        },
+      });
+      if (error) {
+        setErrorMsg(localizeAuthError(error.message));
+        setStatus("error");
+      } else {
+        setNeedsConfirmation(false);
+        setStatus("sent");
+      }
+    } catch {
+      setErrorMsg("再送に失敗しました。しばらく待ってからお試しください");
+      setStatus("error");
+    }
+  };
+
+  // ─── #2: signOut() エラーハンドリング強化 ───
   const handleLogout = async () => {
     if (!window.confirm("ログアウトしますか？")) return;
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error("Logout error:", error);
+    } catch (e) {
+      console.error("Logout exception:", e);
+      // サーバー側signOutが失敗しても、クライアント状態は必ずクリアする
+    }
     resetForm();
   };
 
-  // ─── ログイン済み ───
+  // ═══════ ログイン済み ═══════
+  // #6: モバイルでもログアウトだと明確に分かるデザイン
   if (user) {
     const initial = (user.email || "?")[0].toUpperCase();
     return (
       <div style={{ position: "relative", display: "inline-block" }}>
         <button
           onClick={handleLogout}
-          title={`${user.email}\n(タップでログアウト)`}
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #667eea, #764ba2)",
-            color: "#fff",
-            border: "none",
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            gap: 8,
+            padding: "4px 12px 4px 4px",
+            borderRadius: 22,
+            background: "rgba(102,126,234,0.1)",
+            border: "1px solid rgba(102,126,234,0.25)",
+            cursor: "pointer",
+            transition: "all 0.2s",
           }}
           aria-label="ログアウト"
         >
-          {initial}
+          <div style={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #667eea, #764ba2)",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            {initial}
+          </div>
+          <span style={{
+            color: "rgba(255,255,255,0.5)",
+            fontSize: 11,
+            fontWeight: 500,
+            display: "flex",
+            alignItems: "center",
+            gap: 3,
+          }}>
+            ログアウト
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </span>
         </button>
       </div>
     );
   }
 
-  // ─── 未ログイン ───
-  const isBusy = status === "sending";
+  // ═══════ 未ログイン ═══════
+  const isBusy = status === "sending" || status === "resending";
 
   const handleSubmit =
     mode === "magic"
@@ -281,7 +366,7 @@ export default function AuthGate({ supabase, onAuthChange }) {
             </div>
           )}
 
-          {/* 送信完了 */}
+          {/* ─── 送信完了 ─── */}
           {status === "sent" ? (
             <div style={{ textAlign: "center" }}>
               <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}>
@@ -292,7 +377,17 @@ export default function AuthGate({ supabase, onAuthChange }) {
                   ? "確認メールを送信しました"
                   : "メールを送信しました"}
               </p>
-              <p style={{ color: "#888", fontSize: 11, marginTop: 4, lineHeight: 1.5 }}>
+              {/* #5: 送信先メールアドレス表示 */}
+              <p style={{
+                color: "#c4b5fd",
+                fontSize: 12,
+                margin: "6px 0 0",
+                fontWeight: 600,
+                wordBreak: "break-all",
+              }}>
+                📧 {email}
+              </p>
+              <p style={{ color: "#888", fontSize: 11, marginTop: 6, lineHeight: 1.5 }}>
                 {mode === "signup"
                   ? "メール内のリンクをタップして登録を完了 → ここに戻ってパスワードでログインしてください"
                   : "メール内のリンクをタップしてログイン"}
@@ -311,7 +406,7 @@ export default function AuthGate({ supabase, onAuthChange }) {
                 </button>
               )}
               <p style={{ color: "#777", fontSize: 10, marginTop: 8, lineHeight: 1.5 }}>
-                届かない場合は迷惑メールフォルダを確認してください。
+                ※ 届かない場合は迷惑メールフォルダをご確認ください。
                 <br />
                 数分待っても届かない場合は再度お試しください。
               </p>
@@ -356,6 +451,7 @@ export default function AuthGate({ supabase, onAuthChange }) {
                       setMode(key);
                       setStatus("idle");
                       setErrorMsg("");
+                      setNeedsConfirmation(false);
                     }}
                     style={{
                       flex: 1,
@@ -426,6 +522,32 @@ export default function AuthGate({ supabase, onAuthChange }) {
                   >
                     {errorMsg}
                   </p>
+                )}
+
+                {/* #4: 確認メール再送ボタン */}
+                {needsConfirmation && (
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={status === "resending"}
+                    style={{
+                      width: "100%",
+                      marginTop: 8,
+                      padding: "7px 0",
+                      borderRadius: 8,
+                      border: "1px solid rgba(160,224,160,0.3)",
+                      background: "rgba(160,224,160,0.08)",
+                      color: "#a0e0a0",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: status === "resending" ? "not-allowed" : "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {status === "resending"
+                      ? "再送中..."
+                      : "📩 確認メールを再送する"}
+                  </button>
                 )}
 
                 <button

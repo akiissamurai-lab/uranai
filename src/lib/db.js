@@ -161,9 +161,15 @@ export async function deleteMealLog(supabase, userId, logId) {
 export async function migrateAllLocalData(supabase, userId) {
   if (typeof window === "undefined") return;
 
-  // 既に同期済みならスキップ
-  const migrated = localStorage.getItem(`guest_migrated_${userId}`);
-  if (migrated) return;
+  // ── まずローカルにデータがあるか実体チェック（フラグではなく実データで判定）──
+  // 理由: ログアウト→ゲスト利用→再ログイン時にフラグだけだとスキップされ、
+  //        ゲスト期間の新データが移行されないバグを防止する
+  const { getAllLocalData, clearAllLocalData } = await import("@/lib/local-db");
+  const local = getAllLocalData();
+  if (!local || (!local.profile && !local.mealLogs && !local.bodyMetrics && !local.routineMeals && !local.trainingLogs)) {
+    // ローカルにデータなし → 移行不要
+    return;
+  }
 
   // 複数タブからの同時実行をロック
   const lockKey = `guest_migrating_lock`;
@@ -179,14 +185,6 @@ export async function migrateAllLocalData(supabase, userId) {
   localStorage.setItem(lockKey, String(Date.now()));
 
   try {
-    const { getAllLocalData, clearAllLocalData } = await import("@/lib/local-db");
-    const local = getAllLocalData();
-    if (!local || (!local.profile && !local.mealLogs && !local.bodyMetrics && !local.routineMeals && !local.trainingLogs)) {
-      // ローカルデータなし → 同期不要、フラグだけ立てる
-      localStorage.setItem(`guest_migrated_${userId}`, "true");
-      localStorage.removeItem(lockKey);
-      return;
-    }
 
     let saveErrors = 0;
 
