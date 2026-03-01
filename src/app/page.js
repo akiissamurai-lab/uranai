@@ -749,6 +749,7 @@ export default function Home() {
   const [authChecked, setAuthChecked] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [loginProfileReady, setLoginProfileReady] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const profileSaveTimer = useRef(null);
   const hasCustomProtein = useRef(false);
 
@@ -799,6 +800,15 @@ export default function Home() {
     }
   }, [supabase, authChecked]);
 
+  // ローディングタイムアウト: 8秒超えたらフォールバックUI表示
+  useEffect(() => {
+    if (!authChecked || (user && !loginProfileReady)) {
+      const timer = setTimeout(() => setLoadingTimeout(true), 8000);
+      return () => clearTimeout(timer);
+    }
+    setLoadingTimeout(false);
+  }, [authChecked, user, loginProfileReady]);
+
   useEffect(() => { setHistory(loadHistory()); }, []);
 
   // ゲストプロフィール復元（初回マウント時）
@@ -833,59 +843,73 @@ export default function Home() {
       try {
         const { data: { user: verified } } = await supabase.auth.getUser();
         if (!verified) {
-          // トークンは存在するがサーバー側で無効 → ゲストモードへ安全に退行
           console.warn("Session token invalid, falling back to guest mode");
           setUser(null);
+          setLoginProfileReady(false);
           return;
         }
-      } catch {
-        // ネットワークエラー → ゲストモードで継続
+      } catch (e) {
+        console.error("Auth verification failed:", e);
         setUser(null);
+        setLoginProfileReady(false);
         return;
       }
 
-      // プロフィール復元
-      const profile = await loadProfile(supabase, authUser.id);
-      if (profile) {
-        if (profile.weight) setWeight(profile.weight);
-        if (profile.height) setHeight(profile.height);
-        if (profile.age) setAge(profile.age);
-        if (profile.body_fat) setBodyFat(profile.body_fat);
-        if (profile.gender) setGender(profile.gender);
-        if (profile.goal) setGoal(profile.goal);
-        if (profile.activity) setActivity(profile.activity);
-        if (profile.goal_weight) setGoalWeight(profile.goal_weight);
-        if (profile.budget) setBudget(profile.budget);
-        // PFC目標値（設定ページで保存した値で自動計算を上書き）
-        if (profile.protein_goal) {
-          setProtein(profile.protein_goal);
-          hasCustomProtein.current = true;
+      // プロフィール復元（失敗しても loginProfileReady は必ずセット）
+      try {
+        const profile = await loadProfile(supabase, authUser.id);
+        if (profile) {
+          if (profile.weight) setWeight(profile.weight);
+          if (profile.height) setHeight(profile.height);
+          if (profile.age) setAge(profile.age);
+          if (profile.body_fat) setBodyFat(profile.body_fat);
+          if (profile.gender) setGender(profile.gender);
+          if (profile.goal) setGoal(profile.goal);
+          if (profile.activity) setActivity(profile.activity);
+          if (profile.goal_weight) setGoalWeight(profile.goal_weight);
+          if (profile.budget) setBudget(profile.budget);
+          if (profile.protein_goal) {
+            setProtein(profile.protein_goal);
+            hasCustomProtein.current = true;
+          }
+          setProfileGoals({
+            budget: profile.budget || null,
+            protein_goal: profile.protein_goal || null,
+            fat_goal: profile.fat_goal || null,
+            carbs_goal: profile.carbs_goal || null,
+          });
         }
-        setProfileGoals({
-          budget: profile.budget || null,
-          protein_goal: profile.protein_goal || null,
-          fat_goal: profile.fat_goal || null,
-          carbs_goal: profile.carbs_goal || null,
-        });
+      } catch (e) {
+        console.error("Profile load failed:", e);
+      } finally {
+        setLoginProfileReady(true);
       }
-      setLoginProfileReady(true);
-      // ゲストデータ→DB一括同期
-      await migrateAllLocalData(supabase, authUser.id);
-      // レガシー localStorage→DB移行
-      await migrateFromLocalStorage(supabase, authUser.id);
+
+      // データ移行（ローディング解除後にバックグラウンド実行）
+      try {
+        await migrateAllLocalData(supabase, authUser.id);
+        await migrateFromLocalStorage(supabase, authUser.id);
+      } catch (e) {
+        console.error("Data migration failed:", e);
+      }
+
       // DB履歴読み込み
-      const plans = await loadMealPlans(supabase, authUser.id);
-      if (plans.length > 0) {
-        setHistory(plans.map(p => ({
-          id: p.id,
-          date: new Date(p.created_at).toLocaleDateString("ja-JP"),
-          weight: null,
-          goal: null,
-          budget: p.budget,
-          protein: Math.round(p.total_protein || 0),
-          cal: Math.round(p.total_cal || 0),
-          cost: Math.round(p.total_cost || 0),
-        })));
+      try {
+        const plans = await loadMealPlans(supabase, authUser.id);
+        if (plans.length > 0) {
+          setHistory(plans.map(p => ({
+            id: p.id,
+            date: new Date(p.created_at).toLocaleDateString("ja-JP"),
+            weight: null,
+            goal: null,
+            budget: p.budget,
+            protein: Math.round(p.total_protein || 0),
+            cal: Math.round(p.total_cal || 0),
+            cost: Math.round(p.total_cost || 0),
+          })));
+        }
+      } catch (e) {
+        console.error("Meal plans load failed:", e);
       }
     } else {
       // ログアウト時: localStorageの履歴に戻す
@@ -1123,10 +1147,34 @@ export default function Home() {
   // auth確認中 or ログイン済みプロフィール読込中はローディング画面を表示（フラッシュ防止）
   if (!authChecked || (user && !loginProfileReady)) {
     return (
-      <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", color: "white", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 30px rgba(34,197,94,0.3)", marginBottom: 16, animation: "pulse 1.5s ease-in-out infinite" }}><Activity size={24} strokeWidth={1.5} color="white" /></div>
-        <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>読み込み中...</p>
-        <style>{`@keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.7; } }`}</style>
+      <div style={{ minHeight: "100vh", background: "linear-gradient(170deg,#0a0a0f 0%,#0d1117 40%,#0f1923 100%)", color: "white", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
+        {loadingTimeout ? (
+          <>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.3)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <AlertTriangle size={24} strokeWidth={1.5} color="#fbbf24" />
+            </div>
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>読み込みに時間がかかっています</p>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginBottom: 20, textAlign: "center", lineHeight: 1.5 }}>通信環境を確認してください</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => location.reload()} style={{
+                padding: "10px 20px", borderRadius: 10, border: "none",
+                background: "linear-gradient(135deg, #22c55e, #16a34a)", color: "#fff",
+                fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}>再読み込み</button>
+              <button onClick={async () => { await supabase.auth.signOut(); location.reload(); }} style={{
+                padding: "10px 20px", borderRadius: 10,
+                border: "1px solid rgba(255,255,255,0.15)", background: "transparent",
+                color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}>ログアウトしてやり直す</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 30px rgba(34,197,94,0.3)", marginBottom: 16, animation: "pulse 1.5s ease-in-out infinite" }}><Activity size={24} strokeWidth={1.5} color="white" /></div>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>読み込み中...</p>
+            <style>{`@keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.7; } }`}</style>
+          </>
+        )}
       </div>
     );
   }
