@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals, saveDailyNotes, loadBodyMetricByDate, saveBodyMetric, saveTrainingLog, loadTrainingLogsByDate, deleteTrainingLog } from "@/lib/db";
 import { saveLocalMealLog, loadLocalMealLogs, deleteLocalMealLog, loadLocalRoutineMeals, loadLocalProfile, saveLocalDailyNotes, loadLocalBodyMetricByDate, saveLocalBodyMetric, saveLocalTrainingLog, loadLocalTrainingLogsByDate, deleteLocalTrainingLog } from "@/lib/local-db";
-import { Wallet, Zap, UtensilsCrossed, Plus, PenLine, Scale, Dumbbell, Star, Trash2, ChevronDown, X } from "lucide-react";
+import { Wallet, Zap, UtensilsCrossed, Plus, PenLine, Scale, Dumbbell, Star, Trash2, ChevronDown, X, Sparkles } from "lucide-react";
+import { searchFoods, calcForServing } from "@/lib/food-db";
 
 const BODY_PART_OPTIONS = [
   { id: "chest", label: "胸", color: "#f87171" },
@@ -70,12 +71,104 @@ function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) 
   const [carbs, setCarbs] = useState("");
   const nameRef = useRef(null);
 
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedFood, setSelectedFood] = useState(null);
+  const [servingSize, setServingSize] = useState("");
+  const [aiEstimating, setAiEstimating] = useState(false);
+  const [aiSource, setAiSource] = useState(false);
+
   useEffect(() => {
     if (open) {
       setMealName(""); setPrice(""); setProtein(""); setFat(""); setCarbs("");
+      setSuggestions([]); setShowSuggestions(false); setSelectedFood(null); setServingSize(""); setAiSource(false);
       setTimeout(() => nameRef.current?.focus(), 100);
     }
   }, [open]);
+
+  // Search foods on name change
+  const handleNameChange = (val) => {
+    setMealName(val);
+    setAiSource(false);
+    if (val.length >= 1) {
+      const results = searchFoods(val);
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+    // Clear selection if user edits
+    if (selectedFood) { setSelectedFood(null); setServingSize(""); }
+  };
+
+  // Select a food from suggestions
+  const handleSelectFood = (food) => {
+    setMealName(food.name);
+    setSelectedFood(food);
+    setServingSize(String(food.serving));
+    setShowSuggestions(false);
+    // Auto-fill PFC
+    setProtein(String(food.p));
+    setFat(String(food.f));
+    setCarbs(String(food.c));
+    setPrice(String(food.price));
+  };
+
+  // Recalculate PFC when serving size changes
+  const handleServingChange = (val) => {
+    setServingSize(val);
+    if (!selectedFood || val === "") return;
+    const g = Number(val);
+    if (isNaN(g) || g <= 0) return;
+    const calc = calcForServing(selectedFood, g);
+    setProtein(String(calc.protein));
+    setFat(String(calc.fat));
+    setCarbs(String(calc.carbs));
+    setPrice(String(calc.price));
+  };
+
+  // AI estimation fallback
+  const handleAiEstimate = async () => {
+    if (!mealName.trim() || aiEstimating) return;
+    setAiEstimating(true);
+    try {
+      const res = await fetch("/api/macro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: `以下の食品・料理の1食分の標準的な栄養素を推定してください。JSON形式のみで回答してください。他のテキストは一切不要です。
+
+食品名: ${mealName.trim()}
+
+回答形式（厳守）:
+{"p":数値,"f":数値,"c":数値,"cal":数値,"price":数値,"serving":"量の説明"}
+
+p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), price=目安価格(円), serving=1食分の量の説明（例: "1膳150g", "1個60g"）`
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const raw = data.content;
+        const text = (Array.isArray(raw) ? raw[0]?.text : typeof raw === "string" ? raw : "").trim();
+        // Extract JSON from response
+        const jsonMatch = text.match(/\{[^}]+\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.p != null) setProtein(String(Math.round(parsed.p)));
+          if (parsed.f != null) setFat(String(Math.round(parsed.f)));
+          if (parsed.c != null) setCarbs(String(Math.round(parsed.c)));
+          if (parsed.price != null) setPrice(String(Math.round(parsed.price)));
+          setAiSource(true);
+        }
+      }
+    } catch (e) {
+      console.warn("AI estimation failed:", e);
+    } finally {
+      setAiEstimating(false);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -89,7 +182,11 @@ function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) 
       mealIndex: activeMealIndex,
     });
     setMealName(""); setPrice(""); setProtein(""); setFat(""); setCarbs("");
+    setSelectedFood(null); setServingSize(""); setAiSource(false);
   };
+
+  const hasSuggestionForName = suggestions.length > 0;
+  const showAiButton = mealName.trim().length >= 2 && !selectedFood && !hasSuggestionForName && !protein && !fat && !carbs;
 
   return (
     <>
@@ -112,6 +209,7 @@ function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) 
         transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)",
         maxWidth: 480, margin: "0 auto",
         boxShadow: "0 -8px 40px rgba(0,0,0,0.4)",
+        maxHeight: "85vh", overflowY: "auto",
       }}>
         {/* Drag handle */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
@@ -127,16 +225,104 @@ function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) 
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Meal name */}
-          <input
-            ref={nameRef}
-            type="text"
-            value={mealName}
-            onChange={(e) => setMealName(e.target.value)}
-            placeholder="何を食べた？"
-            required
-            style={S.sheetTextInput}
-          />
+          {/* Meal name with autocomplete */}
+          <div style={{ position: "relative", marginBottom: showSuggestions ? 0 : 16 }}>
+            <input
+              ref={nameRef}
+              type="text"
+              value={mealName}
+              onChange={(e) => handleNameChange(e.target.value)}
+              onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+              placeholder="何を食べた？（例: 鶏むね肉、おにぎり）"
+              required
+              autoComplete="off"
+              style={S.sheetTextInput}
+            />
+
+            {/* Suggestions dropdown */}
+            {showSuggestions && (
+              <div style={{
+                background: "rgba(20,24,35,0.98)", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "0 0 14px 14px", borderTop: "none",
+                maxHeight: 200, overflowY: "auto", marginTop: -2,
+              }}>
+                {suggestions.map((food, i) => (
+                  <button key={i} type="button" onClick={() => handleSelectFood(food)} style={{
+                    width: "100%", padding: "10px 14px", border: "none", background: "transparent",
+                    cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    borderBottom: i < suggestions.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)" }}>{food.name}</div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
+                        {food.serving}{food.unit}あたり
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, fontSize: 10, fontFamily: "'Space Mono',monospace" }}>
+                      <span style={{ color: "#f87171" }}>P{food.p}</span>
+                      <span style={{ color: "#facc15" }}>F{food.f}</span>
+                      <span style={{ color: "#60a5fa" }}>C{food.c}</span>
+                      <span style={{ color: "rgba(255,255,255,0.3)" }}>¥{food.price}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {showSuggestions && <div style={{ height: 16 }} />}
+
+          {/* Serving size adjuster (when food is selected) */}
+          {selectedFood && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 14,
+              padding: "10px 14px", borderRadius: 12,
+              background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.12)",
+            }}>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", flexShrink: 0 }}>量</span>
+              <input
+                type="number" inputMode="decimal" value={servingSize}
+                onChange={(e) => handleServingChange(e.target.value)}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#4ade80", fontSize: 16, fontWeight: 700, fontFamily: "'Space Mono',monospace", textAlign: "center", minWidth: 0 }}
+              />
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", flexShrink: 0 }}>{selectedFood.unit}</span>
+              {/* Quick serving buttons */}
+              <div style={{ display: "flex", gap: 4 }}>
+                {[0.5, 1, 1.5, 2].map(mult => {
+                  const val = Math.round(selectedFood.serving * mult);
+                  const isActive = servingSize === String(val);
+                  return (
+                    <button key={mult} type="button" onClick={() => handleServingChange(String(val))} style={{
+                      padding: "4px 8px", borderRadius: 8, border: `1px solid ${isActive ? "rgba(74,222,128,0.4)" : "rgba(255,255,255,0.08)"}`,
+                      background: isActive ? "rgba(74,222,128,0.15)" : "transparent",
+                      color: isActive ? "#4ade80" : "rgba(255,255,255,0.3)", fontSize: 10, fontWeight: 600, cursor: "pointer",
+                    }}>{mult === 1 ? "1食" : `×${mult}`}</button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* AI estimation button */}
+          {showAiButton && (
+            <button type="button" onClick={handleAiEstimate} disabled={aiEstimating} style={{
+              width: "100%", padding: "10px 0", borderRadius: 12, border: "1px solid rgba(168,139,250,0.2)",
+              background: "rgba(168,139,250,0.06)", color: "#a78bfa", fontSize: 13, fontWeight: 600,
+              cursor: aiEstimating ? "not-allowed" : "pointer", marginBottom: 14,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              opacity: aiEstimating ? 0.6 : 1, transition: "all 0.2s",
+            }}>
+              <Sparkles size={14} strokeWidth={1.5} />
+              {aiEstimating ? "推定中..." : `「${mealName.trim()}」のPFCをAIで推定`}
+            </button>
+          )}
+
+          {/* AI source label */}
+          {aiSource && (
+            <div style={{ fontSize: 10, color: "rgba(168,139,250,0.5)", textAlign: "center", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <Sparkles size={10} strokeWidth={1.5} /> AI推定値（目安）
+            </div>
+          )}
 
           {/* PFC + Price in one row with quick buttons */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
@@ -170,41 +356,45 @@ function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) 
             </div>
           </div>
 
-          {/* Quick-tap value buttons */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
-            <div style={{ display: "flex", gap: 3 }}>
-              {[10, 20, 30].map(v => (
-                <button key={v} type="button" onClick={() => setProtein(String(v))}
-                  style={{ ...S.quickBtn, color: "#f87171", borderColor: protein === String(v) ? "#f87171" : "rgba(255,255,255,0.08)", background: protein === String(v) ? "rgba(248,113,113,0.15)" : "transparent" }}>
-                  {v}
-                </button>
-              ))}
+          {/* Quick-tap value buttons (hidden when food selected from DB) */}
+          {!selectedFood && !aiSource && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+              <div style={{ display: "flex", gap: 3 }}>
+                {[10, 20, 30].map(v => (
+                  <button key={v} type="button" onClick={() => setProtein(String(v))}
+                    style={{ ...S.quickBtn, color: "#f87171", borderColor: protein === String(v) ? "#f87171" : "rgba(255,255,255,0.08)", background: protein === String(v) ? "rgba(248,113,113,0.15)" : "transparent" }}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 3 }}>
+                {[5, 10, 15].map(v => (
+                  <button key={v} type="button" onClick={() => setFat(String(v))}
+                    style={{ ...S.quickBtn, color: "#facc15", borderColor: fat === String(v) ? "#facc15" : "rgba(255,255,255,0.08)", background: fat === String(v) ? "rgba(250,204,21,0.15)" : "transparent" }}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 3 }}>
+                {[20, 40, 60].map(v => (
+                  <button key={v} type="button" onClick={() => setCarbs(String(v))}
+                    style={{ ...S.quickBtn, color: "#60a5fa", borderColor: carbs === String(v) ? "#60a5fa" : "rgba(255,255,255,0.08)", background: carbs === String(v) ? "rgba(96,165,250,0.15)" : "transparent" }}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 3 }}>
+                {[100, 200, 500].map(v => (
+                  <button key={v} type="button" onClick={() => setPrice(String(v))}
+                    style={{ ...S.quickBtn, borderColor: price === String(v) ? "#4ade80" : "rgba(255,255,255,0.08)", background: price === String(v) ? "rgba(74,222,128,0.15)" : "transparent" }}>
+                    {v}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 3 }}>
-              {[5, 10, 15].map(v => (
-                <button key={v} type="button" onClick={() => setFat(String(v))}
-                  style={{ ...S.quickBtn, color: "#facc15", borderColor: fat === String(v) ? "#facc15" : "rgba(255,255,255,0.08)", background: fat === String(v) ? "rgba(250,204,21,0.15)" : "transparent" }}>
-                  {v}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: 3 }}>
-              {[20, 40, 60].map(v => (
-                <button key={v} type="button" onClick={() => setCarbs(String(v))}
-                  style={{ ...S.quickBtn, color: "#60a5fa", borderColor: carbs === String(v) ? "#60a5fa" : "rgba(255,255,255,0.08)", background: carbs === String(v) ? "rgba(96,165,250,0.15)" : "transparent" }}>
-                  {v}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: 3 }}>
-              {[100, 200, 500].map(v => (
-                <button key={v} type="button" onClick={() => setPrice(String(v))}
-                  style={{ ...S.quickBtn, borderColor: price === String(v) ? "#4ade80" : "rgba(255,255,255,0.08)", background: price === String(v) ? "rgba(74,222,128,0.15)" : "transparent" }}>
-                  {v}
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
+
+          {(selectedFood || aiSource) && <div style={{ height: 16 }} />}
 
           <button type="submit" disabled={saving || !mealName.trim()} style={{
             width: "100%", padding: "14px 0", borderRadius: 14, border: "none",

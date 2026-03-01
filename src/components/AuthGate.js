@@ -213,17 +213,23 @@ export default function AuthGate({ supabase, onAuthChange }) {
           }
         }}
         style={{
-          padding: "4px 12px",
-          borderRadius: 8,
-          border: "1px solid rgba(255,255,255,0.2)",
-          background: "rgba(255,255,255,0.1)",
-          color: "#e0e0e0",
-          fontSize: 12,
+          padding: "6px 16px",
+          borderRadius: 10,
+          border: "1px solid rgba(102,126,234,0.4)",
+          background: "linear-gradient(135deg, rgba(102,126,234,0.15), rgba(118,75,162,0.15))",
+          color: "#c4b5fd",
+          fontSize: 13,
+          fontWeight: 600,
           cursor: "pointer",
           whiteSpace: "nowrap",
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          transition: "all 0.2s",
         }}
         aria-label="ログイン"
       >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
         ログイン
       </button>
 
@@ -254,11 +260,24 @@ export default function AuthGate({ supabase, onAuthChange }) {
                   ? "確認メールを送信しました"
                   : "メールを送信しました"}
               </p>
-              <p style={{ color: "#888", fontSize: 11, marginTop: 4 }}>
+              <p style={{ color: "#888", fontSize: 11, marginTop: 4, lineHeight: 1.5 }}>
                 {mode === "signup"
-                  ? "メール内のリンクをタップして登録を完了してください"
+                  ? "メール内のリンクをタップして登録を完了 → ここに戻ってパスワードでログインしてください"
                   : "メール内のリンクをタップしてログイン"}
               </p>
+              {mode === "signup" && (
+                <button
+                  onClick={() => { setMode("login"); setStatus("idle"); setErrorMsg(""); }}
+                  style={{
+                    marginTop: 10, padding: "8px 16px", borderRadius: 8,
+                    border: "1px solid rgba(102,126,234,0.3)",
+                    background: "rgba(102,126,234,0.1)", color: "#a0b4ff",
+                    fontSize: 12, fontWeight: 600, cursor: "pointer", width: "100%",
+                  }}
+                >
+                  確認済み → ログインへ
+                </button>
+              )}
               <p style={{ color: "#777", fontSize: 10, marginTop: 8, lineHeight: 1.5 }}>
                 届かない場合は迷惑メールフォルダを確認してください。
                 <br />
