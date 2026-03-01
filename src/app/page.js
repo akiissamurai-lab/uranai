@@ -832,6 +832,11 @@ export default function Home() {
     }
   }, []);
 
+  // onSessionExpired を安定させる（AuthGateのuseEffectの無限ループ防止）
+  const handleSessionExpired = useCallback(() => {
+    setAuthError("セッションの有効期限が切れました。お手数ですが再度ログインしてください。");
+  }, []);
+
   // Auth状態変化: ログイン時にDB読み込み + localStorage移行
   const authHandled = useRef(null); // 二重実行防止: 最後に処理したユーザーID
   const handleAuthChange = useCallback(async (authUser) => {
@@ -1252,7 +1257,7 @@ export default function Home() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <AuthGate supabase={supabase} onAuthChange={handleAuthChange} onSessionExpired={() => setAuthError("セッションの有効期限が切れました。お手数ですが再度ログインしてください。")} />
+          <AuthGate supabase={supabase} onAuthChange={handleAuthChange} onSessionExpired={handleSessionExpired} />
         </div>
       </header>
       <main style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 100px" }}>

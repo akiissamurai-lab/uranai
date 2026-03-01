@@ -46,15 +46,21 @@ export default function AuthGate({ supabase, onAuthChange, onSessionExpired }) {
     setInAppBrowser(detectInAppBrowser());
   }, []);
 
+  // refs で最新のコールバックを保持（useEffect の deps に含めず無限ループを防止）
+  const onAuthChangeRef = useRef(onAuthChange);
+  const onSessionExpiredRef = useRef(onSessionExpired);
+  useEffect(() => { onAuthChangeRef.current = onAuthChange; }, [onAuthChange]);
+  useEffect(() => { onSessionExpiredRef.current = onSessionExpired; }, [onSessionExpired]);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
       prevUserRef.current = user;
-      onAuthChange(user);
+      onAuthChangeRef.current(user);
     }).catch(() => {
       setUser(null);
       prevUserRef.current = null;
-      onAuthChange(null);
+      onAuthChangeRef.current(null);
     });
 
     const {
@@ -67,22 +73,23 @@ export default function AuthGate({ supabase, onAuthChange, onSessionExpired }) {
       if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
         // #3: ユーザーが以前ログイン済みで、予期しないセッション切れの場合のみ通知
         if (prevUserRef.current && event === "TOKEN_REFRESHED") {
-          onSessionExpired?.();
+          onSessionExpiredRef.current?.();
         }
         setUser(null);
         prevUserRef.current = null;
-        onAuthChange(null);
+        onAuthChangeRef.current(null);
         return;
       }
 
       // 別タブでログイン/ログアウトした場合もリアルタイム反映
       prevUserRef.current = currentUser;
       setUser(currentUser);
-      onAuthChange(currentUser);
+      onAuthChangeRef.current(currentUser);
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, onAuthChange, onSessionExpired]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
 
   const resetForm = () => {
     setShowForm(false);

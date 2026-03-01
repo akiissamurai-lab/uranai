@@ -194,21 +194,16 @@ export function searchFoods(query) {
     }
   }
 
-  // トークン分割: 1文字クエリはそのまま、2文字以上は個別文字でもマッチ
   const results = FOOD_DB.map(f => {
     const name = toHiragana(f.name);
     const cat = toHiragana(f.cat);
 
-    // 完全部分一致（最優先）
+    // 部分一致（エイリアス展開後 or 元クエリ）
     if (name.includes(expanded) || cat.includes(expanded)) return { food: f, score: 3 };
     if (name.includes(q) || cat.includes(q)) return { food: f, score: 3 };
 
-    // 全文字包含マッチ（「鶏肉」→「鶏」と「肉」両方含む）
-    if (q.length >= 2) {
-      const chars = [...new Set(q)];
-      const allMatch = chars.every(ch => name.includes(ch));
-      if (allMatch) return { food: f, score: 2 };
-    }
+    // 逆方向一致（DB側の名前がクエリに含まれる場合 — 「鶏むね肉のサラダ」→「鶏むね肉」ヒット）
+    if (q.length >= 3 && name.length >= 2 && q.includes(name)) return { food: f, score: 2 };
 
     return null;
   }).filter(Boolean);
