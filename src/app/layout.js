@@ -27,8 +27,8 @@ const spaceMono = Space_Mono({
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "ダツデブ",
-  description: "AI PFC × Budget Tracker",
+  title: "ダツデブ — AI PFC × Budget Tracker",
+  description: "食品名を入力するだけでAIがPFC・価格を自動推測。マクロ管理と食費最適化を同時に実現する、摩擦ゼロの栄養管理アプリ。",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -38,6 +38,18 @@ export const metadata = {
   icons: {
     icon: "/icon-512.svg",
     apple: "/icon-192.svg",
+  },
+  openGraph: {
+    title: "ダツデブ — AI PFC × Budget Tracker",
+    description: "食品名を入力するだけでAIがPFC・価格を自動推測。マクロ管理と食費最適化を同時に実現。",
+    siteName: "ダツデブ",
+    locale: "ja_JP",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ダツデブ — AI PFC × Budget Tracker",
+    description: "食品名を入力するだけでAIがPFC・価格を自動推測。マクロ管理と食費最適化を同時に実現。",
   },
 };
 
