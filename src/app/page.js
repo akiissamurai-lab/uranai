@@ -438,10 +438,16 @@ ${items}
 ## 必ず以下のJSON形式のみで返答。前後にテキストを一切付けないでください。
 {"personalMessage":"2-3文のパーソナルメッセージ（性別・年齢・BMI・体脂肪率・期限すべて考慮）","meals":[{"timing":"朝食","name":"料理名","ingredients":"食材","recipe":"3ステップ以内","macros":"P:○g F:○g C:○g ○kcal","estCost":"約○円"},{"timing":"昼食","name":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"},{"timing":"夕食","name":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"},{"timing":"間食","name":"...","ingredients":"...","recipe":"...","macros":"...","estCost":"約○円"}],"dailyCostTotal":"約○円（目安）","weeklyTip":"週間戦略2-3文（業務スーパーやドラッグストアでの買い方含む）","warning":"注意点またはnull","productTips":"年齢・性別に合わせたおすすめ商品アドバイス1-2文"}`;
 
+  // [1-1] クライアント側タイムアウト: 外部signalとタイムアウトを両方適用
+  const timeout = AbortSignal.timeout(20000);
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, timeout])
+    : timeout;
+
   const res = await fetch("/api/macro", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    signal,
+    signal: combinedSignal,
     body: JSON.stringify({ prompt }),
   });
 
@@ -522,10 +528,16 @@ ${pfcLine || "PFC目標: 未設定"}
 ## 必ず以下のJSON形式のみで返答。前後にテキストを一切付けないでください。
 {"mealName":"料理名","price":金額数値(目安),"protein":タンパク質g数値,"fat":脂質g数値,"carbs":炭水化物g数値,"recipe":"簡潔なレシピ（3ステップ以内）","reason":"この食事を提案する理由（予算・PFC根拠を含む1文）","priceBreakdown":"食材内訳: ○○約△円+○○約△円+調味料約△円=合計約△円"}`;
 
+  // [1-1] クライアント側タイムアウト
+  const timeout = AbortSignal.timeout(20000);
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, timeout])
+    : timeout;
+
   const res = await fetch("/api/macro", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    signal,
+    signal: combinedSignal,
     body: JSON.stringify({ prompt }),
   });
 
@@ -940,7 +952,7 @@ export default function Home() {
   }, []);
 
   // ─── Load today's meal_logs + profileGoals + streak ───
-  useEffect(() => {
+  const refreshTodayData = useCallback(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
     if (user) {
       loadMealLogs(supabase, user.id, todayStr).then(setTodayLogs);
@@ -948,7 +960,6 @@ export default function Home() {
     } else {
       setTodayLogs(loadLocalMealLogs(todayStr));
       setStreak(loadLocalMealLogStreak());
-      // ゲスト: localStorageからprofileGoals読み込み
       const gp = loadLocalProfile();
       if (gp) {
         setProfileGoals({
@@ -960,6 +971,23 @@ export default function Home() {
       }
     }
   }, [user, supabase]);
+
+  useEffect(() => { refreshTodayData(); }, [refreshTodayData]);
+
+  // [3-2] visibilitychange: タブ復帰時に今日のデータを再取得（30秒以上離れていた場合のみ）
+  const lastVisibleRef = useRef(Date.now());
+  useEffect(() => {
+    const handler = () => {
+      if (document.hidden) {
+        lastVisibleRef.current = Date.now();
+      } else {
+        const elapsed = Date.now() - lastVisibleRef.current;
+        if (elapsed > 30000) { refreshTodayData(); }
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, [refreshTodayData]);
 
   const todayTotals = todayLogs.reduce(
     (acc, l) => ({ price: acc.price + (l.price || 0), protein: acc.protein + (l.protein || 0), fat: acc.fat + (l.fat || 0), carbs: acc.carbs + (l.carbs || 0) }),

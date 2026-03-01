@@ -62,6 +62,9 @@ function MiniDashboard({ totals, totalCal, goals, calGoal }) {
   );
 }
 
+/* ── [4-2] sessionStorage ドラフト保存キー ── */
+const DRAFT_KEY = "datsudebu_meal_draft";
+
 /* ── Bottom Sheet for Manual Input ── */
 function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) {
   const [mealName, setMealName] = useState("");
@@ -70,6 +73,8 @@ function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) 
   const [fat, setFat] = useState("");
   const [carbs, setCarbs] = useState("");
   const nameRef = useRef(null);
+  const draftTimerRef = useRef(null);
+  const [draftRestored, setDraftRestored] = useState(false);
 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState([]);
@@ -79,13 +84,44 @@ function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) 
   const [aiEstimating, setAiEstimating] = useState(false);
   const [aiSource, setAiSource] = useState(false);
 
+  // [4-2] シートを開いた時: ドラフトがあれば復元
   useEffect(() => {
     if (open) {
+      try {
+        const raw = sessionStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (d.mealName || d.price || d.protein || d.fat || d.carbs) {
+            setMealName(d.mealName || ""); setPrice(d.price || "");
+            setProtein(d.protein || ""); setFat(d.fat || ""); setCarbs(d.carbs || "");
+            setDraftRestored(true);
+            setTimeout(() => setDraftRestored(false), 3000);
+            setTimeout(() => nameRef.current?.focus(), 100);
+            return; // ドラフト復元時はクリアしない
+          }
+        }
+      } catch {}
+      // ドラフトなし → 通常の初期化
       setMealName(""); setPrice(""); setProtein(""); setFat(""); setCarbs("");
       setSuggestions([]); setShowSuggestions(false); setSelectedFood(null); setServingSize(""); setAiSource(false);
+      setDraftRestored(false);
       setTimeout(() => nameRef.current?.focus(), 100);
     }
   }, [open]);
+
+  // [4-2] 入力変更時にsessionStorageへデバウンス保存（2秒）
+  useEffect(() => {
+    if (!open) return;
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    draftTimerRef.current = setTimeout(() => {
+      try {
+        if (mealName || price || protein || fat || carbs) {
+          sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ mealName, price, protein, fat, carbs }));
+        }
+      } catch {}
+    }, 2000);
+    return () => { if (draftTimerRef.current) clearTimeout(draftTimerRef.current); };
+  }, [open, mealName, price, protein, fat, carbs]);
 
   // Search foods on name change
   const handleNameChange = (val) => {
@@ -134,9 +170,11 @@ function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) 
     if (!mealName.trim() || aiEstimating) return;
     setAiEstimating(true);
     try {
+      // [1-1] AI推定にクライアント側タイムアウト追加
       const res = await fetch("/api/macro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(20000),
         body: JSON.stringify({
           prompt: `以下の食品・料理の1食分の標準的な栄養素を推定してください。JSON形式のみで回答してください。他のテキストは一切不要です。
 
@@ -183,6 +221,8 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
     });
     setMealName(""); setPrice(""); setProtein(""); setFat(""); setCarbs("");
     setSelectedFood(null); setServingSize(""); setAiSource(false);
+    // [4-2] 送信成功時にドラフトクリア
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
   };
 
   const hasSuggestionForName = suggestions.length > 0;
@@ -216,12 +256,31 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
         </div>
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: draftRestored ? 8 : 20 }}>
           <span style={{ fontSize: 16, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>手動で追加</span>
           <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4 }}>
             <X size={20} strokeWidth={1.5} color="rgba(255,255,255,0.4)" />
           </button>
         </div>
+
+        {/* [4-2] ドラフト復元通知 */}
+        {draftRestored && (
+          <div style={{
+            background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)",
+            borderRadius: 8, padding: "6px 10px", marginBottom: 12,
+            display: "flex", alignItems: "center", gap: 6,
+          }}>
+            <span style={{ fontSize: 11, color: "#4ade80" }}>✨ 前回の入力を復元しました</span>
+            <button type="button" onClick={() => {
+              setMealName(""); setPrice(""); setProtein(""); setFat(""); setCarbs("");
+              setDraftRestored(false);
+              try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+            }} style={{
+              marginLeft: "auto", background: "transparent", border: "none",
+              color: "rgba(255,255,255,0.4)", fontSize: 10, cursor: "pointer",
+            }}>クリア</button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           {/* Meal name with autocomplete */}
@@ -474,6 +533,37 @@ export default function RecordPage() {
   // Bottom sheet
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // [4-1] beforeunload: 食事入力シートが開いている時に離脱警告
+  useEffect(() => {
+    const handler = (e) => {
+      if (sheetOpen) { e.preventDefault(); e.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [sheetOpen]);
+
+  // [3-2] visibilitychange: タブ復帰時にデータ再取得（30秒以上離れていた場合のみ）
+  const lastVisibleRef = useRef(Date.now());
+  useEffect(() => {
+    const handler = () => {
+      if (document.hidden) {
+        lastVisibleRef.current = Date.now();
+      } else {
+        const elapsed = Date.now() - lastVisibleRef.current;
+        if (elapsed > 30000 && !loading) {
+          // 表示専用データのみ再取得（編集中フォームには触れない）
+          if (user) {
+            loadMealLogs(supabase, user.id, date).then(r => { if (!r._error) setLogs(r); });
+          } else {
+            setLogs(loadLocalMealLogs(date));
+          }
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, [supabase, user, date, loading]);
+
   // Onboarding hint banner (show once)
   const [showHint, setShowHint] = useState(false);
   useEffect(() => {
@@ -603,6 +693,8 @@ export default function RecordPage() {
 
   const handleWeightSave = async () => {
     setWeightSaving(true);
+    // [1-2] UIタイムアウトガード: 20秒で強制解除
+    const uiTimeout = setTimeout(() => { setWeightSaving(false); showToast("error", "タイムアウト: 接続を確認してください"); }, 20000);
     try {
       let existing;
       if (user) { existing = await loadBodyMetricByDate(supabase, user.id, date); }
@@ -624,12 +716,14 @@ export default function RecordPage() {
       setTimeout(() => setWeightSaved(false), 2000);
     } catch {
       showToast("error", "保存に失敗しました");
-    } finally { setWeightSaving(false); }
+    } finally { clearTimeout(uiTimeout); setWeightSaving(false); }
   };
 
   const handleTrainingSave = async () => {
     if (selectedBodyParts.length === 0) return;
     setTrainingSaving(true);
+    // [1-2] UIタイムアウトガード
+    const uiTimeout = setTimeout(() => { setTrainingSaving(false); showToast("error", "タイムアウト: 接続を確認してください"); }, 20000);
     const logData = {
       date, bodyParts: selectedBodyParts, intensity: trainingIntensity,
       durationMinutes: trainingDuration !== "" ? Number(trainingDuration) : null,
@@ -638,6 +732,7 @@ export default function RecordPage() {
     let saved;
     if (user) { saved = await saveTrainingLog(supabase, user.id, logData); }
     else { saved = saveLocalTrainingLog(logData); }
+    clearTimeout(uiTimeout);
     setTrainingSaving(false);
     if (isDbError(saved)) {
       showToast("error", "筋トレの保存に失敗: " + saved._error);
@@ -678,10 +773,13 @@ export default function RecordPage() {
 
   const handleSheetSubmit = async (data) => {
     setSaving(true);
+    // [1-2] UIタイムアウトガード
+    const uiTimeout = setTimeout(() => { setSaving(false); showToast("error", "タイムアウト: 接続を確認してください"); }, 20000);
     const logData = { date, ...data };
     let saved;
     if (user) { saved = await saveMealLog(supabase, user.id, logData); }
     else { saved = saveLocalMealLog(logData); }
+    clearTimeout(uiTimeout);
     setSaving(false);
     if (isDbError(saved)) {
       showToast("error", "記録の保存に失敗: " + saved._error);
@@ -704,6 +802,8 @@ export default function RecordPage() {
   const handleQuickLog = async (routine) => {
     if (savingRoutineId) return;
     setSavingRoutineId(routine.id);
+    // [1-2] UIタイムアウトガード
+    const uiTimeout = setTimeout(() => { setSavingRoutineId(null); showToast("error", "タイムアウト: 接続を確認してください"); }, 20000);
     const logData = {
       date, mealName: routine.meal_name,
       price: routine.price != null ? Number(routine.price) : null,
@@ -715,6 +815,7 @@ export default function RecordPage() {
     let saved;
     if (user) { saved = await saveMealLog(supabase, user.id, logData); }
     else { saved = saveLocalMealLog(logData); }
+    clearTimeout(uiTimeout);
     setSavingRoutineId(null);
     if (isDbError(saved)) {
       showToast("error", "記録の保存に失敗: " + saved._error);

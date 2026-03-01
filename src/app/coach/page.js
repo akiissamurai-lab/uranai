@@ -67,10 +67,11 @@ export default function CoachPage() {
     setResult(null);
 
     try {
+      // [1-1] ユーザーキャンセル + 20秒タイムアウトの両方を適用
       const res = await fetch("/api/ai-coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: ctrl.signal,
+        signal: AbortSignal.any([ctrl.signal, AbortSignal.timeout(20000)]),
       });
 
       const data = await res.json();
@@ -86,7 +87,9 @@ export default function CoachPage() {
 
       setResult(data.result);
     } catch (e) {
-      if (e.name !== "AbortError") {
+      if (e.name === "TimeoutError") {
+        setError("タイムアウトしました。通信環境を確認して再試行してください。");
+      } else if (e.name !== "AbortError") {
         setError("通信エラーが発生しました");
       }
     } finally {

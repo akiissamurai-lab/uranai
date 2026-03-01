@@ -262,6 +262,8 @@ export default function SettingsPage() {
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
+    // [1-2] UIタイムアウトガード
+    const uiTimeout = setTimeout(() => { setSaving(false); showToast("error", "タイムアウト: 接続を確認してください"); }, 20000);
     try {
       const data = {
         goalWeight: goalWeight !== "" ? Number(goalWeight) : null,
@@ -297,6 +299,7 @@ export default function SettingsPage() {
     } catch {
       showToast("error", "保存できませんでした");
     } finally {
+      clearTimeout(uiTimeout);
       setSaving(false);
     }
   };
@@ -305,7 +308,8 @@ export default function SettingsPage() {
     if (deleteInput !== "削除") return;
     setDeleting(true);
     try {
-      const res = await fetch("/api/user/delete", { method: "POST" });
+      // [1-1] アカウント削除にもタイムアウト追加
+      const res = await fetch("/api/user/delete", { method: "POST", signal: AbortSignal.timeout(20000) });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         showToast("error", body.error || "削除に失敗しました");
