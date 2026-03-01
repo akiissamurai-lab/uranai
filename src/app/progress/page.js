@@ -28,8 +28,8 @@ function CustomTooltip({ active, payload, label }) {
   return (
     <div style={{ background: "rgba(15,15,30,0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "12px 16px", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", minWidth: 140 }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.7)", marginBottom: 8 }}>{label}</div>
-      {payload.map(p => (
-        <div key={p.dataKey} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+      {payload.map((p, idx) => (
+        <div key={p.dataKey || idx} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.color }} />
           <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{tooltipLabels[p.dataKey] || p.dataKey}</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: p.color, fontFamily: "'Space Mono',monospace", marginLeft: "auto" }}>
@@ -52,6 +52,7 @@ export default function ProgressPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [weightSaved, setWeightSaved] = useState(false);
   const [toast, setToast] = useState(null);
 
   // Form
@@ -129,9 +130,11 @@ export default function ProgressPage() {
         setNightBodyFat(m.body_fat_night != null ? String(m.body_fat_night) : "");
         setNotes(m.notes || "");
         if (m.notes) setNotesOpen(true);
+        setWeightSaved(m.weight != null || m.weight_night != null);
       } else {
         setWeight(""); setBodyFat(""); setNightWeight(""); setNightBodyFat(""); setNotes("");
         setNotesOpen(false);
+        setWeightSaved(false);
       }
     };
     if (user) { loadBodyMetricByDate(supabase, user.id, date).then(apply); }
@@ -158,6 +161,7 @@ export default function ProgressPage() {
     setSaving(false);
     if (ok) {
       showToast("success", "保存しました");
+      setWeightSaved(true);
       if (user) { loadBodyMetrics(supabase, user.id, range || 3650).then(setMetrics); }
       else { setMetrics(loadLocalBodyMetrics(range || 3650)); }
     } else { showToast("error", "保存に失敗しました"); }
@@ -441,14 +445,24 @@ export default function ProgressPage() {
             )}
           </div>
 
-          <button type="submit" disabled={saving || (!weight && !nightWeight)} style={{
-            ...S.submitBtn,
-            background: saving ? "#555" : "linear-gradient(135deg, #22c55e, #16a34a)",
-            cursor: saving ? "not-allowed" : "pointer",
-            opacity: (!weight && !nightWeight) && !saving ? 0.4 : 1,
-          }}>
-            {saving ? "保存中..." : "保存"}
-          </button>
+          {weightSaved ? (
+            <button type="button" onClick={() => setWeightSaved(false)} style={{
+              background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8,
+              color: "rgba(255,255,255,0.45)", fontSize: 12, padding: "6px 16px", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 4, margin: "0 auto",
+            }}>
+              <PenLine size={12} strokeWidth={1.5} /> 編集
+            </button>
+          ) : (
+            <button type="submit" disabled={saving || (!weight && !nightWeight)} style={{
+              ...S.submitBtn,
+              background: saving ? "#555" : "linear-gradient(135deg, #22c55e, #16a34a)",
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: (!weight && !nightWeight) && !saving ? 0.4 : 1,
+            }}>
+              {saving ? "保存中..." : "保存"}
+            </button>
+          )}
         </form>
 
         {/* ─── LATEST STATS ─── */}
@@ -808,8 +822,8 @@ export default function ProgressPage() {
         {metrics.length > 0 && (
           <div style={{ marginTop: 8 }}>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginBottom: 10, fontWeight: 600 }}>直近の記録</div>
-            {metrics.slice().reverse().slice(0, 10).map(m => (
-              <div key={m.id} style={S.logItem}>
+            {metrics.slice().reverse().slice(0, 10).map((m, i) => (
+              <div key={m.id || `m-${m.date}-${i}`} style={S.logItem}>
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", minWidth: 40 }}>
                   {`${new Date(m.date + "T00:00").getMonth() + 1}/${new Date(m.date + "T00:00").getDate()}`}
                 </span>
