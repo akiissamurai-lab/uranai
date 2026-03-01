@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { loadProfile, saveProfile, loadBodyMetrics } from "@/lib/db";
+import { loadProfile, saveProfile, loadBodyMetrics, isDbError } from "@/lib/db";
 import AuthGate from "@/components/AuthGate";
 import { Lock, CheckCircle, Bot, Settings, BarChart3, Target, ShoppingCart, Lightbulb, UtensilsCrossed, RefreshCw, PenLine, ClipboardList, Dumbbell } from "lucide-react";
 
@@ -98,7 +98,7 @@ export default function CoachPage() {
     if (!result?.newMacros || !user || applying) return;
     setApplying(true);
 
-    await saveProfile(supabase, user.id, {
+    const saveResult = await saveProfile(supabase, user.id, {
       ...profileToSaveData(profile),
       proteinGoal: result.newMacros.protein,
       fatGoal: result.newMacros.fat,
@@ -107,6 +107,7 @@ export default function CoachPage() {
     });
 
     setApplying(false);
+    if (isDbError(saveResult)) { showToast("error", "保存に失敗: " + saveResult._error); return; }
     showToast("success", "目標を適用しました");
 
     setProfile((prev) => ({

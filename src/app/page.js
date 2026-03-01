@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
-import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage, migrateAllLocalData, loadMealLogs, saveMealLog, loadMealLogStreak } from "@/lib/db";
+import { loadProfile, saveProfile, saveMealPlan, loadMealPlans, migrateFromLocalStorage, migrateAllLocalData, loadMealLogs, saveMealLog, loadMealLogStreak, isDbError } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile, loadLocalMealLogs, loadLocalMealLogStreak } from "@/lib/local-db";
 import AuthGate from "@/components/AuthGate";
 import html2canvas from "html2canvas";
@@ -1075,7 +1075,9 @@ export default function Home() {
       fat: aiSuggest.fat || null,
       carbs: aiSuggest.carbs || null,
     });
-    if (saved) {
+    if (isDbError(saved)) {
+      setAiSuggestError("記録に失敗: " + saved._error);
+    } else if (saved) {
       setAiSuggestRecorded(true);
       setTodayLogs(prev => [...prev, saved]);
     } else {

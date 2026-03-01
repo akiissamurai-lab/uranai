@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals, saveDailyNotes, loadBodyMetricByDate, saveBodyMetric, saveTrainingLog, loadTrainingLogsByDate, deleteTrainingLog } from "@/lib/db";
+import { saveMealLog, loadMealLogs, deleteMealLog, loadProfile, loadRoutineMeals, saveDailyNotes, loadBodyMetricByDate, saveBodyMetric, saveTrainingLog, loadTrainingLogsByDate, deleteTrainingLog, isDbError } from "@/lib/db";
 import { saveLocalMealLog, loadLocalMealLogs, deleteLocalMealLog, loadLocalRoutineMeals, loadLocalProfile, saveLocalDailyNotes, loadLocalBodyMetricByDate, saveLocalBodyMetric, saveLocalTrainingLog, loadLocalTrainingLogsByDate, deleteLocalTrainingLog } from "@/lib/local-db";
 import { Wallet, Zap, UtensilsCrossed, Plus, PenLine, Scale, Dumbbell, Star, Trash2, ChevronDown, X, Sparkles } from "lucide-react";
 import { searchFoods, calcForServing } from "@/lib/food-db";
@@ -232,7 +232,7 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
               value={mealName}
               onChange={(e) => handleNameChange(e.target.value)}
               onFocus={() => { if (mealName.length >= 1) setShowSuggestions(true); }}
-              placeholder="何を食べた？（例: 鶏むね肉、おにぎり）"
+              placeholder="例:「鶏むね肉」→ PFC・価格を自動計算 ✨"
               required
               autoComplete="off"
               style={S.sheetTextInput}
@@ -474,6 +474,19 @@ export default function RecordPage() {
   // Bottom sheet
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // Onboarding hint banner (show once)
+  const [showHint, setShowHint] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const dismissed = localStorage.getItem("datsudebu_hint_dismissed");
+      if (!dismissed) setShowHint(true);
+    }
+  }, []);
+  const dismissHint = () => {
+    setShowHint(false);
+    if (typeof window !== "undefined") localStorage.setItem("datsudebu_hint_dismissed", "1");
+  };
+
   useEffect(() => {
     const authTimeout = setTimeout(() => { setLoading(false); }, 5000);
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -488,7 +501,7 @@ export default function RecordPage() {
   useEffect(() => {
     if (loading) return;
     if (user) {
-      loadRoutineMeals(supabase, user.id).then(setRoutines);
+      loadRoutineMeals(supabase, user.id).then(r => { setRoutines(r); if (r._error) showToast("error", "ルーティンの取得に失敗: " + r._error); });
     } else {
       setRoutines(loadLocalRoutineMeals());
     }
@@ -517,7 +530,7 @@ export default function RecordPage() {
   useEffect(() => {
     if (loading) return;
     if (user) {
-      loadMealLogs(supabase, user.id, date).then(setLogs);
+      loadMealLogs(supabase, user.id, date).then(r => { setLogs(r); if (r._error) showToast("error", "食事記録の取得に失敗: " + r._error); });
     } else {
       setLogs(loadLocalMealLogs(date));
     }
@@ -567,7 +580,8 @@ export default function RecordPage() {
     if (user) {
       loadTrainingLogsByDate(supabase, user.id, date).then((tl) => {
         setTrainingLogs(tl);
-        if (tl.length > 0) setTrainingOpen(true);
+        if (tl._error) showToast("error", "筋トレ記録の取得に失敗: " + tl._error);
+        else if (tl.length > 0) setTrainingOpen(true);
       });
     } else {
       const tl = loadLocalTrainingLogsByDate(date);
@@ -601,8 +615,10 @@ export default function RecordPage() {
         bodyFatNight: nightBodyFat !== "" ? Number(nightBodyFat) : null,
         notes: existing?.notes || dailyNotes || null,
       };
-      if (user) { await saveBodyMetric(supabase, user.id, payload); }
-      else { saveLocalBodyMetric(payload); }
+      let ok;
+      if (user) { ok = await saveBodyMetric(supabase, user.id, payload); }
+      else { ok = saveLocalBodyMetric(payload); }
+      if (isDbError(ok)) { showToast("error", "体重の保存に失敗: " + ok._error); return; }
       setWeightSaved(true);
       showToast("success", "体重を保存しました");
       setTimeout(() => setWeightSaved(false), 2000);
@@ -623,7 +639,9 @@ export default function RecordPage() {
     if (user) { saved = await saveTrainingLog(supabase, user.id, logData); }
     else { saved = saveLocalTrainingLog(logData); }
     setTrainingSaving(false);
-    if (saved) {
+    if (isDbError(saved)) {
+      showToast("error", "筋トレの保存に失敗: " + saved._error);
+    } else if (saved) {
       showToast("success", "トレーニングを記録しました");
       setTrainingLogs((prev) => [...prev, saved]);
       setSelectedBodyParts([]); setTrainingIntensity(3); setTrainingDuration(""); setTrainingNotes("");
@@ -631,8 +649,10 @@ export default function RecordPage() {
   };
 
   const handleTrainingDelete = async (logId) => {
-    if (user) { await deleteTrainingLog(supabase, user.id, logId); }
-    else { deleteLocalTrainingLog(logId); }
+    let result;
+    if (user) { result = await deleteTrainingLog(supabase, user.id, logId); }
+    else { result = deleteLocalTrainingLog(logId); }
+    if (isDbError(result)) { showToast("error", "削除に失敗: " + result._error); return; }
     setTrainingLogs((prev) => prev.filter((t) => t.id !== logId));
   };
 
@@ -645,10 +665,12 @@ export default function RecordPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       setNotesSaving(true);
-      if (user) { await saveDailyNotes(supabase, user.id, date, value); }
-      else { saveLocalDailyNotes(date, value); }
-      setNotesSaving(false); setNotesSaved(true);
-      setTimeout(() => setNotesSaved(false), 2000);
+      let result;
+      if (user) { result = await saveDailyNotes(supabase, user.id, date, value); }
+      else { result = saveLocalDailyNotes(date, value); }
+      setNotesSaving(false);
+      if (isDbError(result)) { showToast("error", "メモの保存に失敗: " + result._error); }
+      else { setNotesSaved(true); setTimeout(() => setNotesSaved(false), 2000); }
     }, 1000);
   };
 
@@ -661,16 +683,21 @@ export default function RecordPage() {
     if (user) { saved = await saveMealLog(supabase, user.id, logData); }
     else { saved = saveLocalMealLog(logData); }
     setSaving(false);
-    if (saved) {
+    if (isDbError(saved)) {
+      showToast("error", "記録の保存に失敗: " + saved._error);
+    } else if (saved) {
       showToast("success", "記録しました");
       setLogs((prev) => [...prev, saved]);
       setSheetOpen(false);
+      if (showHint) dismissHint();
     } else { showToast("error", "保存に失敗しました"); }
   };
 
   const handleDelete = async (logId) => {
-    if (user) { await deleteMealLog(supabase, user.id, logId); }
-    else { deleteLocalMealLog(logId); }
+    let result;
+    if (user) { result = await deleteMealLog(supabase, user.id, logId); }
+    else { result = deleteLocalMealLog(logId); }
+    if (isDbError(result)) { showToast("error", "削除に失敗: " + result._error); return; }
     setLogs((prev) => prev.filter((l) => l.id !== logId));
   };
 
@@ -689,7 +716,9 @@ export default function RecordPage() {
     if (user) { saved = await saveMealLog(supabase, user.id, logData); }
     else { saved = saveLocalMealLog(logData); }
     setSavingRoutineId(null);
-    if (saved) {
+    if (isDbError(saved)) {
+      showToast("error", "記録の保存に失敗: " + saved._error);
+    } else if (saved) {
       showToast("success", `${routine.meal_name} を記録`);
       setLogs((prev) => [...prev, saved]);
     } else { showToast("error", "記録に失敗しました"); }
@@ -754,6 +783,26 @@ export default function RecordPage() {
       </header>
 
       <main style={S.main}>
+        {/* ── Onboarding Hint Banner (show once) ── */}
+        {showHint && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            background: "rgba(168,139,250,0.08)", border: "1px solid rgba(168,139,250,0.2)",
+            borderRadius: 14, padding: "12px 16px", marginBottom: 16,
+            animation: "fadeUp 0.4s ease-out",
+          }}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>💡</span>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 1.5, flex: 1 }}>
+              食品名を入力するだけで<span style={{ color: "#a78bfa", fontWeight: 700 }}>AIがPFCと価格を自動推測</span>します
+            </span>
+            <button onClick={dismissHint} style={{
+              background: "transparent", border: "none", cursor: "pointer",
+              color: "rgba(255,255,255,0.3)", fontSize: 16, padding: "2px 4px", flexShrink: 0,
+              lineHeight: 1,
+            }}>✕</button>
+          </div>
+        )}
+
         {/* ── Date Picker ── */}
         <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
           <button onClick={() => setDate(d => { const p = new Date(d); p.setDate(p.getDate() - 1); return p.toISOString().slice(0, 10); })} style={S.dateBtn}>◀</button>

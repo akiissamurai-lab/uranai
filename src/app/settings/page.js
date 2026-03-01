@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { loadProfile, saveProfile } from "@/lib/db";
+import { loadProfile, saveProfile, isDbError } from "@/lib/db";
 import { loadLocalProfile, saveLocalProfile } from "@/lib/local-db";
 import { Target, Wallet, Zap, Flame, UtensilsCrossed, ScrollText, Lock, ChevronDown, MessageSquare, User } from "lucide-react";
 import { LegalViewer } from "@/components/TermsModal";
@@ -193,10 +193,11 @@ export default function SettingsPage() {
         age: age !== "" ? Number(age) : null,
         goalBodyFat: goalBodyFat !== "" ? Number(goalBodyFat) : null,
       };
+      let saveResult;
       if (user) {
-        await saveProfile(supabase, user.id, data);
+        saveResult = await saveProfile(supabase, user.id, data);
       } else {
-        saveLocalProfile({
+        saveResult = saveLocalProfile({
           goal_weight: data.goalWeight,
           budget: data.budget,
           protein_goal: data.proteinGoal,
@@ -209,7 +210,8 @@ export default function SettingsPage() {
           goal_body_fat: data.goalBodyFat,
         });
       }
-      showToast("success", "保存しました");
+      if (isDbError(saveResult)) { showToast("error", "保存に失敗: " + saveResult._error); }
+      else { showToast("success", "保存しました"); }
     } catch {
       showToast("error", "保存できませんでした");
     } finally {

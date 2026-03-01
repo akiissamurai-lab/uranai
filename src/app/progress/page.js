@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { saveBodyMetric, loadBodyMetrics, loadBodyMetricByDate, loadProfile, loadTrainingLogsRange, loadMealLogsRange } from "@/lib/db";
+import { saveBodyMetric, loadBodyMetrics, loadBodyMetricByDate, loadProfile, loadTrainingLogsRange, loadMealLogsRange, isDbError } from "@/lib/db";
 import { saveLocalBodyMetric, loadLocalBodyMetrics, loadLocalBodyMetricByDate, loadLocalProfile, loadLocalTrainingLogsRange, loadLocalMealLogsRange } from "@/lib/local-db";
 import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
@@ -103,20 +103,20 @@ export default function ProgressPage() {
 
   useEffect(() => {
     if (loading) return;
-    if (user) { loadBodyMetrics(supabase, user.id, range || 3650).then(setMetrics); }
+    if (user) { loadBodyMetrics(supabase, user.id, range || 3650).then(r => { setMetrics(r); if (r._error) showToast("error", "体重データの取得に失敗: " + r._error); }); }
     else { setMetrics(loadLocalBodyMetrics(range || 3650)); }
   }, [supabase, user, range, loading]);
 
   useEffect(() => {
     if (loading) return;
-    if (user) { loadTrainingLogsRange(supabase, user.id, 30).then(setTrainingLogs); }
+    if (user) { loadTrainingLogsRange(supabase, user.id, 30).then(r => { setTrainingLogs(r); if (r._error) showToast("error", "筋トレデータの取得に失敗: " + r._error); }); }
     else { setTrainingLogs(loadLocalTrainingLogsRange(30)); }
   }, [supabase, user, loading]);
 
   // Weekly meal logs for review
   useEffect(() => {
     if (loading) return;
-    if (user) { loadMealLogsRange(supabase, user.id, 7).then(setWeeklyMealLogs); }
+    if (user) { loadMealLogsRange(supabase, user.id, 7).then(r => { setWeeklyMealLogs(r); if (r._error) showToast("error", "食事データの取得に失敗: " + r._error); }); }
     else { setWeeklyMealLogs(loadLocalMealLogsRange(7)); }
   }, [supabase, user, loading]);
 
@@ -159,7 +159,9 @@ export default function ProgressPage() {
     if (user) { ok = await saveBodyMetric(supabase, user.id, metricData); }
     else { ok = saveLocalBodyMetric(metricData); }
     setSaving(false);
-    if (ok) {
+    if (isDbError(ok)) {
+      showToast("error", "保存に失敗: " + ok._error);
+    } else if (ok) {
       showToast("success", "保存しました");
       setWeightSaved(true);
       if (user) { loadBodyMetrics(supabase, user.id, range || 3650).then(setMetrics); }

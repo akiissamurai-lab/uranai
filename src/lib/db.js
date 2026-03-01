@@ -1,5 +1,11 @@
 // DB ヘルパー関数 — Supabase CRUD
 
+// エラーチェックヘルパー: save/load 共通で使える
+// save → { _error: "msg" }, load → [] with ._error = "msg"
+export function isDbError(result) {
+  return result != null && result._error != null;
+}
+
 export async function loadProfile(supabase, userId) {
   const { data, error } = await supabase
     .from("profiles")
@@ -41,7 +47,9 @@ export async function saveProfile(supabase, userId, data) {
 
   if (error) {
     console.warn("saveProfile error:", error.message);
+    return { _error: error.message };
   }
+  return true;
 }
 
 export async function saveMealPlan(supabase, userId, plan) {
@@ -61,7 +69,9 @@ export async function saveMealPlan(supabase, userId, plan) {
 
   if (error) {
     console.warn("saveMealPlan error:", error.message);
+    return { _error: error.message };
   }
+  return true;
 }
 
 export async function loadMealPlans(supabase, userId, limit = 10) {
@@ -74,7 +84,7 @@ export async function loadMealPlans(supabase, userId, limit = 10) {
 
   if (error) {
     console.warn("loadMealPlans error:", error.message);
-    return [];
+    const empty = []; empty._error = error.message; return empty;
   }
   return data;
 }
@@ -88,7 +98,9 @@ export async function deleteMealPlan(supabase, userId, planId) {
 
   if (error) {
     console.warn("deleteMealPlan error:", error.message);
+    return { _error: error.message };
   }
+  return true;
 }
 
 // ─── meal_logs (食事記録) ───────────────────────────
@@ -107,7 +119,7 @@ export async function saveMealLog(supabase, userId, log) {
 
   if (error) {
     console.warn("saveMealLog error:", error.message);
-    return null;
+    return { _error: error.message };
   }
   return data;
 }
@@ -122,7 +134,7 @@ export async function loadMealLogs(supabase, userId, date) {
 
   if (error) {
     console.warn("loadMealLogs error:", error.message);
-    return [];
+    const empty = []; empty._error = error.message; return empty;
   }
   return data;
 }
@@ -136,7 +148,9 @@ export async function deleteMealLog(supabase, userId, logId) {
 
   if (error) {
     console.warn("deleteMealLog error:", error.message);
+    return { _error: error.message };
   }
+  return true;
 }
 
 // ─── ゲストデータ → Supabase 安全同期（ログイン時に実行） ───────
@@ -223,7 +237,7 @@ export async function migrateAllLocalData(supabase, userId) {
             carbs: log.carbs,
             mealIndex: log.meal_index,
           });
-          if (!saved) saveErrors++;
+          if (isDbError(saved)) saveErrors++;
         }
       }
     }
@@ -241,7 +255,7 @@ export async function migrateAllLocalData(supabase, userId) {
           weightNight: m.weight_night,
           bodyFatNight: m.body_fat_night,
         });
-        if (!ok) saveErrors++;
+        if (isDbError(ok)) saveErrors++;
       }
     }
 
@@ -260,7 +274,7 @@ export async function migrateAllLocalData(supabase, userId) {
           fat: r.fat,
           carbs: r.carbs,
         });
-        if (!saved) saveErrors++;
+        if (isDbError(saved)) saveErrors++;
       }
     }
 
@@ -279,7 +293,7 @@ export async function migrateAllLocalData(supabase, userId) {
           durationMinutes: tl.duration_minutes,
           notes: tl.notes,
         });
-        if (!saved) saveErrors++;
+        if (isDbError(saved)) saveErrors++;
       }
     }
 
@@ -368,7 +382,7 @@ export async function loadRoutineMeals(supabase, userId) {
 
   if (error) {
     console.warn("loadRoutineMeals error:", error.message);
-    return [];
+    const empty = []; empty._error = error.message; return empty;
   }
   return data;
 }
@@ -382,7 +396,7 @@ export async function updateRoutineMeal(supabase, userId, mealId, updates) {
 
   if (error) {
     console.warn("updateRoutineMeal error:", error.message);
-    return false;
+    return { _error: error.message };
   }
   return true;
 }
@@ -396,7 +410,9 @@ export async function deleteRoutineMeal(supabase, userId, mealId) {
 
   if (error) {
     console.warn("deleteRoutineMeal error:", error.message);
+    return { _error: error.message };
   }
+  return true;
 }
 
 // ─── body_metrics (体重・体脂肪率) ─────────────────────────
@@ -419,7 +435,7 @@ export async function saveBodyMetric(supabase, userId, { date, weight, bodyFat, 
 
   if (error) {
     console.warn("saveBodyMetric error:", error.message);
-    return false;
+    return { _error: error.message };
   }
   return true;
 }
@@ -438,7 +454,7 @@ export async function loadBodyMetrics(supabase, userId, days = 90) {
 
   if (error) {
     console.warn("loadBodyMetrics error:", error.message);
-    return [];
+    const empty = []; empty._error = error.message; return empty;
   }
   return data;
 }
@@ -457,7 +473,7 @@ export async function saveTrainingLog(supabase, userId, log) {
 
   if (error) {
     console.warn("saveTrainingLog error:", error.message);
-    return null;
+    return { _error: error.message };
   }
   return data;
 }
@@ -477,7 +493,7 @@ export async function updateTrainingLog(supabase, userId, logId, updates) {
 
   if (error) {
     console.warn("updateTrainingLog error:", error.message);
-    return false;
+    return { _error: error.message };
   }
   return true;
 }
@@ -492,7 +508,7 @@ export async function loadTrainingLogsByDate(supabase, userId, date) {
 
   if (error) {
     console.warn("loadTrainingLogsByDate error:", error.message);
-    return [];
+    const empty = []; empty._error = error.message; return empty;
   }
   return data;
 }
@@ -512,7 +528,7 @@ export async function loadTrainingLogsRange(supabase, userId, days = 30) {
 
   if (error) {
     console.warn("loadTrainingLogsRange error:", error.message);
-    return [];
+    const empty = []; empty._error = error.message; return empty;
   }
   return data;
 }
@@ -526,7 +542,9 @@ export async function deleteTrainingLog(supabase, userId, logId) {
 
   if (error) {
     console.warn("deleteTrainingLog error:", error.message);
+    return { _error: error.message };
   }
+  return true;
 }
 
 // ─── 体調メモ（notes のみ保存 — weight/body_fat を壊さない） ────
@@ -543,7 +561,7 @@ export async function saveDailyNotes(supabase, userId, date, notes) {
 
     if (error) {
       console.warn("saveDailyNotes update error:", error.message);
-      return false;
+      return { _error: error.message };
     }
     return true;
   } else {
@@ -553,7 +571,7 @@ export async function saveDailyNotes(supabase, userId, date, notes) {
 
     if (error) {
       console.warn("saveDailyNotes insert error:", error.message);
-      return false;
+      return { _error: error.message };
     }
     return true;
   }
@@ -576,7 +594,7 @@ export async function loadMealLogsRange(supabase, userId, days = 7) {
 
   if (error) {
     console.warn("loadMealLogsRange error:", error.message);
-    return [];
+    const empty = []; empty._error = error.message; return empty;
   }
   return data;
 }
