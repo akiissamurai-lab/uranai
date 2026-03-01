@@ -62,7 +62,7 @@ function buildShareCardDOM(todayTotals, profileGoals) {
     <div style="text-align:center;flex:1">
       <div style="width:72px;height:72px;margin:0 auto;position:relative">
         ${donutSVG(item.pct, item.color, item.bg)}
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:800;color:${item.pct > 100 ? "#ef4444" : item.color};font-family:'Inter','Space Mono',monospace">${item.pct}%</div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:800;color:${item.pct > 100 ? "#ef4444" : item.color};font-family:'Inter',var(--font-mono)">${item.pct}%</div>
       </div>
       <div style="font-size:11px;font-weight:700;color:${item.color};margin-top:4px">${item.label}</div>
       <div style="font-size:9px;color:#94a3b8">${item.cur}/${item.goal}${item.unit}</div>
@@ -74,7 +74,7 @@ function buildShareCardDOM(todayTotals, profileGoals) {
     <div style="margin-top:16px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
         <span style="font-size:11px;color:#64748b">今日の予算</span>
-        <span style="font-size:14px;font-weight:700;color:${budgetRemaining >= 0 ? "#22c55e" : "#ef4444"};font-family:'Inter','Space Mono',monospace">
+        <span style="font-size:14px;font-weight:700;color:${budgetRemaining >= 0 ? "#22c55e" : "#ef4444"};font-family:'Inter',var(--font-mono)">
           ${budgetRemaining >= 0 ? `残り ¥${Math.round(budgetRemaining).toLocaleString()}` : `¥${Math.abs(Math.round(budgetRemaining)).toLocaleString()} 超過`}
         </span>
       </div>
@@ -1282,7 +1282,7 @@ export default function Home() {
               <div style={{
                 fontSize: 20, fontWeight: 800,
                 color: streak >= 7 ? "#fbbf24" : "#4ade80",
-                fontFamily: "'Space Mono',monospace",
+                fontFamily: "var(--font-mono)",
               }}>
                 {streak}<span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)", marginLeft: 4 }}>日連続</span>
               </div>

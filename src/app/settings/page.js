@@ -147,7 +147,7 @@ function Stepper({ value, onChange, min, max, step = 1, color = "#22c55e", unit 
             style={{
               width: large ? 100 : 70, background: "rgba(255,255,255,0.06)",
               border: `1.5px solid ${color}40`, borderRadius: 10, outline: "none",
-              color, fontFamily: "'Space Mono',monospace",
+              color, fontFamily: "var(--font-mono)",
               fontSize: large ? 30 : 22, fontWeight: 700, textAlign: "center",
               padding: "4px 0",
             }}
@@ -157,7 +157,7 @@ function Stepper({ value, onChange, min, max, step = 1, color = "#22c55e", unit 
             <span style={{
               fontSize: large ? 36 : 28, fontWeight: 800,
               color: numVal != null ? color : "rgba(255,255,255,0.15)",
-              fontFamily: "'Space Mono',monospace",
+              fontFamily: "var(--font-mono)",
               borderBottom: `1.5px dashed ${numVal != null ? color + "30" : "rgba(255,255,255,0.06)"}`,
               paddingBottom: 2,
             }}>
@@ -366,7 +366,7 @@ export default function SettingsPage() {
     fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.45)",
   };
   const summaryValue = {
-    fontSize: 14, fontWeight: 700, fontFamily: "'Space Mono',monospace",
+    fontSize: 14, fontWeight: 700, fontFamily: "var(--font-mono)",
   };
 
   return (

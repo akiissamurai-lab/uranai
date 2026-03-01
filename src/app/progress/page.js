@@ -32,7 +32,7 @@ function CustomTooltip({ active, payload, label }) {
         <div key={p.dataKey || idx} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.color }} />
           <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{tooltipLabels[p.dataKey] || p.dataKey}</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: p.color, fontFamily: "'Space Mono',monospace", marginLeft: "auto" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: p.color, fontFamily: "var(--font-mono)", marginLeft: "auto" }}>
             {p.value}{tooltipUnits[p.dataKey] || ""}
           </span>
         </div>
@@ -487,11 +487,11 @@ export default function ProgressPage() {
           {/* Summary */}
           {(weight || nightWeight) && (
             <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 14, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
-              {weight && <span>朝 <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{weight}</span>kg</span>}
-              {nightWeight && <span>夜 <span style={{ color: "#f59e0b", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{nightWeight}</span>kg</span>}
+              {weight && <span>朝 <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "var(--font-mono)" }}>{weight}</span>kg</span>}
+              {nightWeight && <span>夜 <span style={{ color: "#f59e0b", fontWeight: 700, fontFamily: "var(--font-mono)" }}>{nightWeight}</span>kg</span>}
               {weight && nightWeight && (
                 <span style={{ color: "rgba(255,255,255,0.25)" }}>
-                  差 <span style={{ fontWeight: 700, fontFamily: "'Space Mono',monospace", color: "rgba(255,255,255,0.5)" }}>
+                  差 <span style={{ fontWeight: 700, fontFamily: "var(--font-mono)", color: "rgba(255,255,255,0.5)" }}>
                     {(Number(nightWeight) - Number(weight) >= 0 ? "+" : "")}{(Number(nightWeight) - Number(weight)).toFixed(1)}
                   </span>kg
                 </span>
@@ -536,11 +536,11 @@ export default function ProgressPage() {
             {latest.weight != null && (
               <div style={S.statCard}>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>朝</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
                   {Number(latest.weight).toFixed(1)}<span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
                 </div>
                 {weightDiff && (
-                  <div style={{ fontSize: 10, color: Number(weightDiff) > 0 ? "#f87171" : "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                  <div style={{ fontSize: 10, color: Number(weightDiff) > 0 ? "#f87171" : "#4ade80", fontFamily: "var(--font-mono)" }}>
                     {Number(weightDiff) > 0 ? "+" : ""}{weightDiff}
                   </div>
                 )}
@@ -549,7 +549,7 @@ export default function ProgressPage() {
             {latest.weight_night != null && (
               <div style={S.statCard}>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>夜</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: "#f59e0b", fontFamily: "'Space Mono',monospace" }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#f59e0b", fontFamily: "var(--font-mono)" }}>
                   {Number(latest.weight_night).toFixed(1)}<span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
                 </div>
               </div>
@@ -557,11 +557,11 @@ export default function ProgressPage() {
             {latest.body_fat != null && (
               <div style={S.statCard}>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>体脂肪</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: "#60a5fa", fontFamily: "'Space Mono',monospace" }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#60a5fa", fontFamily: "var(--font-mono)" }}>
                   {Number(latest.body_fat).toFixed(1)}<span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>%</span>
                 </div>
                 {fatDiff && (
-                  <div style={{ fontSize: 10, color: Number(fatDiff) > 0 ? "#f87171" : "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                  <div style={{ fontSize: 10, color: Number(fatDiff) > 0 ? "#f87171" : "#4ade80", fontFamily: "var(--font-mono)" }}>
                     {Number(fatDiff) > 0 ? "+" : ""}{fatDiff}
                   </div>
                 )}
@@ -595,21 +595,21 @@ export default function ProgressPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
                   <div>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>現在</div>
-                    <span style={{ fontSize: 22, fontWeight: 800, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "#4ade80", fontFamily: "var(--font-mono)" }}>
                       {goalProgress.latestW.toFixed(1)}
                     </span>
                     <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
                   </div>
                   <div style={{ textAlign: "center" }}>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginBottom: 2 }}>あと</div>
-                    <span style={{ fontSize: 26, fontWeight: 800, color: "#a78bfa", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 26, fontWeight: 800, color: "#a78bfa", fontFamily: "var(--font-mono)" }}>
                       {goalProgress.remaining}
                     </span>
                     <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 2 }}>目標</div>
-                    <span style={{ fontSize: 22, fontWeight: 800, color: "rgba(168,139,250,0.7)", fontFamily: "'Space Mono',monospace" }}>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "rgba(168,139,250,0.7)", fontFamily: "var(--font-mono)" }}>
                       {goalWeight.toFixed(1)}
                     </span>
                     <span style={{ fontSize: 9, fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>kg</span>
@@ -620,7 +620,7 @@ export default function ProgressPage() {
                 {goalPrediction && (
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
                     {goalPrediction.eta
-                      ? <>週 <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{Math.abs(goalPrediction.weekly).toFixed(1)}</span>kgペース → <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{goalPrediction.eta}頃</span></>
+                      ? <>週 <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "var(--font-mono)" }}>{Math.abs(goalPrediction.weekly).toFixed(1)}</span>kgペース → <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{goalPrediction.eta}頃</span></>
                       : goalPrediction.weekly === 0 ? "データが増えると予測が表示されます" : "現在のペースでは目標に近づいていません"}
                   </div>
                 )}
@@ -816,7 +816,7 @@ export default function ProgressPage() {
                   <div style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 700, color }}>{label}</span>
                 </div>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "'Space Mono',monospace" }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "var(--font-mono)" }}>
                   {avg}{unit}{goal ? ` / ${goal}${unit}` : ""}
                   {rate != null && <span style={{ color: rate >= 80 ? "#4ade80" : rate >= 50 ? "#fbbf24" : "#f87171", fontWeight: 700, marginLeft: 6 }}>{rate}%</span>}
                 </span>
@@ -854,7 +854,7 @@ export default function ProgressPage() {
                 <span style={{ fontSize: 18 }}>✨</span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.75)" }}>今週のまとめ</span>
               </div>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "'Space Mono',monospace" }}>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "var(--font-mono)" }}>
                 {fmtShort(weeklySummary.dateFrom)} - {fmtShort(weeklySummary.dateTo)}
               </span>
             </div>
@@ -874,7 +874,7 @@ export default function ProgressPage() {
                        wc > 0.1 ? <TrendingUp size={18} color="#f87171" strokeWidth={2.5} /> :
                        <Minus size={18} color="rgba(255,255,255,0.4)" strokeWidth={2.5} />}
                       <span style={{
-                        fontSize: 28, fontWeight: 800, fontFamily: "'Space Mono',monospace",
+                        fontSize: 28, fontWeight: 800, fontFamily: "var(--font-mono)",
                         color: wc < -0.1 ? "#4ade80" : wc > 0.1 ? "#f87171" : "rgba(255,255,255,0.5)",
                       }}>
                         {wc > 0 ? "+" : ""}{wc}
@@ -904,7 +904,7 @@ export default function ProgressPage() {
                       {weeklySummary.savings >= 0 ? "食費節約" : "予算超過"}
                     </div>
                     <div style={{
-                      fontSize: 26, fontWeight: 800, fontFamily: "'Space Mono',monospace",
+                      fontSize: 26, fontWeight: 800, fontFamily: "var(--font-mono)",
                       color: weeklySummary.savings >= 0 ? "#facc15" : "#f87171",
                     }}>
                       ¥{Math.abs(weeklySummary.savings).toLocaleString()}
@@ -916,7 +916,7 @@ export default function ProgressPage() {
                 ) : (
                   <>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 8, fontWeight: 500, letterSpacing: 0.5 }}>食費合計</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'Space Mono',monospace", color: "#facc15" }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "var(--font-mono)", color: "#facc15" }}>
                       ¥{weeklySummary.totalSpent.toLocaleString()}
                     </div>
                     <div style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", marginTop: 6 }}>
@@ -947,7 +947,7 @@ export default function ProgressPage() {
               borderTop: "1px solid rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.04)",
             }}>
               <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>日平均カロリー</span>
-              <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "'Space Mono',monospace", color: "#fbbf24" }}>
+              <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "var(--font-mono)", color: "#fbbf24" }}>
                 {weeklySummary.avgCal.toLocaleString()}
               </span>
               <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>kcal</span>
@@ -999,7 +999,7 @@ export default function ProgressPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Dumbbell size={16} strokeWidth={1.5} color="#a78bfa" />
                 <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>トレーニング</span>
-                <span style={{ fontSize: 12, color: "#a78bfa", fontFamily: "'Space Mono',monospace", fontWeight: 700 }}>
+                <span style={{ fontSize: 12, color: "#a78bfa", fontFamily: "var(--font-mono)", fontWeight: 700 }}>
                   週{trainingWeekCount}回
                 </span>
               </div>
@@ -1030,7 +1030,7 @@ export default function ProgressPage() {
                     <div key={partId} style={{ marginBottom: 10 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                         <span style={{ fontSize: 12, color: info.color, fontWeight: 600 }}>{info.label}</span>
-                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "'Space Mono',monospace" }}>{count}回</span>
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "var(--font-mono)" }}>{count}回</span>
                       </div>
                       <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
                         <div style={{ height: "100%", borderRadius: 3, background: info.color, width: `${maxBPC > 0 ? (count / maxBPC) * 100 : 0}%`, transition: "width 0.5s" }} />
@@ -1076,9 +1076,9 @@ export default function ProgressPage() {
                   {`${new Date(m.date + "T00:00").getMonth() + 1}/${new Date(m.date + "T00:00").getDate()}`}
                 </span>
                 <div style={{ display: "flex", gap: 8, flex: 1, flexWrap: "wrap" }}>
-                  {m.weight != null && <span style={{ fontSize: 12, fontWeight: 700, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>朝{Number(m.weight).toFixed(1)}</span>}
-                  {m.weight_night != null && <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b", fontFamily: "'Space Mono',monospace" }}>夜{Number(m.weight_night).toFixed(1)}</span>}
-                  {m.body_fat != null && <span style={{ fontSize: 11, fontWeight: 700, color: "#60a5fa", fontFamily: "'Space Mono',monospace" }}>{Number(m.body_fat).toFixed(1)}%</span>}
+                  {m.weight != null && <span style={{ fontSize: 12, fontWeight: 700, color: "#4ade80", fontFamily: "var(--font-mono)" }}>朝{Number(m.weight).toFixed(1)}</span>}
+                  {m.weight_night != null && <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b", fontFamily: "var(--font-mono)" }}>夜{Number(m.weight_night).toFixed(1)}</span>}
+                  {m.body_fat != null && <span style={{ fontSize: 11, fontWeight: 700, color: "#60a5fa", fontFamily: "var(--font-mono)" }}>{Number(m.body_fat).toFixed(1)}%</span>}
                 </div>
                 {m.notes && <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 80 }}>{m.notes}</div>}
               </div>
@@ -1120,12 +1120,12 @@ const S = {
   statCard: { flex: 1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "16px", textAlign: "center" },
 
   dateBtn: { width: 36, height: 36, borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.5)", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
-  dateInput: { flex: 1, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#4ade80", fontFamily: "'Space Mono',monospace", fontSize: 14, fontWeight: 600, outline: "none", colorScheme: "dark" },
+  dateInput: { flex: 1, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#4ade80", fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 600, outline: "none", colorScheme: "dark" },
 
   fieldWrap: { display: "flex", flexDirection: "column", gap: 6 },
   fieldLabel: { fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.4)", textAlign: "center" },
   numWrap: { display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "10px 10px" },
-  numInput: { width: "100%", background: "transparent", border: "none", outline: "none", fontFamily: "'Space Mono',monospace", fontSize: 18, fontWeight: 700, textAlign: "right", minWidth: 0 },
+  numInput: { width: "100%", background: "transparent", border: "none", outline: "none", fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 700, textAlign: "right", minWidth: 0 },
   unit: { fontSize: 12, color: "rgba(255,255,255,0.3)", flexShrink: 0 },
 
   submitBtn: { width: "100%", padding: "14px 0", borderRadius: 14, border: "none", color: "#fff", fontSize: 15, fontWeight: 700, letterSpacing: 0.5, boxShadow: "0 4px 20px rgba(34,197,94,0.3)" },

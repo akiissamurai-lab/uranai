@@ -2,7 +2,7 @@
 
 :root {
   --font-sans: var(--font-inter), var(--font-noto), "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
-  --font-mono: var(--font-mono), "SF Mono", "Consolas", monospace;
+  --font-mono: var(--font-geist-mono), "SF Mono", "Consolas", monospace;
 }
 
 body {

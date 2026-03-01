@@ -50,7 +50,7 @@ function MiniDashboard({ totals, totalCal, goals, calGoal }) {
       {items.map((it) => (
         <div key={it.label} style={{ flex: 1, textAlign: "center" }}>
           <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", marginBottom: 4, fontWeight: 400 }}>{it.label}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: it.over ? "#ef4444" : it.color, fontFamily: "'Space Mono',monospace", marginBottom: 4 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: it.over ? "#ef4444" : it.color, fontFamily: "var(--font-mono)", marginBottom: 4 }}>
             {it.current}
           </div>
           <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
@@ -318,7 +318,7 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
                         {food.serving}{food.unit}あたり
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 6, fontSize: 10, fontFamily: "'Space Mono',monospace" }}>
+                    <div style={{ display: "flex", gap: 6, fontSize: 10, fontFamily: "var(--font-mono)" }}>
                       <span style={{ color: "#f87171" }}>P{food.p}</span>
                       <span style={{ color: "#facc15" }}>F{food.f}</span>
                       <span style={{ color: "#60a5fa" }}>C{food.c}</span>
@@ -359,7 +359,7 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
               <input
                 type="number" inputMode="decimal" value={servingSize}
                 onChange={(e) => handleServingChange(e.target.value)}
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#4ade80", fontSize: 16, fontWeight: 700, fontFamily: "'Space Mono',monospace", textAlign: "center", minWidth: 0 }}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#4ade80", fontSize: 16, fontWeight: 700, fontFamily: "var(--font-mono)", textAlign: "center", minWidth: 0 }}
               />
               <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", flexShrink: 0 }}>{selectedFood.unit}</span>
               {/* Quick serving buttons */}
@@ -1048,11 +1048,11 @@ export default function RecordPage() {
           <div style={S.summaryCard}>
             <div style={{ display: "flex", justifyContent: "space-around" }}>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 28, fontWeight: 800, color: "#4ade80", fontFamily: "'Space Mono',monospace" }}>{totalCal}</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#4ade80", fontFamily: "var(--font-mono)" }}>{totalCal}</div>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>kcal</div>
               </div>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 24, fontWeight: 800, color: "#facc15", fontFamily: "'Space Mono',monospace" }}>¥{totals.price.toLocaleString()}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "#facc15", fontFamily: "var(--font-mono)" }}>¥{totals.price.toLocaleString()}</div>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>食費</div>
               </div>
             </div>
@@ -1074,7 +1074,7 @@ export default function RecordPage() {
               <Scale size={16} strokeWidth={1.5} color="#4ade80" />
               <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>体重</span>
               {!weightOpen && morningWeight && (
-                <span style={{ fontSize: 14, color: "#4ade80", fontFamily: "'Space Mono',monospace", fontWeight: 700 }}>
+                <span style={{ fontSize: 14, color: "#4ade80", fontFamily: "var(--font-mono)", fontWeight: 700 }}>
                   {morningWeight}<span style={{ fontSize: 9, fontWeight: 400, opacity: 0.5 }}>kg</span>
                 </span>
               )}
@@ -1124,11 +1124,11 @@ export default function RecordPage() {
               {/* Summary */}
               {(morningWeight || nightWeight) && (
                 <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 14, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
-                  {morningWeight && <span>朝 <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{morningWeight}</span>kg</span>}
-                  {nightWeight && <span>夜 <span style={{ color: "#f59e0b", fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>{nightWeight}</span>kg</span>}
+                  {morningWeight && <span>朝 <span style={{ color: "#4ade80", fontWeight: 700, fontFamily: "var(--font-mono)" }}>{morningWeight}</span>kg</span>}
+                  {nightWeight && <span>夜 <span style={{ color: "#f59e0b", fontWeight: 700, fontFamily: "var(--font-mono)" }}>{nightWeight}</span>kg</span>}
                   {morningWeight && nightWeight && (
                     <span style={{ color: "rgba(255,255,255,0.25)" }}>
-                      差 <span style={{ fontWeight: 700, fontFamily: "'Space Mono',monospace", color: "rgba(255,255,255,0.5)" }}>
+                      差 <span style={{ fontWeight: 700, fontFamily: "var(--font-mono)", color: "rgba(255,255,255,0.5)" }}>
                         {(Number(nightWeight) - Number(morningWeight) >= 0 ? "+" : "")}{(Number(nightWeight) - Number(morningWeight)).toFixed(1)}
                       </span>kg
                     </span>
@@ -1255,7 +1255,7 @@ export default function RecordPage() {
                           <Star key={i} size={10} fill={i <= (tl.intensity || 0) ? "#fbbf24" : "transparent"} color={i <= (tl.intensity || 0) ? "#fbbf24" : "rgba(255,255,255,0.15)"} strokeWidth={1.5} />
                         ))}
                       </span>
-                      {tl.duration_minutes != null && <span style={{ fontFamily: "'Space Mono',monospace", fontWeight: 600 }}>{tl.duration_minutes}分</span>}
+                      {tl.duration_minutes != null && <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>{tl.duration_minutes}分</span>}
                     </div>
                     {tl.notes && tl.notes.trim() && (
                       <div style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.35)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{tl.notes}</div>
@@ -1341,7 +1341,7 @@ const S = {
   main: { maxWidth: 480, margin: "0 auto", padding: "0 16px 100px" },
 
   dateBtn: { width: 36, height: 36, borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.5)", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
-  dateInput: { flex: 1, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#4ade80", fontFamily: "'Space Mono',monospace", fontSize: 14, fontWeight: 600, outline: "none", colorScheme: "dark" },
+  dateInput: { flex: 1, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#4ade80", fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 600, outline: "none", colorScheme: "dark" },
 
   card: { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 22, padding: "22px 20px", marginBottom: 14 },
 
@@ -1360,7 +1360,7 @@ const S = {
   fieldWrap: { display: "flex", flexDirection: "column", gap: 6 },
   fieldLabel: { fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.4)", textAlign: "center" },
   numWrap: { display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "8px 8px" },
-  numInput: { width: "100%", background: "transparent", border: "none", outline: "none", color: "#22c55e", fontFamily: "'Space Mono',monospace", fontSize: 16, fontWeight: 700, textAlign: "right", minWidth: 0 },
+  numInput: { width: "100%", background: "transparent", border: "none", outline: "none", color: "#22c55e", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, textAlign: "right", minWidth: 0 },
   unit: { fontSize: 11, color: "rgba(255,255,255,0.3)", flexShrink: 0 },
 
   notesInput: { width: "100%", padding: "12px 14px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.7)", fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "'Noto Sans JP',sans-serif", resize: "vertical", lineHeight: 1.6 },
@@ -1371,8 +1371,8 @@ const S = {
   deleteBtn: { width: 32, height: 32, borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "rgba(255,255,255,0.25)", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
 
   routineChip: { display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "14px 16px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, minWidth: 95, flexShrink: 0, transition: "all 0.15s" },
-  chipBadge: { fontSize: 10, fontWeight: 600, color: "#4ade80", fontFamily: "'Space Mono',monospace" },
-  chipPfc: { fontSize: 9, fontWeight: 600, fontFamily: "'Space Mono',monospace" },
+  chipBadge: { fontSize: 10, fontWeight: 600, color: "#4ade80", fontFamily: "var(--font-mono)" },
+  chipPfc: { fontSize: 9, fontWeight: 600, fontFamily: "var(--font-mono)" },
   routineAdd: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: "14px 16px", background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 18, minWidth: 75, flexShrink: 0, textDecoration: "none", color: "rgba(255,255,255,0.3)" },
 
   /* Bottom sheet styles */
@@ -1380,7 +1380,7 @@ const S = {
   sheetFieldWrap: { display: "flex", flexDirection: "column", gap: 6 },
   sheetFieldLabel: { fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.4)", textAlign: "center" },
   sheetNumWrap: { display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "10px 8px" },
-  sheetNumInput: { width: "100%", background: "transparent", border: "none", outline: "none", color: "#22c55e", fontFamily: "'Space Mono',monospace", fontSize: 16, fontWeight: 700, textAlign: "right", minWidth: 0 },
+  sheetNumInput: { width: "100%", background: "transparent", border: "none", outline: "none", color: "#22c55e", fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, textAlign: "right", minWidth: 0 },
   sheetUnit: { fontSize: 11, color: "rgba(255,255,255,0.3)", flexShrink: 0 },
-  quickBtn: { flex: 1, padding: "5px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", fontSize: 10, fontWeight: 600, fontFamily: "'Space Mono',monospace", color: "rgba(255,255,255,0.4)", cursor: "pointer", textAlign: "center", transition: "all 0.15s" },
+  quickBtn: { flex: 1, padding: "5px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", fontSize: 10, fontWeight: 600, fontFamily: "var(--font-mono)", color: "rgba(255,255,255,0.4)", cursor: "pointer", textAlign: "center", transition: "all 0.15s" },
 };

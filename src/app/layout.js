@@ -1,5 +1,6 @@
 import "./globals.css";
-import { Inter, Noto_Sans_JP, Space_Mono } from "next/font/google";
+import { Inter, Noto_Sans_JP } from "next/font/google";
+import { GeistMono } from "geist/font/mono";
 import SupabaseErrorBoundary from "@/components/SupabaseErrorBoundary";
 import BottomNav from "@/components/BottomNav";
 import TermsGate from "@/components/TermsModal";
@@ -18,12 +19,8 @@ const notoSansJP = Noto_Sans_JP({
   weight: ["400", "500", "700", "800", "900"],
 });
 
-const spaceMono = Space_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  display: "swap",
-  weight: ["400", "700"],
-});
+// GeistMono: Vercel公式モノスペース — weight 100〜900対応
+// geist パッケージが自動で variable "--font-geist-mono" を提供
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +61,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ja" className={`${inter.variable} ${notoSansJP.variable} ${spaceMono.variable}`}>
+    <html lang="ja" className={`${inter.variable} ${notoSansJP.variable} ${GeistMono.variable}`}>
       <body style={{ margin: 0 }}>
         <SupabaseErrorBoundary>
           <TermsGate />

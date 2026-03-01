@@ -356,7 +356,7 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
                         {food.serving}{food.unit}あたり
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 6, fontSize: 10, fontFamily: "'Space Mono',monospace" }}>
+                    <div style={{ display: "flex", gap: 6, fontSize: 10, fontFamily: "var(--font-mono)" }}>
                       <span style={{ color: "#f87171" }}>P{food.p}</span>
                       <span style={{ color: "#facc15" }}>F{food.f}</span>
                       <span style={{ color: "#60a5fa" }}>C{food.c}</span>
@@ -397,7 +397,7 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
               <input
                 type="number" inputMode="decimal" step="any" value={servingSize}
                 onChange={(e) => handleServingChange(e.target.value)}
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#4ade80", fontSize: 16, fontWeight: 700, fontFamily: "'Space Mono',monospace", textAlign: "center", minWidth: 0 }}
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#4ade80", fontSize: 16, fontWeight: 700, fontFamily: "var(--font-mono)", textAlign: "center", minWidth: 0 }}
               />
               <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", flexShrink: 0 }}>{selectedFood.unit}</span>
               <div style={{ display: "flex", gap: 4 }}>
