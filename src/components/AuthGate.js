@@ -583,7 +583,7 @@ export default function AuthGate({ supabase, onAuthChange, onSessionExpired }) {
                     textAlign: "center",
                     lineHeight: 1.5,
                   }}>
-                    パスワードを忘れた方は、設定画面からアカウントを削除して再登録してください
+                    パスワードを忘れた方は、別のメールアドレスで新規登録してください
                   </p>
                 )}
               </form>
