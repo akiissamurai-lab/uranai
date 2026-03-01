@@ -20,8 +20,8 @@ const BODY_PART_LABELS = {
   cardio: { label: "有酸素", color: "#22d3ee" },
 };
 
-const tooltipLabels = { weight: "朝", weightNight: "夜", weightMA7: "7日平均", bodyFat: "体脂肪(朝)", bodyFatNight: "体脂肪(夜)" };
-const tooltipUnits = { weight: "kg", weightNight: "kg", weightMA7: "kg", bodyFat: "%", bodyFatNight: "%" };
+const tooltipLabels = { weight: "朝(体重)", weightNight: "夜(体重)", weightMA7: "7日平均(体重)", bodyFat: "朝(体脂肪)", bodyFatNight: "夜(体脂肪)", bodyFatMA7: "7日平均(体脂肪)" };
+const tooltipUnits = { weight: "kg", weightNight: "kg", weightMA7: "kg", bodyFat: "%", bodyFatNight: "%", bodyFatMA7: "%" };
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -68,6 +68,7 @@ export default function ProgressPage() {
   // Chart data
   const [metrics, setMetrics] = useState([]);
   const [range, setRange] = useState(30);
+  const [chartMode, setChartMode] = useState("weight"); // "weight" | "fat"
   const [goalWeight, setGoalWeight] = useState(null);
 
   // Weekly review
@@ -183,18 +184,27 @@ export default function ProgressPage() {
   const chartDataWithMA = chartData.map((d, i) => {
     const win = chartData.slice(Math.max(0, i - 6), i + 1);
     const ws = win.filter(w => w.weight != null).map(w => w.weight);
-    return { ...d, weightMA7: ws.length >= 3 ? +(ws.reduce((a, b) => a + b, 0) / ws.length).toFixed(2) : null };
+    const bfs = win.filter(w => w.bodyFat != null).map(w => w.bodyFat);
+    return {
+      ...d,
+      weightMA7: ws.length >= 3 ? +(ws.reduce((a, b) => a + b, 0) / ws.length).toFixed(2) : null,
+      bodyFatMA7: bfs.length >= 3 ? +(bfs.reduce((a, b) => a + b, 0) / bfs.length).toFixed(1) : null,
+    };
   });
 
   const morningWeights = chartData.filter(d => d.weight != null).map(d => d.weight);
   const nightWeights = chartData.filter(d => d.weightNight != null).map(d => d.weightNight);
   const fats = chartData.filter(d => d.bodyFat != null).map(d => d.bodyFat);
+  const nightFats = chartData.filter(d => d.bodyFatNight != null).map(d => d.bodyFatNight);
   const allWeights = [...morningWeights, ...nightWeights, ...(goalWeight ? [goalWeight] : [])];
   const wMin = allWeights.length ? Math.floor(Math.min(...allWeights) - 1) : 50;
   const wMax = allWeights.length ? Math.ceil(Math.max(...allWeights) + 1) : 80;
-  const fMin = fats.length ? Math.floor(Math.min(...fats) - 2) : 5;
-  const fMax = fats.length ? Math.ceil(Math.max(...fats) + 2) : 30;
+  const allFats = [...fats, ...nightFats];
+  const fMin = allFats.length ? Math.floor(Math.min(...allFats) - 2) : 5;
+  const fMax = allFats.length ? Math.ceil(Math.max(...allFats) + 2) : 30;
   const hasNightWeight = nightWeights.length > 0;
+  const hasNightFat = nightFats.length > 0;
+  const hasFatData = fats.length > 0;
 
   // Goal prediction
   const goalPrediction = (() => {
@@ -592,6 +602,21 @@ export default function ProgressPage() {
         {/* ─── CHART ─── */}
         {chartData.length >= 2 && (
           <div style={S.card}>
+            {/* Chart mode toggle — only show if body fat data exists */}
+            {hasFatData && (
+              <div style={{ display: "flex", gap: 0, marginBottom: 10, borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
+                {[{ val: "weight", label: "体重" }, { val: "fat", label: "体脂肪" }].map(({ val, label }) => (
+                  <button key={val} onClick={() => setChartMode(val)} style={{
+                    flex: 1, padding: "8px 0", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                    background: chartMode === val ? (val === "weight" ? "rgba(74,222,128,0.15)" : "rgba(96,165,250,0.15)") : "transparent",
+                    color: chartMode === val ? (val === "weight" ? "#4ade80" : "#60a5fa") : "rgba(255,255,255,0.35)",
+                    transition: "all 0.2s",
+                  }}>{label}</button>
+                ))}
+              </div>
+            )}
+
+            {/* Period tabs */}
             <div style={{ display: "flex", gap: 0, marginBottom: 16, borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
               {[{ val: 7, label: "7日" }, { val: 30, label: "30日" }, { val: 90, label: "90日" }, { val: 180, label: "6ヶ月" }].map(({ val, label }) => (
                 <button key={val} onClick={() => setRange(val)} style={{
@@ -614,61 +639,97 @@ export default function ProgressPage() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                   <XAxis dataKey="label" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }} axisLine={{ stroke: "rgba(255,255,255,0.06)" }} tickLine={false} interval="preserveStartEnd" />
-                  <YAxis yAxisId="left" domain={[wMin, wMax]} tick={{ fill: "rgba(74,222,128,0.6)", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  {fats.length > 0 && (
-                    <YAxis yAxisId="right" orientation="right" domain={[fMin, fMax]} tick={{ fill: "rgba(96,165,250,0.6)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+
+                  {/* Y Axis — changes based on chart mode */}
+                  {chartMode === "weight" ? (
+                    <YAxis yAxisId="left" domain={[wMin, wMax]} tick={{ fill: "rgba(74,222,128,0.6)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  ) : (
+                    <YAxis yAxisId="left" domain={[fMin, fMax]} tick={{ fill: "rgba(96,165,250,0.6)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
                   )}
+
                   <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)" }} />
-                  {goalWeight && (
+
+                  {/* ── Weight mode lines ── */}
+                  {chartMode === "weight" && goalWeight && (
                     <ReferenceLine yAxisId="left" y={goalWeight} stroke="rgba(168,139,250,0.5)" strokeDasharray="6 4" strokeWidth={1.5}
                       label={{ value: `目標 ${goalWeight}kg`, position: "right", fill: "rgba(168,139,250,0.6)", fontSize: 10, fontWeight: 600 }} />
                   )}
-                  <Line yAxisId="left" type="monotone" dataKey="weight" stroke="#4ade80" strokeWidth={2.5}
-                    dot={{ r: 4, fill: "#4ade80", stroke: "#0a0a0f", strokeWidth: 2 }}
-                    activeDot={{ r: 7, fill: "#4ade80", stroke: "rgba(74,222,128,0.3)", strokeWidth: 4 }} connectNulls />
-                  <Line yAxisId="left" type="monotone" dataKey="weightMA7" stroke="rgba(74,222,128,0.35)" strokeWidth={2.5}
-                    dot={false} activeDot={false} connectNulls strokeDasharray="0" />
-                  {hasNightWeight && (
+                  {chartMode === "weight" && (
+                    <Line yAxisId="left" type="monotone" dataKey="weight" stroke="#4ade80" strokeWidth={2.5}
+                      dot={{ r: 4, fill: "#4ade80", stroke: "#0a0a0f", strokeWidth: 2 }}
+                      activeDot={{ r: 7, fill: "#4ade80", stroke: "rgba(74,222,128,0.3)", strokeWidth: 4 }} connectNulls />
+                  )}
+                  {chartMode === "weight" && (
+                    <Line yAxisId="left" type="monotone" dataKey="weightMA7" stroke="rgba(74,222,128,0.35)" strokeWidth={2.5}
+                      dot={false} activeDot={false} connectNulls />
+                  )}
+                  {chartMode === "weight" && hasNightWeight && (
                     <Line yAxisId="left" type="monotone" dataKey="weightNight" stroke="#f59e0b" strokeWidth={2}
                       dot={{ r: 3, fill: "#f59e0b", stroke: "#0a0a0f", strokeWidth: 2 }}
                       activeDot={{ r: 6, fill: "#f59e0b", stroke: "rgba(245,158,11,0.3)", strokeWidth: 4 }} connectNulls />
                   )}
-                  {fats.length > 0 && (
-                    <Line yAxisId="right" type="monotone" dataKey="bodyFat" stroke="#60a5fa" strokeWidth={2}
+
+                  {/* ── Body fat mode lines ── */}
+                  {chartMode === "fat" && (
+                    <Line yAxisId="left" type="monotone" dataKey="bodyFat" stroke="#60a5fa" strokeWidth={2.5}
                       dot={{ r: 4, fill: "#60a5fa", stroke: "#0a0a0f", strokeWidth: 2 }}
-                      activeDot={{ r: 7, fill: "#60a5fa", stroke: "rgba(96,165,250,0.3)", strokeWidth: 4 }} connectNulls strokeDasharray="5 3" />
+                      activeDot={{ r: 7, fill: "#60a5fa", stroke: "rgba(96,165,250,0.3)", strokeWidth: 4 }} connectNulls />
+                  )}
+                  {chartMode === "fat" && (
+                    <Line yAxisId="left" type="monotone" dataKey="bodyFatMA7" stroke="rgba(96,165,250,0.35)" strokeWidth={2.5}
+                      dot={false} activeDot={false} connectNulls />
+                  )}
+                  {chartMode === "fat" && hasNightFat && (
+                    <Line yAxisId="left" type="monotone" dataKey="bodyFatNight" stroke="#f59e0b" strokeWidth={2}
+                      dot={{ r: 3, fill: "#f59e0b", stroke: "#0a0a0f", strokeWidth: 2 }}
+                      activeDot={{ r: 6, fill: "#f59e0b", stroke: "rgba(245,158,11,0.3)", strokeWidth: 4 }} connectNulls />
                   )}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
 
-            {/* Legend */}
+            {/* Legend — changes based on chart mode */}
             <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 12, flexWrap: "wrap" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <div style={{ width: 14, height: 3, background: "#4ade80", borderRadius: 2 }} />
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>朝</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <div style={{ width: 14, height: 3, background: "rgba(74,222,128,0.35)", borderRadius: 2 }} />
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>7日平均</span>
-              </div>
-              {hasNightWeight && (
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <div style={{ width: 14, height: 3, background: "#f59e0b", borderRadius: 2 }} />
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>夜</span>
-                </div>
-              )}
-              {fats.length > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <div style={{ width: 14, height: 0, borderTop: "2px dashed #60a5fa" }} />
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>体脂肪</span>
-                </div>
-              )}
-              {goalWeight && (
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <div style={{ width: 14, height: 0, borderTop: "2px dashed rgba(168,139,250,0.6)" }} />
-                  <span style={{ fontSize: 10, color: "rgba(168,139,250,0.6)" }}>目標</span>
-                </div>
+              {chartMode === "weight" ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 14, height: 3, background: "#4ade80", borderRadius: 2 }} />
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>朝</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 14, height: 3, background: "rgba(74,222,128,0.35)", borderRadius: 2 }} />
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>7日平均</span>
+                  </div>
+                  {hasNightWeight && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <div style={{ width: 14, height: 3, background: "#f59e0b", borderRadius: 2 }} />
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>夜</span>
+                    </div>
+                  )}
+                  {goalWeight && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <div style={{ width: 14, height: 0, borderTop: "2px dashed rgba(168,139,250,0.6)" }} />
+                      <span style={{ fontSize: 10, color: "rgba(168,139,250,0.6)" }}>目標</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 14, height: 3, background: "#60a5fa", borderRadius: 2 }} />
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>朝</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 14, height: 3, background: "rgba(96,165,250,0.35)", borderRadius: 2 }} />
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>7日平均</span>
+                  </div>
+                  {hasNightFat && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <div style={{ width: 14, height: 3, background: "#f59e0b", borderRadius: 2 }} />
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>夜</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
