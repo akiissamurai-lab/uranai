@@ -147,16 +147,75 @@ export const FOOD_DB = [
   { name: "あんぱん", cat: "間食", serving: 90, unit: "g", p: 5.5, f: 3.5, c: 45.0, cal: 250, price: 130 },
 ];
 
-// 検索用: ひらがな・カタカナ・英字で部分一致
+// ── エイリアス（別名→正式名マッピング）──
+const ALIASES = {
+  "ごはん": "白米", "ご飯": "白米", "ライス": "白米", "米": "白米",
+  "たまご": "卵", "玉子": "卵", "エッグ": "卵",
+  "鶏肉": "鶏", "チキン": "鶏", "とりにく": "鶏", "とり肉": "鶏",
+  "豚肉": "豚", "ぶたにく": "豚", "ポーク": "豚",
+  "牛肉": "牛", "ぎゅうにく": "牛", "ビーフ": "牛",
+  "ひき肉": "ひき肉", "ミンチ": "ひき肉",
+  "ヨーグルト": "ヨーグルト", "よーぐると": "ヨーグルト",
+  "ぶろっこりー": "ブロッコリー", "ぶろっこり": "ブロッコリー",
+  "とうふ": "豆腐", "トーフ": "豆腐",
+  "なっとう": "納豆",
+  "さけ": "鮭", "シャケ": "鮭",
+  "ツナ": "ツナ", "シーチキン": "ツナ",
+  "パン": "食パン", "しょくぱん": "食パン",
+  "うどん": "うどん", "そば": "そば", "パスタ": "パスタ", "スパゲッティ": "パスタ",
+  "もやし": "もやし", "キャベツ": "キャベツ", "きゃべつ": "キャベツ",
+  "にく": "肉", "さかな": "魚", "やさい": "野菜",
+  "おにぎり": "おにぎり", "おむすび": "おにぎり",
+  "からあげ": "唐揚げ", "から揚げ": "唐揚げ",
+  "しょうがやき": "生姜焼き", "生姜焼": "生姜焼き",
+  "みそしる": "味噌汁", "みそ汁": "味噌汁",
+  "プロテイン": "プロテイン", "ぷろていん": "プロテイン",
+  "コーヒー": "コーヒー", "珈琲": "コーヒー",
+  "ぎゅうにゅう": "牛乳", "ミルク": "牛乳",
+};
+
+// カタカナ→ひらがな変換
+function toHiragana(str) {
+  return str.toLowerCase()
+    .replace(/[\u30A1-\u30F6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+}
+
+// 検索用: トークン分割 + エイリアス + ひらがな正規化
 export function searchFoods(query) {
   if (!query || query.length < 1) return [];
-  const q = query.toLowerCase()
-    .replace(/[\u30A1-\u30F6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60)); // カタカナ→ひらがな
-  return FOOD_DB.filter(f => {
-    const name = f.name.toLowerCase()
-      .replace(/[\u30A1-\u30F6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
-    return name.includes(q) || f.cat.includes(q);
-  }).slice(0, 10);
+  const q = toHiragana(query.trim());
+
+  // エイリアス展開: 入力をエイリアスで置換
+  let expanded = q;
+  for (const [alias, canonical] of Object.entries(ALIASES)) {
+    if (q.includes(toHiragana(alias))) {
+      expanded = toHiragana(canonical);
+      break;
+    }
+  }
+
+  // トークン分割: 1文字クエリはそのまま、2文字以上は個別文字でもマッチ
+  const results = FOOD_DB.map(f => {
+    const name = toHiragana(f.name);
+    const cat = toHiragana(f.cat);
+
+    // 完全部分一致（最優先）
+    if (name.includes(expanded) || cat.includes(expanded)) return { food: f, score: 3 };
+    if (name.includes(q) || cat.includes(q)) return { food: f, score: 3 };
+
+    // 全文字包含マッチ（「鶏肉」→「鶏」と「肉」両方含む）
+    if (q.length >= 2) {
+      const chars = [...new Set(q)];
+      const allMatch = chars.every(ch => name.includes(ch));
+      if (allMatch) return { food: f, score: 2 };
+    }
+
+    return null;
+  }).filter(Boolean);
+
+  // スコア降順 → 最大20件
+  results.sort((a, b) => b.score - a.score);
+  return results.slice(0, 20).map(r => r.food);
 }
 
 // サービングサイズに応じたPFC計算

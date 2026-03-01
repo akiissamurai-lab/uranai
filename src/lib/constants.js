@@ -1,6 +1,6 @@
 // ─── AI / Anthropic ─────────────────────────────────────────────
 export const AI = {
-  MACRO_MODEL: "claude-3-5-haiku-20241022",  // PFC推測・食事アドバイス（コスト最適化）
+  MACRO_MODEL: "claude-haiku-4-5-20251001",  // PFC推測・食事アドバイス（コスト最適化）
   COACH_MODEL: "claude-sonnet-4-20250514",   // AIコーチ分析（品質重視）
   API_VERSION: "2023-06-01",
   MACRO_MAX_TOKENS: 1000,
