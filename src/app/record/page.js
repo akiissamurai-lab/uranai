@@ -94,7 +94,7 @@ function ManualInputSheet({ open, onClose, onSubmit, saving, activeMealIndex }) 
     if (val.length >= 1) {
       const results = searchFoods(val);
       setSuggestions(results);
-      setShowSuggestions(results.length > 0);
+      setShowSuggestions(val.length >= 1);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -186,7 +186,6 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
   };
 
   const hasSuggestionForName = suggestions.length > 0;
-  const showAiButton = mealName.trim().length >= 2 && !selectedFood && !hasSuggestionForName && !protein && !fat && !carbs;
 
   return (
     <>
@@ -232,7 +231,7 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
               type="text"
               value={mealName}
               onChange={(e) => handleNameChange(e.target.value)}
-              onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+              onFocus={() => { if (mealName.length >= 1) setShowSuggestions(true); }}
               placeholder="何を食べた？（例: 鶏むね肉、おにぎり）"
               required
               autoComplete="off"
@@ -245,8 +244,9 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
                 background: "rgba(20,24,35,0.98)", border: "1px solid rgba(255,255,255,0.1)",
                 borderRadius: "0 0 14px 14px", borderTop: "none",
                 maxHeight: 200, overflowY: "auto", marginTop: -2,
+                zIndex: 50,
               }}>
-                {suggestions.map((food, i) => (
+                {suggestions.length > 0 ? suggestions.map((food, i) => (
                   <button key={i} type="button" onClick={() => handleSelectFood(food)} style={{
                     width: "100%", padding: "10px 14px", border: "none", background: "transparent",
                     cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -265,7 +265,23 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
                       <span style={{ color: "rgba(255,255,255,0.3)" }}>¥{food.price}</span>
                     </div>
                   </button>
-                ))}
+                )) : mealName.trim().length >= 2 && (
+                  <div style={{ padding: "10px 14px" }}>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>
+                      該当する食品が見つかりません
+                    </div>
+                    <button type="button" onClick={handleAiEstimate} disabled={aiEstimating} style={{
+                      width: "100%", padding: "10px 0", borderRadius: 10, border: "1px solid rgba(168,139,250,0.25)",
+                      background: "rgba(168,139,250,0.08)", color: "#a78bfa", fontSize: 13, fontWeight: 600,
+                      cursor: aiEstimating ? "not-allowed" : "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      opacity: aiEstimating ? 0.6 : 1, transition: "all 0.2s",
+                    }}>
+                      <Sparkles size={14} strokeWidth={1.5} />
+                      {aiEstimating ? "推定中..." : `「${mealName.trim()}」のPFCをAIで推定`}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -303,19 +319,7 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
             </div>
           )}
 
-          {/* AI estimation button */}
-          {showAiButton && (
-            <button type="button" onClick={handleAiEstimate} disabled={aiEstimating} style={{
-              width: "100%", padding: "10px 0", borderRadius: 12, border: "1px solid rgba(168,139,250,0.2)",
-              background: "rgba(168,139,250,0.06)", color: "#a78bfa", fontSize: 13, fontWeight: 600,
-              cursor: aiEstimating ? "not-allowed" : "pointer", marginBottom: 14,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-              opacity: aiEstimating ? 0.6 : 1, transition: "all 0.2s",
-            }}>
-              <Sparkles size={14} strokeWidth={1.5} />
-              {aiEstimating ? "推定中..." : `「${mealName.trim()}」のPFCをAIで推定`}
-            </button>
-          )}
+          {/* AI estimation — now inside dropdown; keep aiSource label below */}
 
           {/* AI source label */}
           {aiSource && (

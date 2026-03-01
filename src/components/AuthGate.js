@@ -2,6 +2,17 @@
 
 import { useState, useEffect } from "react";
 
+// In-Appブラウザ検知
+function detectInAppBrowser() {
+  if (typeof navigator === "undefined") return null;
+  const ua = navigator.userAgent || "";
+  if (/Line\//i.test(ua)) return "LINE";
+  if (/Instagram/i.test(ua)) return "Instagram";
+  if (/FBAN|FBAV/i.test(ua)) return "Facebook";
+  if (/Twitter|X\//i.test(ua)) return "X (Twitter)";
+  return null;
+}
+
 export default function AuthGate({ supabase, onAuthChange }) {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState("");
@@ -10,6 +21,11 @@ export default function AuthGate({ supabase, onAuthChange }) {
   const [mode, setMode] = useState("magic"); // magic | login | signup
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error | rate_limit
   const [errorMsg, setErrorMsg] = useState("");
+  const [inAppBrowser, setInAppBrowser] = useState(null);
+
+  useEffect(() => {
+    setInAppBrowser(detectInAppBrowser());
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -164,13 +180,13 @@ export default function AuthGate({ supabase, onAuthChange }) {
           onClick={handleLogout}
           title={`${user.email}\n(タップでログアウト)`}
           style={{
-            width: 32,
-            height: 32,
+            width: 44,
+            height: 44,
             borderRadius: "50%",
             background: "linear-gradient(135deg, #667eea, #764ba2)",
             color: "#fff",
             border: "none",
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 700,
             cursor: "pointer",
             display: "flex",
@@ -213,7 +229,8 @@ export default function AuthGate({ supabase, onAuthChange }) {
           }
         }}
         style={{
-          padding: "6px 16px",
+          padding: "8px 18px",
+          minHeight: 44,
           borderRadius: 10,
           border: "1px solid rgba(102,126,234,0.4)",
           background: "linear-gradient(135deg, rgba(102,126,234,0.15), rgba(118,75,162,0.15))",
@@ -249,6 +266,21 @@ export default function AuthGate({ supabase, onAuthChange }) {
             boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
           }}
         >
+          {/* In-Appブラウザ警告 */}
+          {inAppBrowser && (
+            <div style={{
+              background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)",
+              borderRadius: 8, padding: "8px 10px", marginBottom: 10, lineHeight: 1.5,
+            }}>
+              <p style={{ color: "#fbbf24", fontSize: 11, fontWeight: 600, margin: 0 }}>
+                ⚠ {inAppBrowser}のアプリ内ブラウザです
+              </p>
+              <p style={{ color: "rgba(251,191,36,0.7)", fontSize: 10, margin: "4px 0 0" }}>
+                ログイン後のセッションが保持されない場合があります。Safari / Chrome で開き直してください。
+              </p>
+            </div>
+          )}
+
           {/* 送信完了 */}
           {status === "sent" ? (
             <div style={{ textAlign: "center" }}>
