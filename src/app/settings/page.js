@@ -29,7 +29,7 @@ const FAQ_ITEMS = [
   { q: "食事の記録はどうやるの？", a: "検索欄に「鶏むね肉」などと入力するだけで、AIがPFCと価格を瞬時に推測します。手動での入力も可能です。" },
   { q: "すべて無料で使えますか？", a: "はい、現在の機能はすべて無料でご利用いただけます。" },
   { q: "「予算最適化」とは何ですか？", a: "目標のPFCを満たしつつ、1日の食費をいかに安く抑えるかをAIがアドバイスする、当アプリ独自の機能です。" },
-  { q: "アカウントやデータは削除できますか？", a: "はい。この設定画面の下部から、いつでもアカウントと全データを完全に削除できます。" },
+  { q: "アカウントやデータは削除できますか？", a: "はい。この設定画面の最下部にある削除ボタンから、いつでもデータを完全に削除できます。ログインユーザーはアカウントごと、ゲストの方はローカルデータを削除できます。" },
 ];
 
 function FaqSection() {
@@ -589,113 +589,172 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* ── アカウント削除 ── */}
-        {user && (
-          <div style={{
-            marginTop: 32,
-            padding: "20px 18px",
-            borderRadius: 16,
-            border: "1px solid rgba(239,68,68,0.15)",
-            background: "rgba(239,68,68,0.03)",
-          }}>
-            {deleteStep === 0 && (
-              <button
-                onClick={() => setDeleteStep(1)}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  padding: "10px 0", borderRadius: 10,
-                  border: "1px solid rgba(239,68,68,0.2)", background: "transparent",
-                  color: "rgba(239,68,68,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
-                }}
-              >
-                <Trash2 size={14} strokeWidth={1.5} />
-                アカウントを削除する
-              </button>
-            )}
-
-            {deleteStep === 1 && (
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                  <AlertTriangle size={16} color="#f87171" strokeWidth={1.5} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#f87171" }}>本当に削除しますか？</span>
-                </div>
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, margin: "0 0 14px" }}>
-                  アカウントを削除すると、体重記録・食事ログ・トレーニング記録・プロフィール設定など、すべてのデータが完全に削除されます。この操作は取り消せません。
-                </p>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => setDeleteStep(0)}
-                    style={{
-                      flex: 1, padding: "10px 0", borderRadius: 10,
-                      border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
-                      color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
-                    }}
-                  >
-                    キャンセル
-                  </button>
-                  <button
-                    onClick={() => setDeleteStep(2)}
-                    style={{
-                      flex: 1, padding: "10px 0", borderRadius: 10,
-                      border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)",
-                      color: "#f87171", fontSize: 13, fontWeight: 600, cursor: "pointer",
-                    }}
-                  >
-                    削除に進む
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {deleteStep === 2 && (
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                  <AlertTriangle size={16} color="#f87171" strokeWidth={1.5} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#f87171" }}>最終確認</span>
-                </div>
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, margin: "0 0 12px" }}>
-                  確認のため「削除」と入力してください。
-                </p>
-                <input
-                  type="text"
-                  value={deleteInput}
-                  onChange={e => setDeleteInput(e.target.value)}
-                  placeholder="削除"
+        {/* ── データ／アカウント削除 ── */}
+        <div style={{
+          marginTop: 32,
+          padding: "20px 18px",
+          borderRadius: 16,
+          border: "1px solid rgba(239,68,68,0.15)",
+          background: "rgba(239,68,68,0.03)",
+        }}>
+          {user ? (
+            <>
+              {deleteStep === 0 && (
+                <button
+                  onClick={() => setDeleteStep(1)}
                   style={{
-                    width: "100%", padding: "10px 12px", borderRadius: 10, boxSizing: "border-box",
-                    border: "1px solid rgba(239,68,68,0.2)", background: "rgba(255,255,255,0.04)",
-                    color: "#fff", fontSize: 14, outline: "none", marginBottom: 12,
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    padding: "10px 0", borderRadius: 10,
+                    border: "1px solid rgba(239,68,68,0.2)", background: "transparent",
+                    color: "rgba(239,68,68,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
                   }}
-                />
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => { setDeleteStep(0); setDeleteInput(""); }}
-                    style={{
-                      flex: 1, padding: "10px 0", borderRadius: 10,
-                      border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
-                      color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
-                    }}
-                  >
-                    キャンセル
-                  </button>
-                  <button
-                    onClick={handleDeleteAccount}
-                    disabled={deleteInput !== "削除" || deleting}
-                    style={{
-                      flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
-                      background: deleteInput === "削除" && !deleting ? "#dc2626" : "rgba(255,255,255,0.08)",
-                      color: deleteInput === "削除" && !deleting ? "#fff" : "rgba(255,255,255,0.2)",
-                      fontSize: 13, fontWeight: 700,
-                      cursor: deleteInput === "削除" && !deleting ? "pointer" : "not-allowed",
-                    }}
-                  >
-                    {deleting ? "削除中..." : "完全に削除する"}
-                  </button>
+                >
+                  <Trash2 size={14} strokeWidth={1.5} />
+                  アカウントを削除する
+                </button>
+              )}
+
+              {deleteStep === 1 && (
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <AlertTriangle size={16} color="#f87171" strokeWidth={1.5} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#f87171" }}>本当に削除しますか？</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, margin: "0 0 14px" }}>
+                    アカウントを削除すると、体重記録・食事ログ・トレーニング記録・プロフィール設定など、すべてのデータが完全に削除されます。この操作は取り消せません。
+                  </p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => setDeleteStep(0)}
+                      style={{
+                        flex: 1, padding: "10px 0", borderRadius: 10,
+                        border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
+                        color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={() => setDeleteStep(2)}
+                      style={{
+                        flex: 1, padding: "10px 0", borderRadius: 10,
+                        border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)",
+                        color: "#f87171", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                      }}
+                    >
+                      削除に進む
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+
+              {deleteStep === 2 && (
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <AlertTriangle size={16} color="#f87171" strokeWidth={1.5} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#f87171" }}>最終確認</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, margin: "0 0 12px" }}>
+                    確認のため「削除」と入力してください。
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteInput}
+                    onChange={e => setDeleteInput(e.target.value)}
+                    placeholder="削除"
+                    style={{
+                      width: "100%", padding: "10px 12px", borderRadius: 10, boxSizing: "border-box",
+                      border: "1px solid rgba(239,68,68,0.2)", background: "rgba(255,255,255,0.04)",
+                      color: "#fff", fontSize: 14, outline: "none", marginBottom: 12,
+                    }}
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => { setDeleteStep(0); setDeleteInput(""); }}
+                      style={{
+                        flex: 1, padding: "10px 0", borderRadius: 10,
+                        border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
+                        color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleteInput !== "削除" || deleting}
+                      style={{
+                        flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
+                        background: deleteInput === "削除" && !deleting ? "#dc2626" : "rgba(255,255,255,0.08)",
+                        color: deleteInput === "削除" && !deleting ? "#fff" : "rgba(255,255,255,0.2)",
+                        fontSize: 13, fontWeight: 700,
+                        cursor: deleteInput === "削除" && !deleting ? "pointer" : "not-allowed",
+                      }}
+                    >
+                      {deleting ? "削除中..." : "完全に削除する"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {deleteStep === 0 && (
+                <button
+                  onClick={() => setDeleteStep(1)}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    padding: "10px 0", borderRadius: 10,
+                    border: "1px solid rgba(239,68,68,0.2)", background: "transparent",
+                    color: "rgba(239,68,68,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
+                  }}
+                >
+                  <Trash2 size={14} strokeWidth={1.5} />
+                  ローカルデータを削除する
+                </button>
+              )}
+
+              {deleteStep >= 1 && (
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <AlertTriangle size={16} color="#f87171" strokeWidth={1.5} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#f87171" }}>本当に削除しますか？</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, margin: "0 0 14px" }}>
+                    端末に保存されている食事ログ・体重記録・設定などのローカルデータがすべて削除されます。この操作は取り消せません。
+                  </p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => setDeleteStep(0)}
+                      style={{
+                        flex: 1, padding: "10px 0", borderRadius: 10,
+                        border: "1px solid rgba(255,255,255,0.1)", background: "transparent",
+                        color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 500, cursor: "pointer",
+                      }}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={() => {
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        showToast("success", "ローカルデータを削除しました");
+                        setDeleteStep(0);
+                        router.push("/");
+                      }}
+                      style={{
+                        flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
+                        background: "#dc2626", color: "#fff",
+                        fontSize: 13, fontWeight: 700, cursor: "pointer",
+                      }}
+                    >
+                      削除する
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </main>
 
       {legalTab && <LegalViewer initialTab={legalTab} onClose={() => setLegalTab(null)} />}
