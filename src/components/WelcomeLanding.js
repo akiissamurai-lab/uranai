@@ -76,7 +76,7 @@ export default function WelcomeLanding({ supabase, onAuthChange }) {
                 <Wallet size={20} strokeWidth={1.5} color="#16a34a" />
               </div>
               <div>
-                <h3 style={s.cardTitle}>食費の限界最適化</h3>
+                <h3 style={s.cardTitle}>食費の最適化</h3>
                 <p style={{ ...s.cardSub, color: "#16a34a" }}>Budget Optimizer</p>
               </div>
             </div>
