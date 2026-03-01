@@ -35,7 +35,7 @@ export default function AuthGate({ supabase, onAuthChange, onSessionExpired }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [mode, setMode] = useState("magic"); // magic | login | signup
+  const [mode, setMode] = useState("login"); // login | signup
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error | rate_limit | resending
   const [errorMsg, setErrorMsg] = useState("");
   const [inAppBrowser, setInAppBrowser] = useState(null);
@@ -90,7 +90,7 @@ export default function AuthGate({ supabase, onAuthChange, onSessionExpired }) {
     setErrorMsg("");
     setEmail("");
     setPassword("");
-    setMode("login");
+    setMode("login"); // デフォルトはログインタブ
     setNeedsConfirmation(false);
   };
 
@@ -440,7 +440,6 @@ export default function AuthGate({ supabase, onAuthChange, onSessionExpired }) {
                 }}
               >
                 {[
-                  { key: "magic", label: "メール認証" },
                   { key: "login", label: "ログイン" },
                   { key: "signup", label: "新規登録" },
                 ].map(({ key, label }) => (
@@ -574,6 +573,19 @@ export default function AuthGate({ supabase, onAuthChange, onSessionExpired }) {
                 >
                   {isBusy ? "処理中..." : submitLabel}
                 </button>
+
+                {/* パスワードを忘れた場合の案内（ログインモードのみ） */}
+                {mode === "login" && (
+                  <p style={{
+                    color: "rgba(255,255,255,0.3)",
+                    fontSize: 10,
+                    marginTop: 10,
+                    textAlign: "center",
+                    lineHeight: 1.5,
+                  }}>
+                    パスワードを忘れた方は、設定画面からアカウントを削除して再登録してください
+                  </p>
+                )}
               </form>
             </>
           )}
