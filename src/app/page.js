@@ -185,8 +185,6 @@ async function handleShareImage(todayTotals, profileGoals, setShareStatus) {
       setShareStatus("error");
     }
   }
-
-  setTimeout(() => setShareStatus(null), 3000);
 }
 
 // ─── PFC ドーナツチャート（純SVG — 軽量＆確実）───
@@ -753,6 +751,21 @@ export default function Home() {
   const profileSaveTimer = useRef(null);
   const hasCustomProtein = useRef(false);
 
+  // ─── Timer refs（アンマウント時のクリーンアップ用）───
+  const authErrorTimerRef = useRef(null);
+  const scrollTimerRef = useRef(null);
+  const shareMsgTimerRef = useRef(null);
+  const shareStatusTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (authErrorTimerRef.current) clearTimeout(authErrorTimerRef.current);
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+      if (shareMsgTimerRef.current) clearTimeout(shareMsgTimerRef.current);
+      if (shareStatusTimerRef.current) clearTimeout(shareStatusTimerRef.current);
+    };
+  }, []);
+
   // ─── AI Meal Suggestion ───
   const [aiSuggest, setAiSuggest] = useState(null);
   const [aiSuggestLoading, setAiSuggestLoading] = useState(false);
@@ -775,8 +788,9 @@ export default function Home() {
       cleanUrl.searchParams.delete("auth_error");
       cleanUrl.searchParams.delete("error_desc");
       window.history.replaceState({}, "", cleanUrl.pathname);
-      setTimeout(() => setAuthError(null), 10000);
+      authErrorTimerRef.current = setTimeout(() => setAuthError(null), 10000);
     }
+    return () => { if (authErrorTimerRef.current) clearTimeout(authErrorTimerRef.current); };
   }, []);
 
   // (loadingTimeout useEffect removed — ローディングゲート廃止のため不要)
@@ -1094,7 +1108,8 @@ export default function Home() {
     const plan = solveMealPlan(budget, protein, calories, excludedIds, excludedCats);
     setResult(plan); setAiAdvice(null); setAiError(null); setAiLoading(true);
     setActiveTab("ai"); setExpandedMeal(null); setStep("result"); setPlannerOpen(true);
-    setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth" }), 150);
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth" }), 150);
 
     const entry = { weight, goal, budget, protein: Math.round(plan.totals.protein), cal: Math.round(plan.totals.cal), cost: Math.round(plan.totals.cost) };
     if (!user) {
@@ -1159,7 +1174,7 @@ export default function Home() {
       ...result.items.map(i => `  ${i.name} ×${i.servings} (¥${i.cost * i.servings})`),
       `\nダツデブで最適化`,
     ].join("\n");
-    navigator.clipboard.writeText(text).then(() => { setShareMsg("コピー完了"); setTimeout(() => setShareMsg(""), 2000); });
+    navigator.clipboard.writeText(text).then(() => { setShareMsg("コピー完了"); if (shareMsgTimerRef.current) clearTimeout(shareMsgTimerRef.current); shareMsgTimerRef.current = setTimeout(() => setShareMsg(""), 2000); });
   };
 
   const ppYen = result ? (result.totals.protein / result.totals.cost * 100).toFixed(1) : 0;
@@ -1301,7 +1316,7 @@ export default function Home() {
             {/* 記録あり → シェアボタン / 記録なし → アクションカード */}
             {todayLogs.length > 0 ? (
               <button
-                onClick={() => handleShareImage(todayTotals, profileGoals, setShareStatus)}
+                onClick={async () => { if (shareStatusTimerRef.current) clearTimeout(shareStatusTimerRef.current); await handleShareImage(todayTotals, profileGoals, setShareStatus); shareStatusTimerRef.current = setTimeout(() => setShareStatus(null), 3000); }}
                 disabled={shareStatus === "generating"}
                 style={{
                   width: "100%",

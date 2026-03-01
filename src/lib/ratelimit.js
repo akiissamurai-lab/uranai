@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { RATE_LIMIT } from "@/lib/constants";
 
 // ── 遅延初期化（Lazy Init）─────────────────────────────────────
 // モジュール読み込み時に Redis.fromEnv() が走ると
@@ -17,8 +18,8 @@ export function getRatelimit() {
 
   _ratelimit = new Ratelimit({
     redis: Redis.fromEnv(),
-    limiter: Ratelimit.slidingWindow(3, "60 s"),
-    prefix: "macro-builder",
+    limiter: Ratelimit.slidingWindow(RATE_LIMIT.REQUESTS, RATE_LIMIT.WINDOW),
+    prefix: RATE_LIMIT.PREFIX,
   });
   return _ratelimit;
 }

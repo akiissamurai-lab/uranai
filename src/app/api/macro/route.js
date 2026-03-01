@@ -1,11 +1,9 @@
 import { getRatelimit, getIP } from "@/lib/ratelimit";
-
-// プロンプトの最大文字数（安全マージン込み）
-const MAX_PROMPT_LENGTH = 5000;
+import { createClient } from "@/lib/supabase-server";
+import { AI } from "@/lib/constants";
 
 export async function POST(request) {
   // ── Rate Limit（最優先で判定）────────────────────────────────
-  // getRatelimit() は環境変数未設定なら null を返す（フォールスルー）
   const limiter = getRatelimit();
   if (limiter) {
     try {
@@ -35,6 +33,17 @@ export async function POST(request) {
     }
   }
 
+  // ── ユーザー認証（ゲストも許可 — Rate Limitで保護）──────────────
+  // 認証済みユーザーは識別・追跡可能。未認証は IP ベースの Rate Limit に依存。
+  let user = null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data?.user ?? null;
+  } catch {
+    // Supabase クライアント生成失敗時はゲスト扱いで続行
+  }
+
   // ── APIキー確認 ──────────────────────────────────────────────
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === "ここにAPIキーを入力") {
@@ -58,33 +67,33 @@ export async function POST(request) {
     return Response.json({ error: "prompt（文字列）が必要です" }, { status: 400 });
   }
 
-  if (prompt.length > MAX_PROMPT_LENGTH) {
+  if (prompt.length > AI.MAX_PROMPT_LENGTH) {
     return Response.json(
-      { error: `prompt が長すぎます（上限 ${MAX_PROMPT_LENGTH} 文字）` },
+      { error: `prompt が長すぎます（上限 ${AI.MAX_PROMPT_LENGTH} 文字）` },
       { status: 400 }
     );
   }
 
-  // ── Anthropic API 呼び出し ──────────────────────────────────
+  // ── Anthropic API 呼び出し（タイムアウト付き）─────────────────
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "anthropic-version": AI.API_VERSION,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
+        model: AI.MODEL,
+        max_tokens: AI.MACRO_MAX_TOKENS,
         messages: [{ role: "user", content: prompt }],
       }),
+      signal: AbortSignal.timeout(AI.TIMEOUT_MS),
     });
 
     if (!res.ok) {
       const errBody = await res.text();
       console.error(`Anthropic API error ${res.status}:`, errBody);
-      // Anthropic のエラー詳細をクライアントに返す
       let detail = "";
       try {
         const parsed = JSON.parse(errBody);
@@ -94,13 +103,21 @@ export async function POST(request) {
       }
       return Response.json(
         { error: `Anthropic API error (${res.status}): ${detail}` },
-        { status: 502 }   // 外部APIエラーは 502 で返す（Anthropic の status をそのまま返さない）
+        { status: 502 }
       );
     }
 
     const data = await res.json();
     return Response.json(data);
   } catch (e) {
+    if (e.name === "TimeoutError" || e.name === "AbortError") {
+      console.error("Anthropic API timeout:", e.message);
+      return Response.json(
+        { error: "AI APIがタイムアウトしました。しばらく待ってから再度お試しください。" },
+        { status: 504 }
+      );
+    }
+    console.error("Macro API error:", e);
     return Response.json({ error: "サーバーエラーが発生しました" }, { status: 500 });
   }
 }

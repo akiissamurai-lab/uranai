@@ -1,5 +1,6 @@
 import { getRatelimit, getIP } from "@/lib/ratelimit";
 import { createClient } from "@/lib/supabase-server";
+import { AI } from "@/lib/constants";
 
 export async function POST(request) {
   // ── Rate Limit ──────────────────────────────────────────────
@@ -276,20 +277,21 @@ ${trainingLogsStr}
   "mealTip": "おすすめの食事タイミング・組み合わせ1文"
 }`;
 
-  // ── Anthropic API 呼び出し ──────────────────────────────────
+  // ── Anthropic API 呼び出し（タイムアウト付き）──────────────────
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "anthropic-version": AI.API_VERSION,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2500,
+        model: AI.MODEL,
+        max_tokens: AI.COACH_MAX_TOKENS,
         messages: [{ role: "user", content: prompt }],
       }),
+      signal: AbortSignal.timeout(AI.TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -318,6 +320,13 @@ ${trainingLogsStr}
     const result = JSON.parse(cleaned);
     return Response.json({ result });
   } catch (e) {
+    if (e.name === "TimeoutError" || e.name === "AbortError") {
+      console.error("AI Coach API timeout:", e.message);
+      return Response.json(
+        { error: "AI APIがタイムアウトしました。しばらく待ってから再度お試しください。" },
+        { status: 504 }
+      );
+    }
     console.error("AI Coach error:", e);
     return Response.json({ error: "AIコーチの分析中にエラーが発生しました" }, { status: 500 });
   }

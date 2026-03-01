@@ -1,11 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { getSupabaseEnv } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://qxvfgiiqmjefjcelsycn.supabase.co";
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_YzMA-AoimZ7_VRNHBhnsAw_7yD1-k3_";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -14,19 +12,22 @@ export async function GET(request) {
   const code = searchParams.get("code");           // PKCE フロー用
   const next = searchParams.get("next") ?? "/";
 
-  const redirectTo = new URL(next, request.url);
+  // ── オープンリダイレクト防止: 同一オリジンの相対パスのみ許可 ──
+  const safeNext = (next.startsWith("/") && !next.startsWith("//")) ? next : "/";
+  const redirectTo = new URL(safeNext, request.url);
 
   // token_hash (implicit) か code (PKCE) のどちらかが必要
   if (!code && !(token_hash && type)) {
     return NextResponse.redirect(new URL("/?auth_error=invalid_params", request.url));
   }
 
+  const { url, anonKey } = getSupabaseEnv();
   const cookieStore = await cookies();
   const cookiesToSet = [];
 
   const supabase = createServerClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {
