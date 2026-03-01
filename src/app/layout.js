@@ -29,6 +29,16 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "ダツデブ",
   description: "AI PFC × Budget Tracker",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ダツデブ",
+  },
+  icons: {
+    icon: "/icon-512.svg",
+    apple: "/icon-192.svg",
+  },
 };
 
 export const viewport = {
@@ -36,6 +46,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#0a0a0f",
 };
 
 export default function RootLayout({ children }) {
