@@ -95,16 +95,16 @@ function buildShareCardDOM(todayTotals, profileGoals) {
     <div style="width:400px;background:linear-gradient(145deg,#ffffff 0%,#f8fafc 50%,#f0fdf4 100%);border-radius:28px;padding:32px 28px 24px;font-family:'Inter','Noto Sans JP','Hiragino Sans',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.12)">
       <!-- ヘッダー -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;box-shadow:0 4px 12px rgba(34,197,94,0.3)">M</div>
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;box-shadow:0 4px 12px rgba(34,197,94,0.3)">D</div>
         <div>
-          <div style="font-size:15px;font-weight:800;background:linear-gradient(135deg,#22c55e,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent">マクロ飯ビルダー</div>
-          <div style="font-size:8px;color:#94a3b8;letter-spacing:2px;text-transform:uppercase">AI Macro × Budget Optimizer</div>
+          <div style="font-size:15px;font-weight:800;background:linear-gradient(135deg,#22c55e,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent">ダツデブ</div>
+          <div style="font-size:8px;color:#94a3b8;letter-spacing:2px;text-transform:uppercase">AI PFC × Budget Tracker</div>
         </div>
       </div>
 
       <!-- 日付 + キャッチ -->
       <div style="margin:14px 0 18px;text-align:center">
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">${dateStr}のマクロ飯記録</div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">${dateStr}の記録</div>
         <div style="font-size:18px;font-weight:800;color:#1e293b">${catchCopy}</div>
       </div>
 
@@ -119,7 +119,7 @@ function buildShareCardDOM(todayTotals, profileGoals) {
 
       <!-- フッター -->
       <div style="margin-top:16px;text-align:center">
-        <div style="font-size:9px;color:#cbd5e1;letter-spacing:1px">#マクロ飯ビルダー #ボディメイク #節約飯</div>
+        <div style="font-size:9px;color:#cbd5e1;letter-spacing:1px">#ダツデブ #ボディメイク #節約飯</div>
       </div>
     </div>
   `;
@@ -154,12 +154,12 @@ async function handleShareImage(todayTotals, profileGoals, setShareStatus) {
 
     const file = new File([blob], "macro-meal-today.png", { type: "image/png" });
     const budgetStr = profileGoals?.budget ? `予算${profileGoals.budget}円` : "";
-    const shareText = `${budgetStr}でPFCバランスを達成。 #マクロ飯ビルダー #ボディメイク`;
+    const shareText = `${budgetStr}でPFCバランスを達成。 #ダツデブ #ボディメイク`;
 
     // Web Share API（画像対応チェック）
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
-        title: "今日のマクロ飯記録",
+        title: "今日のダツデブ記録",
         text: shareText,
         files: [file],
       });
@@ -263,7 +263,7 @@ function BudgetGauge({ spent, total }) {
 }
 
 /*
- * マクロ飯ビルダー v3 — Next.js App Router version
+ * ダツデブ (formerly マクロ飯ビルダー v3) — Next.js App Router version
  * API call is proxied through /api/macro to hide the API key.
  * History uses localStorage instead of window.storage.
  */
@@ -1150,12 +1150,12 @@ export default function Home() {
   const handleShare = () => {
     if (!result) return;
     const text = [
-      `マクロ飯ビルダー結果`,
+      `ダツデブ 結果`,
       `予算: ¥${budget}/日 → ¥${Math.round(result.totals.cost)}使用`,
       `P:${Math.round(result.totals.protein)}g F:${Math.round(result.totals.fat)}g C:${Math.round(result.totals.carbs)}g ${Math.round(result.totals.cal)}kcal`,
       `買い物リスト:`,
       ...result.items.map(i => `  ${i.name} ×${i.servings} (¥${i.cost * i.servings})`),
-      `\nマクロ飯ビルダーで最適化`,
+      `\nダツデブで最適化`,
     ].join("\n");
     navigator.clipboard.writeText(text).then(() => { setShareMsg("コピー完了"); setTimeout(() => setShareMsg(""), 2000); });
   };
@@ -1202,8 +1202,8 @@ export default function Home() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#22c55e,#16a34a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(34,197,94,0.3)" }}><Activity size={18} strokeWidth={1.5} color="white" /></div>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, background: "linear-gradient(135deg,#22c55e,#4ade80)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>マクロ飯ビルダー</h1>
-            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: 0, letterSpacing: 1.5, textTransform: "uppercase" }}>AI Macro × Budget Optimizer</p>
+            <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, background: "linear-gradient(135deg,#22c55e,#4ade80)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>ダツデブ</h1>
+            <p style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", margin: 0, letterSpacing: 1.5, textTransform: "uppercase" }}>AI PFC × Budget Tracker</p>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>

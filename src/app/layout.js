@@ -27,8 +27,8 @@ const spaceMono = Space_Mono({
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "マクロ飯ビルダー",
-  description: "AI Macro × Budget Optimizer",
+  title: "ダツデブ",
+  description: "AI PFC × Budget Tracker",
 };
 
 export const viewport = {

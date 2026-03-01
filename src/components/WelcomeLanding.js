@@ -23,8 +23,8 @@ export default function WelcomeLanding({ supabase, onAuthChange }) {
             <Activity size={18} strokeWidth={1.5} color="white" />
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>マクロ飯ビルダー</div>
-            <div style={{ fontSize: 8, color: "#9ca3af", letterSpacing: 1.5, textTransform: "uppercase" }}>AI Macro × Budget Optimizer</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>ダツデブ</div>
+            <div style={{ fontSize: 8, color: "#9ca3af", letterSpacing: 1.5, textTransform: "uppercase" }}>AI PFC × Budget Tracker</div>
           </div>
         </div>
         <AuthGate supabase={supabase} onAuthChange={onAuthChange} />
