@@ -67,7 +67,7 @@ export default function ProgressPage() {
 
   // Chart data
   const [metrics, setMetrics] = useState([]);
-  const [range, setRange] = useState(90);
+  const [range, setRange] = useState(30);
   const [goalWeight, setGoalWeight] = useState(null);
 
   // Weekly review
@@ -593,7 +593,7 @@ export default function ProgressPage() {
         {chartData.length >= 2 && (
           <div style={S.card}>
             <div style={{ display: "flex", gap: 0, marginBottom: 16, borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
-              {[{ val: 30, label: "30日" }, { val: 90, label: "90日" }, { val: 0, label: "全て" }].map(({ val, label }) => (
+              {[{ val: 7, label: "7日" }, { val: 30, label: "30日" }, { val: 90, label: "90日" }, { val: 180, label: "6ヶ月" }].map(({ val, label }) => (
                 <button key={val} onClick={() => setRange(val)} style={{
                   flex: 1, padding: "8px 0", border: "none", fontSize: 12, cursor: "pointer",
                   background: range === val ? "rgba(96,165,250,0.2)" : "transparent",
