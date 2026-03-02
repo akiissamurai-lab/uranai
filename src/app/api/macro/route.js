@@ -3,6 +3,23 @@ import { createClient } from "@/lib/supabase-server";
 import { AI } from "@/lib/constants";
 import { lookupCache, storeCache } from "@/lib/pfc-cache";
 
+// ── サーバー側プロンプト（クライアントには公開しない）─────────────
+const SYSTEM_PROMPT = `あなたは栄養管理専門のAIアシスタントです。
+食品の栄養素（カロリー、タンパク質、脂質、炭水化物）、価格、レシピ、食事プランに関する質問にのみ回答してください。
+栄養・食事・健康に無関係な質問には一切回答せず、「食事に関する質問のみお答えできます」とだけ返してください。
+必ずJSON形式のみで回答してください。前後に説明文を付けないでください。`;
+
+function buildPfcPrompt(foodQuery) {
+  return `以下の食品・料理の1食分の標準的な栄養素を推定してください。JSON形式のみで回答してください。他のテキストは一切不要です。
+
+食品名: ${foodQuery}
+
+回答形式（厳守）:
+{"p":数値,"f":数値,"c":数値,"cal":数値,"price":数値,"serving":"量の説明"}
+
+p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), price=目安価格(円), serving=1食分の量の説明（例: "1膳150g", "1個60g"）`;
+}
+
 export async function POST(request) {
   // ── Rate Limit（バースト保護 — 最優先で判定）────────────────────
   const limiter = getRatelimit();
@@ -64,13 +81,20 @@ export async function POST(request) {
   }
 
   const { prompt, foodQuery } = body;
-  if (!prompt || typeof prompt !== "string") {
-    return Response.json({ error: "prompt（文字列）が必要です" }, { status: 400 });
+
+  // foodQuery がある場合 = PFC推定 → サーバー側でプロンプト構築（クライアントの prompt は無視）
+  // foodQuery がない場合 = 献立プラン等 → クライアントの prompt を使用（system prompt で制約）
+  const userPrompt = foodQuery && typeof foodQuery === "string"
+    ? buildPfcPrompt(foodQuery.slice(0, 200))  // PFC推定: 食品名200文字上限
+    : prompt;
+
+  if (!userPrompt || typeof userPrompt !== "string") {
+    return Response.json({ error: "foodQuery または prompt（文字列）が必要です" }, { status: 400 });
   }
 
-  if (prompt.length > AI.MAX_PROMPT_LENGTH) {
+  if (userPrompt.length > AI.MAX_PROMPT_LENGTH) {
     return Response.json(
-      { error: `prompt が長すぎます（上限 ${AI.MAX_PROMPT_LENGTH} 文字）` },
+      { error: `リクエストが長すぎます（上限 ${AI.MAX_PROMPT_LENGTH} 文字）` },
       { status: 400 }
     );
   }
@@ -141,7 +165,8 @@ export async function POST(request) {
       body: JSON.stringify({
         model: AI.MACRO_MODEL,
         max_tokens: AI.MACRO_MAX_TOKENS,
-        messages: [{ role: "user", content: prompt }],
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userPrompt }],
       }),
       signal: AbortSignal.timeout(AI.TIMEOUT_MS),
     });

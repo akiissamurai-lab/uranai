@@ -89,17 +89,7 @@ export default function RoutinesPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: AbortSignal.timeout(20000),
-        body: JSON.stringify({
-          foodQuery: mealName.trim(),
-          prompt: `以下の食品・料理の1食分の標準的な栄養素を推定してください。JSON形式のみで回答してください。他のテキストは一切不要です。
-
-食品名: ${mealName.trim()}
-
-回答形式（厳守）:
-{"p":数値,"f":数値,"c":数値,"cal":数値,"price":数値,"serving":"量の説明"}
-
-p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), price=目安価格(円), serving=1食分の量の説明（例: "1膳150g", "1個60g"）`
-        }),
+        body: JSON.stringify({ foodQuery: mealName.trim() }),
       });
       if (res.ok) {
         const data = await res.json();
