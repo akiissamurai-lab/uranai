@@ -178,15 +178,38 @@ export default function ProgressPage() {
     } else { showToast("error", "保存に失敗しました"); }
   };
 
-  // Chart data
-  const chartData = metrics.map((m) => ({
-    date: m.date,
-    label: `${new Date(m.date + "T00:00").getMonth() + 1}/${new Date(m.date + "T00:00").getDate()}`,
-    weight: m.weight != null ? Number(m.weight) : null,
-    weightNight: m.weight_night != null ? Number(m.weight_night) : null,
-    bodyFat: m.body_fat != null ? Number(m.body_fat) : null,
-    bodyFatNight: m.body_fat_night != null ? Number(m.body_fat_night) : null,
-  }));
+  // Chart data — 選択期間の全日付を生成し、データがない日は null で埋める
+  const chartData = (() => {
+    // メトリクスをdate→dataのMapに変換
+    const dataMap = new Map();
+    metrics.forEach((m) => {
+      dataMap.set(m.date, {
+        weight: m.weight != null ? Number(m.weight) : null,
+        weightNight: m.weight_night != null ? Number(m.weight_night) : null,
+        bodyFat: m.body_fat != null ? Number(m.body_fat) : null,
+        bodyFatNight: m.body_fat_night != null ? Number(m.body_fat_night) : null,
+      });
+    });
+    // 選択期間分の全日付配列を生成
+    const days = range || 30;
+    const result = [];
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      const existing = dataMap.get(dateStr);
+      result.push({
+        date: dateStr,
+        label: `${d.getMonth() + 1}/${d.getDate()}`,
+        weight: existing?.weight ?? null,
+        weightNight: existing?.weightNight ?? null,
+        bodyFat: existing?.bodyFat ?? null,
+        bodyFatNight: existing?.bodyFatNight ?? null,
+      });
+    }
+    return result;
+  })();
 
   // 7-day moving average
   const chartDataWithMA = chartData.map((d, i) => {
@@ -691,7 +714,8 @@ export default function ProgressPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }} axisLine={{ stroke: "rgba(255,255,255,0.06)" }} tickLine={false} interval="preserveStartEnd" />
+                  <XAxis dataKey="label" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }} axisLine={{ stroke: "rgba(255,255,255,0.06)" }} tickLine={false}
+                    interval={range <= 7 ? 0 : range <= 30 ? 4 : range <= 90 ? 13 : 29} />
 
                   {/* Y Axis — changes based on chart mode */}
                   {chartMode === "weight" ? (
