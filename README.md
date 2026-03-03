@@ -12,6 +12,7 @@ AI占い鑑定Webサービス。
 
 - Daily は zodiacKey x JST日付 でキャッシュ（1日最大12生成）
 - 鑑定の日次上限は `src/lib/constants.ts` の `FREE_PER_DAY` で管理
+- 課金（Stripe）は後日フラグ ON で有効化。現時点では無料プランのみ稼働
 
 ## 技術スタック
 
@@ -51,19 +52,68 @@ DATABASE_URL="<本番DIRECT_URL>" DIRECT_URL="<本番DIRECT_URL>" npx prisma db 
 
 ---
 
-## 運用チェックリスト
+## デプロイ後 10分チェック
 
-### デプロイ後の確認
+mainへのpush後、以下4点を順に確認（所要10分）。
 
-- [ ] `curl -sD - "https://uranai-ten.vercel.app/api/daily?zodiac=aries" | head -15`
-  - HTTP 200 が返ること
-  - `x-cache: hit` または `x-cache: miss` ヘッダがあること
-- [ ] `https://uranai-ten.vercel.app/daily` を開く
-  - 12星座ボタンが表示されること
-  - 星座タップ → 結果が表示されること
-- [ ] `https://uranai-ten.vercel.app/app` にログインして鑑定実行
-  - 200 で結果が返ること
-  - 「本日の残り回数」が正しくカウントダウンされること
+```bash
+# 1. Daily API
+curl -sD - "https://uranai-ten.vercel.app/api/daily?zodiac=aries" | head -15
+# → HTTP 200 + x-cache: hit|miss
+
+# 2. /daily ページ
+open "https://uranai-ten.vercel.app/daily"
+# → 12星座ボタン表示 → タップ → 結果 + CTA「もっと詳しく相談する →」
+```
+
+3. `/app` にログイン → 残り回数を確認 → 相談1回実行 → 結果表示
+4. 「← もう一度占う」→ **リロードなしで**残り回数が -1 されていること
+
+全PASS = デプロイ完了。
+
+---
+
+## P1 統合検証 SOP
+
+リリース前の完全検証手順。デプロイ後10分チェックの拡張版。
+
+### 前提
+- シークレットウィンドウ推奨（セッション混線を避ける）
+- DevTools → Network を開く（Preserve log ON）
+
+### Step 1: /daily（公開ページ）
+- [ ] `/daily` を開く → 12星座ボタン（4x3）が表示
+- [ ] 星座をタップ → 余白便り（メッセージ・one_line・action・lucky）が表示
+- [ ] CTA「もっと詳しく相談する →」が結果の下に表示
+- [ ] Network: `GET /api/daily?zodiac=xxx` が 200
+- [ ] 2回目タップ: `x-cache: hit` ヘッダあり
+
+### Step 2: ログイン → /app
+- [ ] `/login` → Googleログイン → `/app` に遷移
+- [ ] ヘッダーにメールアドレス表示
+- [ ] ステータスバーに「プラン: 無料」「本日の残り回数: X / 3」表示
+- [ ] Network: `GET /api/me` が 200
+
+### Step 3: 相談（鑑定）実行
+- [ ] 生年月日入力 → 動物占い自動算出（例: トラ）
+- [ ] テーマ選択（例: 恋愛）、性別未選択
+- [ ] 「☆ 占う」→ 「鑑定中...」表示 → 結果表示
+- [ ] Network: `POST /api/fortune` が 200
+- [ ] 結果に intro（末尾「— アイラ」）、5セクション、アクション、ラッキーアイテム
+
+### Step 4: 回数カウントダウン
+- [ ] 「← もう一度占う」をクリック
+- [ ] **リロードなしで**残り回数が -1 されている
+- [ ] Network: `GET /api/me` がクリック直後に1回だけ発火
+
+### 合格条件
+全チェックボックスが埋まれば PASS。
+
+### FAIL 時の切り分け
+失敗した Step の以下を記録：
+- `POST /api/fortune` or `GET /api/daily` の Status + Response body
+- `GET /api/me` の todayUsage 部分
+- Vercel Functions Logs の該当行
 
 ### daily_fortunes テーブル確認
 
