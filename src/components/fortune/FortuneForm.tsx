@@ -21,6 +21,10 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   premium_required: "この機能はプレミアムプランが必要です。",
   rate_limited: "しばらく時間をおいてからお試しください。",
   unauthorized: "ログインが必要です。",
+  generation_incomplete:
+    "鑑定がうまくいきませんでした。もう一度お試しください（回数は消費されていません）。",
+  generation_failed:
+    "鑑定中にエラーが発生しました。もう一度お試しください（回数は消費されていません）。",
   internal_server_error: "サーバーエラーが発生しました。時間をおいてお試しください。",
 };
 
