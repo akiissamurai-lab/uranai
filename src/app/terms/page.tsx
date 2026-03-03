@@ -20,7 +20,13 @@ export default function TermsPage() {
         <h2 className="text-lg text-amber-100">3. 利用料金</h2>
         <p>
           無料プランと有料プラン（月額サブスクリプション）があります。
-          有料プランの料金・内容は、サービス内の課金ページに記載します。
+        </p>
+        <ul className="list-disc list-inside space-y-1 pl-2">
+          <li>「今日の余白便り」（Daily）：ログイン不要・回数無制限</li>
+          <li>「鑑定」（相談）：無料プランは1日3回まで</li>
+          <li>有料プランの料金・内容は、サービス内の課金ページに記載します</li>
+        </ul>
+        <p>
           解約はいつでも可能です。
         </p>
 
