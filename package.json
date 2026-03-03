@@ -1,30 +1,44 @@
 {
-  "name": "macro-budget-builder",
-  "version": "1.0.0",
+  "name": "fortune-app",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.8.0",
-    "@supabase/supabase-js": "^2.98.0",
-    "@upstash/ratelimit": "^2.0.8",
-    "@upstash/redis": "^1.36.2",
-    "@vercel/analytics": "^1.6.1",
-    "geist": "^1.7.0",
-    "html2canvas": "^1.4.1",
-    "lucide-react": "^0.575.0",
-    "next": "^15.3.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "recharts": "^3.7.0"
+    "next": "^15.3",
+    "react": "^19.1",
+    "react-dom": "^19.1",
+    "@prisma/client": "^6",
+    "@supabase/ssr": "^0.8",
+    "@supabase/supabase-js": "^2.98",
+    "ai": "^4",
+    "@ai-sdk/anthropic": "^1",
+    "zod": "^3.23",
+    "stripe": "^17",
+    "@upstash/ratelimit": "^2",
+    "@upstash/redis": "^1.36",
+    "lucide-react": "^0.475",
+    "geist": "^1.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.2.1",
-    "autoprefixer": "^10.4.27",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.2.1"
+    "typescript": "^5.7",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "prisma": "^6",
+    "tailwindcss": "^4",
+    "@tailwindcss/postcss": "^4",
+    "postcss": "^8.5",
+    "vitest": "^3"
   }
 }
