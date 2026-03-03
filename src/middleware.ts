@@ -3,7 +3,7 @@ import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 
 const PUBLIC_PATHS = new Set(["/", "/login", "/privacy", "/terms", "/daily"]);
 
-const PUBLIC_PREFIXES = ["/auth/", "/api/stripe/webhook", "/api/daily"];
+const PUBLIC_PREFIXES = ["/auth/", "/api/stripe/webhook", "/api/daily", "/api/event"];
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
