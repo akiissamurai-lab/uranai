@@ -3,25 +3,22 @@
 import { useState } from "react";
 import { useMe } from "@/lib/hooks/useMe";
 import FortuneForm from "@/components/fortune/FortuneForm";
-import type { FortuneInput } from "@/lib/validators/fortuneInput";
-
-// T7 で FortuneStream コンポーネントを統合
-// import FortuneStream from "@/components/fortune/FortuneStream";
+import FortuneResult from "@/components/fortune/FortuneResult";
+import type { FortuneResponse } from "@/components/fortune/FortuneForm";
 
 export default function AppPage() {
   const { data, loading, error } = useMe();
 
-  // フォーム送信後のストリーミング表示用 state
-  const [submittedInput, setSubmittedInput] = useState<FortuneInput | null>(
+  const [fortuneResult, setFortuneResult] = useState<FortuneResponse | null>(
     null,
   );
 
-  function handleFormSubmit(input: FortuneInput) {
-    setSubmittedInput(input);
+  function handleFormSubmit(response: FortuneResponse) {
+    setFortuneResult(response);
   }
 
   function handleBack() {
-    setSubmittedInput(null);
+    setFortuneResult(null);
   }
 
   return (
@@ -40,7 +37,7 @@ export default function AppPage() {
           </div>
         )}
 
-        {data && !submittedInput && (
+        {data && !fortuneResult && (
           <>
             {/* ステータスバー */}
             <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-4 space-y-1">
@@ -64,23 +61,8 @@ export default function AppPage() {
           </>
         )}
 
-        {data && submittedInput && (
-          <div className="space-y-4">
-            {/* T7 で FortuneStream に差し替え */}
-            <div className="text-center py-12 space-y-4">
-              <div className="h-8 w-8 mx-auto border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-              <p className="text-amber-200/60 text-sm">
-                鑑定結果のストリーミング表示（T7で実装）
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleBack}
-              className="w-full py-2 text-sm text-amber-200/50 hover:text-amber-200 transition-colors"
-            >
-              ← もう一度占う
-            </button>
-          </div>
+        {data && fortuneResult && (
+          <FortuneResult output={fortuneResult.output} onBack={handleBack} />
         )}
       </div>
     </main>
