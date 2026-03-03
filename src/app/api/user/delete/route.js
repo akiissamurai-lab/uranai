@@ -1,7 +1,12 @@
 import { createClient } from "@/lib/supabase-server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { validateOrigin } from "@/lib/api-guard";
 
-export async function POST() {
+export async function POST(request) {
+  // ── CSRF / Origin 検証（破壊的操作のため必須）──────────────────
+  const originCheck = validateOrigin(request);
+  if (!originCheck.valid) return originCheck.response;
+
   // ── ユーザー認証 ─────────────────────────────────────────────
   let supabase;
   try {

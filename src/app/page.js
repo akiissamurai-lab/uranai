@@ -16,6 +16,12 @@ import {
 } from "lucide-react";
 
 // ─── SNSシェア画像生成 ───
+// セキュリティ: innerHTML に挿入する値はすべて内部生成（数値 or 固定文字列）だが、
+// 将来の保守ミスを防ぐため全動的値にエスケープを適用する。
+function esc(str) {
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 function buildShareCardDOM(todayTotals, profileGoals) {
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
@@ -62,10 +68,10 @@ function buildShareCardDOM(todayTotals, profileGoals) {
     <div style="text-align:center;flex:1">
       <div style="width:72px;height:72px;margin:0 auto;position:relative">
         ${donutSVG(item.pct, item.color, item.bg)}
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:800;color:${item.pct > 100 ? "#ef4444" : item.color};font-family:'Inter',var(--font-mono)">${item.pct}%</div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;font-weight:800;color:${item.pct > 100 ? "#ef4444" : item.color};font-family:'Inter',var(--font-mono)">${esc(item.pct)}%</div>
       </div>
-      <div style="font-size:11px;font-weight:700;color:${item.color};margin-top:4px">${item.label}</div>
-      <div style="font-size:9px;color:#94a3b8">${item.cur}/${item.goal}${item.unit}</div>
+      <div style="font-size:11px;font-weight:700;color:${item.color};margin-top:4px">${esc(item.label)}</div>
+      <div style="font-size:9px;color:#94a3b8">${esc(item.cur)}/${esc(item.goal)}${esc(item.unit)}</div>
     </div>
   `).join("");
 
@@ -75,7 +81,7 @@ function buildShareCardDOM(todayTotals, profileGoals) {
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
         <span style="font-size:11px;color:#64748b">今日の予算</span>
         <span style="font-size:14px;font-weight:700;color:${budgetRemaining >= 0 ? "#22c55e" : "#ef4444"};font-family:'Inter',var(--font-mono)">
-          ${budgetRemaining >= 0 ? `残り ¥${Math.round(budgetRemaining).toLocaleString()}` : `¥${Math.abs(Math.round(budgetRemaining)).toLocaleString()} 超過`}
+          ${budgetRemaining >= 0 ? `残り ¥${esc(Math.round(budgetRemaining).toLocaleString())}` : `¥${esc(Math.abs(Math.round(budgetRemaining)).toLocaleString())} 超過`}
         </span>
       </div>
       <div style="height:8px;border-radius:4px;background:#f1f5f9;overflow:hidden">
@@ -83,7 +89,7 @@ function buildShareCardDOM(todayTotals, profileGoals) {
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:3px">
         <span style="font-size:9px;color:#cbd5e1">¥0</span>
-        <span style="font-size:9px;color:#cbd5e1">¥${budgetTotal.toLocaleString()}</span>
+        <span style="font-size:9px;color:#cbd5e1">¥${esc(budgetTotal.toLocaleString())}</span>
       </div>
     </div>
   ` : "";
@@ -104,8 +110,8 @@ function buildShareCardDOM(todayTotals, profileGoals) {
 
       <!-- 日付 + キャッチ -->
       <div style="margin:14px 0 18px;text-align:center">
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">${dateStr}の記録</div>
-        <div style="font-size:18px;font-weight:800;color:#1e293b">${catchCopy}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">${esc(dateStr)}の記録</div>
+        <div style="font-size:18px;font-weight:800;color:#1e293b">${esc(catchCopy)}</div>
       </div>
 
       <!-- 進捗カード -->

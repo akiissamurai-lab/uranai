@@ -1,8 +1,13 @@
 import { getRatelimit, getIP, getWeeklyCoachLimit } from "@/lib/ratelimit";
 import { createClient } from "@/lib/supabase-server";
 import { AI } from "@/lib/constants";
+import { validateOrigin, safeApiError } from "@/lib/api-guard";
 
 export async function POST(request) {
+  // ── CSRF / Origin 検証 ─────────────────────────────────────────
+  const originCheck = validateOrigin(request);
+  if (!originCheck.valid) return originCheck.response;
+
   // ── Rate Limit ──────────────────────────────────────────────
   const limiter = getRatelimit();
   if (limiter) {
@@ -24,7 +29,8 @@ export async function POST(request) {
   // ── APIキー確認 ──────────────────────────────────────────────
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === "ここにAPIキーを入力") {
-    return Response.json({ error: "ANTHROPIC_API_KEY が未設定です" }, { status: 500 });
+    console.error("ANTHROPIC_API_KEY is missing or placeholder");
+    return Response.json({ error: "AI機能が一時的に利用できません。管理者にお問い合わせください。" }, { status: 503 });
   }
 
   // ── ユーザー認証 ─────────────────────────────────────────────
@@ -329,10 +335,7 @@ ${trainingLogsStr}
 
     if (!res.ok) {
       const errBody = await res.text();
-      console.error(`Anthropic API error ${res.status}:`, errBody);
-      let detail = "";
-      try { detail = JSON.parse(errBody).error?.message || errBody; } catch { detail = errBody; }
-      return Response.json({ error: `AI API エラー (${res.status}): ${detail}` }, { status: 502 });
+      return safeApiError(res.status, errBody, "AI Coach");
     }
 
     const data = await res.json();

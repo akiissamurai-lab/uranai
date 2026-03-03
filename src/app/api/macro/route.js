@@ -2,6 +2,7 @@ import { getRatelimit, getIP, getDailyMacroLimit } from "@/lib/ratelimit";
 import { createClient } from "@/lib/supabase-server";
 import { AI } from "@/lib/constants";
 import { lookupCache, storeCache } from "@/lib/pfc-cache";
+import { validateOrigin, safeApiError } from "@/lib/api-guard";
 
 // ── サーバー側プロンプト（クライアントには公開しない）─────────────
 const SYSTEM_PROMPT = `あなたは栄養管理専門のAIアシスタントです。
@@ -21,12 +22,18 @@ p=たんぱく質(g), f=脂質(g), c=炭水化物(g), cal=カロリー(kcal), pr
 }
 
 export async function POST(request) {
+  // ── CSRF / Origin 検証 ─────────────────────────────────────────
+  const originCheck = validateOrigin(request);
+  if (!originCheck.valid) return originCheck.response;
+
   // ── Rate Limit（バースト保護 — 最優先で判定）────────────────────
   const limiter = getRatelimit();
+  let rateLimitPassed = false;
   if (limiter) {
     try {
       const ip = getIP(request);
       const { success, limit, remaining, reset } = await limiter.limit(ip);
+      rateLimitPassed = true;
 
       if (!success) {
         const retryAfter = Math.ceil((reset - Date.now()) / 1000);
@@ -46,20 +53,27 @@ export async function POST(request) {
         );
       }
     } catch (e) {
-      // Redis 接続エラーでもサービスは止めない（フォールスルー）
+      // Redis 接続エラー: 認証ユーザーは続行、ゲストは拒否（コスト保護）
       console.error("Rate limit check failed:", e.message);
     }
   }
 
-  // ── ユーザー認証（ゲストも許可 — Rate Limitで保護）──────────────
-  // 認証済みユーザーは識別・追跡可能。未認証は IP ベースの Rate Limit に依存。
+  // ── ユーザー認証（ゲストも許可 — ただし Rate Limit 必須）────────
   let user = null;
   try {
     const supabase = await createClient();
     const { data } = await supabase.auth.getUser();
     user = data?.user ?? null;
   } catch {
-    // Supabase クライアント生成失敗時はゲスト扱いで続行
+    // Supabase クライアント生成失敗時はゲスト扱い
+  }
+
+  // ゲストかつ Rate Limit が機能していない場合 → 拒否（コスト保護）
+  if (!user && !rateLimitPassed) {
+    return Response.json(
+      { error: "一時的にサービスを利用できません。しばらく待ってから再度お試しください。" },
+      { status: 503 }
+    );
   }
 
   // ── APIキー確認 ──────────────────────────────────────────────
@@ -67,8 +81,8 @@ export async function POST(request) {
   if (!apiKey || apiKey === "ここにAPIキーを入力") {
     console.error("ANTHROPIC_API_KEY is missing or placeholder");
     return Response.json(
-      { error: "ANTHROPIC_API_KEY が未設定です。Vercel の Settings → Environment Variables を確認してください。" },
-      { status: 500 }
+      { error: "AI機能が一時的に利用できません。管理者にお問い合わせください。" },
+      { status: 503 }
     );
   }
 
@@ -80,24 +94,15 @@ export async function POST(request) {
     return Response.json({ error: "不正なリクエスト形式です" }, { status: 400 });
   }
 
-  const { prompt, foodQuery } = body;
+  const { foodQuery } = body;
 
-  // foodQuery がある場合 = PFC推定 → サーバー側でプロンプト構築（クライアントの prompt は無視）
-  // foodQuery がない場合 = 献立プラン等 → クライアントの prompt を使用（system prompt で制約）
-  const userPrompt = foodQuery && typeof foodQuery === "string"
-    ? buildPfcPrompt(foodQuery.slice(0, 200))  // PFC推定: 食品名200文字上限
-    : prompt;
-
-  if (!userPrompt || typeof userPrompt !== "string") {
-    return Response.json({ error: "foodQuery または prompt（文字列）が必要です" }, { status: 400 });
+  // foodQuery のみ受け付ける（クライアントからの任意 prompt は廃止 — プロンプトインジェクション対策）
+  if (!foodQuery || typeof foodQuery !== "string" || !foodQuery.trim()) {
+    return Response.json({ error: "foodQuery（文字列）が必要です" }, { status: 400 });
   }
 
-  if (userPrompt.length > AI.MAX_PROMPT_LENGTH) {
-    return Response.json(
-      { error: `リクエストが長すぎます（上限 ${AI.MAX_PROMPT_LENGTH} 文字）` },
-      { status: 400 }
-    );
-  }
+  const sanitizedQuery = foodQuery.trim().slice(0, 200);
+  const userPrompt = buildPfcPrompt(sanitizedQuery);
 
   // ── PFC キャッシュ検索（foodQuery がある場合のみ）──────────────
   // キャッシュヒット = AI コストゼロ → 日次リミットを消費しない
@@ -173,18 +178,7 @@ export async function POST(request) {
 
     if (!res.ok) {
       const errBody = await res.text();
-      console.error(`Anthropic API error ${res.status}:`, errBody);
-      let detail = "";
-      try {
-        const parsed = JSON.parse(errBody);
-        detail = parsed.error?.message || errBody;
-      } catch {
-        detail = errBody;
-      }
-      return Response.json(
-        { error: `Anthropic API error (${res.status}): ${detail}` },
-        { status: 502 }
-      );
+      return safeApiError(res.status, errBody, "Macro API");
     }
 
     const data = await res.json();
