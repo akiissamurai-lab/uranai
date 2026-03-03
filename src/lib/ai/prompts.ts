@@ -53,25 +53,32 @@ const OUTPUT_RULES = `## 出力形式（厳守）
 - freeTextが空でない場合はその悩みに必ず言及する`;
 
 const MODE_GUIDE: Record<string, string> = {
-  free: `## 文字量の目安（mode: free — 短め）
-- intro: 2〜3文、160文字以内（末尾「— アイラ」必須）
-- sections[].text: 50〜80文字
-- sections[].do: 各1〜2個
-- sections[].avoid（気をつけポイント）: 各1〜2個
-- summary.one_line: 30文字以内`,
+  free: `## 文字量の目安（mode: free — 余白を大切に、短く温かく）
+- intro: 2〜3文、120〜180文字（末尾「— アイラ」必須）
+- summary.one_line: 30文字以内
+- summary.week_one_line: 30文字以内
+- sections[].text: 各60〜90文字。一文一意で簡潔に
+- sections[].do: 各1個（具体的な行動を1つだけ）
+- sections[].avoid（気をつけポイント）: 各1個（代替行動の形で1つだけ）
+- today_action.action: 25文字以内（ひと言で伝わる具体行動）
+- today_action.why: 35文字以内
+- lucky.color / lucky.item / lucky.place / lucky.time: 各12文字以内
+- 同じ意味の言い換えで水増ししない。余白のある読みやすさを最優先する`,
 
-  premium: `## 文字量の目安（mode: premium — 詳しく）
+  premium: `## 文字量の目安（mode: premium — 詳しく丁寧に）
 - intro: 3〜4文、260文字以内（末尾「— アイラ」必須）
 - sections[].text: 120〜200文字
 - sections[].do: 各2〜3個
 - sections[].avoid（気をつけポイント）: 各2〜3個
 - summary.one_line: 50文字以内
-- freeTextの内容に対して特に丁寧に触れること`,
+- freeTextの内容に対して特に丁寧に触れること
+- 同じ意味の言い換えで水増ししない。簡潔で温かい表現を心がける`,
 
   followup: `## 文字量の目安（mode: followup — 追い質問）
 - parentContextが提供される場合、前回の鑑定内容を踏まえて回答する
 - followupTextに直接回答するセクションを200〜300文字で詳しく
-- 関連しないセクションは30〜50文字で簡潔に`,
+- 関連しないセクションは30〜50文字で簡潔に
+- 構成は「結論 → 理由 → 小さな一歩」の順で。前置きや繰り返しで冗長にしない`,
 };
 
 /**

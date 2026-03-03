@@ -4,8 +4,6 @@ import { useState, useMemo, type FormEvent } from "react";
 import { CONFIG } from "@/lib/constants";
 import {
   fortuneInputSchema,
-  ZODIAC_LABELS,
-  ZODIAC_KEYS,
   GENDER_LABELS,
   GENDER_KEYS,
   CATEGORY_LABELS,
@@ -13,6 +11,7 @@ import {
   type FortuneInput,
 } from "@/lib/validators/fortuneInput";
 import { getAnimalKey, ANIMAL_LABELS } from "@/lib/fortune/animal";
+import { getZodiacKey, ZODIAC_LABELS } from "@/lib/fortune/zodiac";
 import type { MeResponse } from "@/types";
 
 // ── エラーマッピング ──
@@ -42,7 +41,11 @@ interface FortuneFormProps {
 export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
   // ── フォーム state ──
   const [birthdate, setBirthdate] = useState("");
-  const [zodiac, setZodiac] = useState("");
+  // ── 星座を自動算出 ──
+  const zodiac = useMemo(() => {
+    if (!birthdate) return "";
+    return getZodiacKey(birthdate);
+  }, [birthdate]);
   // ── 動物占いを自動算出 ──
   const animal = useMemo(() => {
     if (!birthdate) return "";
@@ -157,21 +160,17 @@ export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
         />
       </Field>
 
-      {/* 星座 */}
-      <Field label="星座" error={fieldErrors.zodiac} required>
-        <select
-          value={zodiac}
-          onChange={(e) => setZodiac(e.target.value)}
-          className="form-input"
-        >
-          <option value="">選択してください</option>
-          {ZODIAC_KEYS.map((key) => (
-            <option key={key} value={key}>
-              {ZODIAC_LABELS[key]}
-            </option>
-          ))}
-        </select>
-      </Field>
+      {/* 星座（自動） */}
+      {zodiac && (
+        <div className="bg-amber-900/10 border border-amber-800/15 rounded-xl px-4 py-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-amber-200/70">星座</span>
+            <span className="text-sm font-medium text-amber-100">
+              {ZODIAC_LABELS[zodiac]}（自動）
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* 動物占い（自動） */}
       {animal && (
