@@ -28,9 +28,15 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   internal_server_error: "サーバーエラーが発生しました。時間をおいてお試しください。",
 };
 
+export interface FortuneResponse {
+  id: string;
+  output: import("@/lib/ai/schema").FortuneOutput;
+  cached: boolean;
+}
+
 interface FortuneFormProps {
   me: MeResponse;
-  onSubmit: (input: FortuneInput) => void;
+  onSubmit: (response: FortuneResponse) => void;
 }
 
 export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
@@ -111,8 +117,8 @@ export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
         return;
       }
 
-      // 成功 → 親に入力を渡す（ストリーミング開始はT7で実装）
-      onSubmit(result.data);
+      const data = await res.json();
+      onSubmit(data as FortuneResponse);
     } catch {
       setApiError("通信エラーが発生しました。ネットワークを確認してください。");
       setSubmitting(false);
