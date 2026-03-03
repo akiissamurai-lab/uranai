@@ -112,3 +112,13 @@ model UsageDaily {
   @@unique([userId, dailyKey])
   @@map("usage_dailies")
 }
+
+model Event {
+  id        String   @id @default(cuid())
+  eventType String   @map("event_type")
+  ipHash    String   @map("ip_hash")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ipHash, eventType, createdAt])
+  @@map("events")
+}

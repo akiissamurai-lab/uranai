@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMe } from "@/lib/hooks/useMe";
 import FortuneForm from "@/components/fortune/FortuneForm";
 import FortuneResult from "@/components/fortune/FortuneResult";
 import DailyCard from "@/components/daily/DailyCard";
+import { trackEvent } from "@/lib/trackEvent";
 import type { FortuneResponse } from "@/components/fortune/FortuneForm";
 
 export default function AppPage() {
   const { data, loading, error, refresh } = useMe();
+
+  // /app 到達時に login_success イベントを送信（5分重複抑止は API 側で統一）
+  useEffect(() => {
+    trackEvent("login_success");
+  }, []);
 
   const [fortuneResult, setFortuneResult] = useState<FortuneResponse | null>(
     null,

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ZODIAC_LABELS, type ZodiacKey } from "@/lib/fortune/zodiac";
 import DailyResult from "@/components/daily/DailyResult";
+import { trackEvent } from "@/lib/trackEvent";
 import type { DailyOutput } from "@/lib/ai/dailySchema";
 
 const ZODIAC_ENTRIES = Object.entries(ZODIAC_LABELS) as [ZodiacKey, string][];
@@ -107,6 +108,7 @@ export default function DailyPage() {
               </p>
               <Link
                 href="/login"
+                onClick={() => trackEvent("daily_cta_login")}
                 className="block w-full py-3 px-6 bg-amber-600 hover:bg-amber-500
                            text-white font-medium rounded-xl transition-colors text-center"
               >
