@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 
-const PUBLIC_PATHS = new Set(["/", "/login", "/privacy", "/terms"]);
+const PUBLIC_PATHS = new Set(["/", "/login", "/privacy", "/terms", "/daily"]);
 
-const PUBLIC_PREFIXES = ["/auth/", "/api/stripe/webhook"];
+const PUBLIC_PREFIXES = ["/auth/", "/api/stripe/webhook", "/api/daily"];
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;

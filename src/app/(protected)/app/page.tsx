@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMe } from "@/lib/hooks/useMe";
 import FortuneForm from "@/components/fortune/FortuneForm";
 import FortuneResult from "@/components/fortune/FortuneResult";
+import DailyCard from "@/components/daily/DailyCard";
 import type { FortuneResponse } from "@/components/fortune/FortuneForm";
 
 export default function AppPage() {
@@ -55,6 +56,9 @@ export default function AppPage() {
                 {data.credits > 0 && ` ・ クレジット: ${data.credits}`}
               </p>
             </div>
+
+            {/* 今日の余白便り */}
+            <DailyCard initialZodiac={null} />
 
             {/* 入力フォーム */}
             <FortuneForm me={data} onSubmit={handleFormSubmit} />

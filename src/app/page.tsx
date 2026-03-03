@@ -15,15 +15,22 @@ export default function LPPage() {
 
         <div className="space-y-4">
           <Link
-            href="/login"
+            href="/daily"
             className="block w-full py-3 px-6 bg-amber-600 hover:bg-amber-500
                        text-white font-medium rounded-xl transition-colors text-center"
           >
-            はじめる
+            今日の余白便りを受け取る
           </Link>
           <p className="text-xs text-amber-200/40">
-            ログインして、今日の運勢を占いましょう。
+            星座を選ぶだけ。ログイン不要です。
           </p>
+          <Link
+            href="/login"
+            className="block w-full py-2.5 px-6 border border-amber-600/40 hover:border-amber-500/60
+                       text-amber-200/70 hover:text-amber-100 font-medium rounded-xl transition-colors text-center text-sm"
+          >
+            ログインして詳しく占う
+          </Link>
         </div>
 
         <div className="pt-8 flex gap-4 justify-center text-xs text-amber-200/30">
