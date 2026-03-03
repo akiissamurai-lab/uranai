@@ -102,6 +102,9 @@ export default function DailyPage() {
 
             {/* ログイン導線 */}
             <div className="pt-4 space-y-3">
+              <p className="text-xs text-amber-200/50 text-center">
+                恋愛・仕事・健康・対人・金運 — 5つの運勢を深く読み解きます
+              </p>
               <Link
                 href="/login"
                 className="block w-full py-3 px-6 bg-amber-600 hover:bg-amber-500
