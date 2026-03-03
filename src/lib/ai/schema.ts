@@ -10,6 +10,7 @@ export const fortuneSectionSchema = z.object({
 });
 
 export const fortuneOutputSchema = z.object({
+  intro: z.string(),
   summary: z.object({
     title: z.string(),
     overall_score: z.number().int().min(1).max(100),
