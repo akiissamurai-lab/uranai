@@ -107,10 +107,10 @@ export default function DailyPage() {
                 className="block w-full py-3 px-6 bg-amber-600 hover:bg-amber-500
                            text-white font-medium rounded-xl transition-colors text-center"
               >
-                もっと詳しく相談する
+                もっと詳しく相談する →
               </Link>
-              <p className="text-[10px] text-amber-200/30 text-center">
-                ログインすると、5つの運勢を詳しく鑑定できます
+              <p className="text-xs text-amber-200/40 text-center">
+                ログインして、5つの運勢を詳しく鑑定できます
               </p>
             </div>
           </>
