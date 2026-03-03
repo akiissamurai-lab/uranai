@@ -8,7 +8,7 @@ import DailyCard from "@/components/daily/DailyCard";
 import type { FortuneResponse } from "@/components/fortune/FortuneForm";
 
 export default function AppPage() {
-  const { data, loading, error } = useMe();
+  const { data, loading, error, refresh } = useMe();
 
   const [fortuneResult, setFortuneResult] = useState<FortuneResponse | null>(
     null,
@@ -20,6 +20,7 @@ export default function AppPage() {
 
   function handleBack() {
     setFortuneResult(null);
+    refresh();
   }
 
   return (
