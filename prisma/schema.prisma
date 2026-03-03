@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  supabaseUid String   @unique @map("supabase_uid")
+  email       String   @unique
+  name        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  subscription       Subscription?
+  creditWallet       CreditWallet?
+  fortuneRequests    FortuneRequest[]
+  usageDailies       UsageDaily[]
+  creditTransactions CreditTransaction[]
+
+  @@map("users")
+}
+
+model Subscription {
+  id               String   @id @default(cuid())
+  userId           String   @unique @map("user_id")
+  status           String   // active | canceled | past_due | trialing
+  stripeCustomerId String   @unique @map("stripe_customer_id")
+  stripeSubId      String   @unique @map("stripe_sub_id")
+  currentPeriodEnd DateTime @map("current_period_end")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model CreditWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  credits   Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_wallets")
+}
+
+model FortuneRequest {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  inputHash     String   @map("input_hash")
+  inputJson     Json     @map("input_json")
+  outputJson    Json?    @map("output_json")
+  modelMeta     Json?    @map("model_meta")
+  mode          String   // free | premium | followup
+  status        String   @default("pending") // pending | streaming | completed | failed
+  parentId      String?  @map("parent_id")
+  feedbackScore Int?     @map("feedback_score")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent             FortuneRequest?    @relation("FollowUps", fields: [parentId], references: [id])
+  followUps          FortuneRequest[]   @relation("FollowUps")
+  creditTransactions CreditTransaction[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([inputHash])
+  @@map("fortune_requests")
+}
+
+model CreditTransaction {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  delta     Int
+  reason    String   // sub_grant | sub_grant:YYYY-MM | topup | consume | admin | refund
+  refId     String?  @map("ref_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fortune FortuneRequest? @relation(fields: [refId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("credit_transactions")
+}
+
+model UsageDaily {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  dailyKey     String   @map("daily_key") // "2026-03-02" (JST)
+  freeCount    Int      @default(0) @map("free_count")
+  premiumCount Int      @default(0) @map("premium_count")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dailyKey])
+  @@map("usage_dailies")
+}

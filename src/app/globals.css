@@ -1,16 +1,51 @@
 @import "tailwindcss";
 
-:root {
-  --font-sans: var(--font-inter), var(--font-noto), "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
-  --font-mono: var(--font-geist-mono), "SF Mono", "Consolas", monospace;
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+  --color-amber-950: #451a03;
 }
 
 body {
+  background-color: #0a0a0a;
+  color: #fef3c7;
   font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  letter-spacing: -0.025em;
+/* ── フォーム共通スタイル ── */
+.form-input {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  background-color: rgba(120, 53, 15, 0.15);
+  color: #fef3c7;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus {
+  border-color: rgba(217, 119, 6, 0.6);
+}
+
+.form-input::placeholder {
+  color: rgba(254, 243, 199, 0.3);
+}
+
+/* date / select のネイティブ UI を暗色に */
+.form-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
 }
