@@ -3,7 +3,7 @@
  */
 export const CONFIG = {
   // === 無料/有料ルール ===
-  FREE_PER_DAY: 1,
+  FREE_PER_DAY: 3,
   PREMIUM_PER_DAY: 3,
   MONTHLY_CREDITS: 10,
   PRICE_JPY: 980,
