@@ -50,10 +50,10 @@ export async function GET(req: NextRequest) {
   });
 
   if (cached) {
-    return NextResponse.json({
-      output: cached.output,
-      cached: true,
-    });
+    return NextResponse.json(
+      { output: cached.output, cached: true },
+      { headers: { "X-Cache": "hit" } },
+    );
   }
 
   // 4. AI生成
@@ -88,19 +88,19 @@ export async function GET(req: NextRequest) {
           where: { dailyKey_zodiacKey: { dailyKey, zodiacKey: zodiac } },
         });
         if (existing) {
-          return NextResponse.json({
-            output: existing.output,
-            cached: true,
-          });
+          return NextResponse.json(
+            { output: existing.output, cached: true },
+            { headers: { "X-Cache": "hit" } },
+          );
         }
       }
       throw err;
     }
 
-    return NextResponse.json({
-      output: result.object,
-      cached: false,
-    });
+    return NextResponse.json(
+      { output: result.object, cached: false },
+      { headers: { "X-Cache": "miss" } },
+    );
   } catch (err) {
     const isIncomplete =
       err instanceof Error &&
