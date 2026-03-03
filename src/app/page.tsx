@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TrackedLink from "@/components/TrackedLink";
 
 export default function LPPage() {
   return (
@@ -14,13 +15,14 @@ export default function LPPage() {
         </div>
 
         <div className="space-y-4">
-          <Link
+          <TrackedLink
             href="/daily"
+            event="lp_cta_daily"
             className="block w-full py-3 px-6 bg-amber-600 hover:bg-amber-500
                        text-white font-medium rounded-xl transition-colors text-center"
           >
             今日の余白便りを受け取る
-          </Link>
+          </TrackedLink>
           <p className="text-xs text-amber-200/40">
             星座を選ぶだけ。ログイン不要です。
           </p>
