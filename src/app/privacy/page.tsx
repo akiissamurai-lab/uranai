@@ -11,10 +11,14 @@ export default function PrivacyPage() {
           動物占いカテゴリ、悩みカテゴリ、および自由記述テキストを収集します。
         </p>
 
-        <h2 className="text-lg text-amber-100">2. 情報の利用目的</h2>
+        <h2 className="text-lg text-amber-100">
+          2. 情報の利用目的および第三者提供
+        </h2>
         <p>
           収集した情報は、占い鑑定の生成、サービスの改善、およびアカウント管理にのみ使用します。
-          第三者への提供は行いません。
+          原則として第三者への提供は行いません。
+          ただし、有料プランの決済処理を目的として、
+          決済代行会社（Stripe等）に必要な情報を提供する場合を除きます。
         </p>
 
         <h2 className="text-lg text-amber-100">3. データの保存</h2>
