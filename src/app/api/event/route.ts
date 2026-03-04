@@ -7,6 +7,8 @@ const EVENT_TYPES = [
   "lp_cta_daily",
   "daily_cta_login",
   "login_success",
+  "daily_draw",
+  "app_fortune_complete",
 ] as const;
 
 const bodySchema = z.object({
