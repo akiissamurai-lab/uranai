@@ -22,8 +22,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL ?? "https://uranai-ten.vercel.app";
+    // リクエストの Host ヘッダーから URL を構築（環境に依存しない）
+    const host = req.headers.get("host") || "uranai-ten.vercel.app";
+    const protocol = host.includes("localhost") ? "http" : "https";
+    const appUrl = `${protocol}://${host}`;
 
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,

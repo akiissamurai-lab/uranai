@@ -7,7 +7,10 @@ export const metadata: Metadata = {
   title: "Aira｜余白便り",
   description: "星座を選ぶだけ。毎日届く、やさしい占い。",
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://uranai-ten.vercel.app",
+    process.env.NEXT_PUBLIC_APP_URL ??
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "https://uranai-ten.vercel.app"),
   ),
   alternates: {
     canonical: "/",
