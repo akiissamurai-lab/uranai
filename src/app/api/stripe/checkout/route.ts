@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
     }
 
     const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL ?? "https://uranai-ten.vercel.app";
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+      "https://uranai-ten.vercel.app";
+    console.log("[stripe/checkout] appUrl:", appUrl);
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
