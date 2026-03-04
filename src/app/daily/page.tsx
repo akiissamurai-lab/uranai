@@ -117,6 +117,9 @@ export default function DailyPage() {
               <p className="text-xs text-amber-200/40 text-center">
                 ログインして、5つの運勢を詳しく鑑定できます
               </p>
+              <p className="text-[10px] text-amber-200/30 text-center">
+                ※Googleで約10秒ではじめられます（無料）
+              </p>
             </div>
           </>
         )}

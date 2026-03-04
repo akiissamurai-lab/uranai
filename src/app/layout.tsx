@@ -5,7 +5,27 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Aira｜余白便り",
-  description: "あなたの余白に、小さな手紙を届けます。",
+  description: "星座を選ぶだけ。毎日届く、やさしい占い。",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://uranai-ten.vercel.app",
+  ),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Aira｜余白便り — 今日のあなたに、小さな手紙を",
+    description:
+      "星座を選ぶだけ。毎日届く、やさしい占い。ログイン不要で、今日の運勢がわかります。",
+    siteName: "Aira｜余白便り",
+    locale: "ja_JP",
+    type: "website",
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Aira｜余白便り",
+    description: "星座を選ぶだけ。毎日届く、やさしい占い。",
+  },
 };
 
 export default function RootLayout({
