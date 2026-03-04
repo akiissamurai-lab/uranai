@@ -239,6 +239,9 @@ export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
         <p className="text-right text-xs text-amber-200/40 mt-1">
           {freeText.length} / {CONFIG.MAX_FREETEXT_LENGTH}文字
         </p>
+        <p className="text-[11px] text-amber-200/30 mt-1 leading-relaxed">
+          ※ この占いはエンターテインメントです。深刻なお悩みや心身の危機を感じている場合は、専門の相談窓口にご連絡ください。
+        </p>
       </Field>
 
       {/* API エラー */}
