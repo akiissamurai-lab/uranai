@@ -134,6 +134,16 @@ export default function DailyPage() {
           </>
         )}
 
+        {/* 眠れない夜の導線 */}
+        <div className="text-center pt-2">
+          <Link
+            href="/night-care"
+            className="text-[11px] md:text-xs text-amber-200/40 hover:text-amber-200/60 transition-colors underline underline-offset-4 decoration-amber-200/15"
+          >
+            眠れない夜の、小さな習慣 →
+          </Link>
+        </div>
+
         {/* 免責 */}
         <p className="text-[10px] md:text-xs text-amber-200/30 text-center pt-4 leading-relaxed">
           この占いは参考情報です。重大な判断は専門家にご相談ください。
