@@ -22,8 +22,8 @@ export default function DailyResult({ output, zodiacLabel }: DailyResultProps) {
         {zodiacLabel}のあなたへ
       </p>
 
-      {/* 手紙カード */}
-      <div className="letter-card px-7 py-8 space-y-6">
+      {/* 手紙カード: スマホは詰め、PCはゆったり */}
+      <div className="letter-card px-5 py-6 md:px-8 md:py-10 space-y-5 md:space-y-6">
         {/* メッセージ本文 */}
         <p className="letter-text text-sm whitespace-pre-wrap">
           {output.message}

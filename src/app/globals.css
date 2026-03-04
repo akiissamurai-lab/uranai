@@ -26,27 +26,47 @@ body {
 }
 
 /* 環境光（ランプの暖色グロー） — layout.tsx で <div className="ambient-glow" /> */
+/* スマホ: 控えめ。カードが近いので光は最小限 */
 .ambient-glow {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 600px 800px at 15% 30%, rgba(180, 83, 9, 0.07) 0%, transparent 70%),
-    radial-gradient(ellipse 400px 400px at 85% 70%, rgba(120, 53, 15, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 300px 300px at 50% 0%, rgba(78, 35, 15, 0.06) 0%, transparent 50%);
+    radial-gradient(ellipse 300px 400px at 20% 20%, rgba(180, 83, 9, 0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 200px 200px at 80% 80%, rgba(120, 53, 15, 0.03) 0%, transparent 60%);
+}
+/* PC: ランプが灯っている喫茶店の空気。カードの外側に余白があるので光を大きく */
+@media (min-width: 768px) {
+  .ambient-glow {
+    background:
+      radial-gradient(ellipse 800px 1000px at 10% 30%, rgba(180, 83, 9, 0.09) 0%, transparent 70%),
+      radial-gradient(ellipse 600px 600px at 90% 60%, rgba(120, 53, 15, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 400px 400px at 50% 0%, rgba(78, 35, 15, 0.05) 0%, transparent 50%),
+      radial-gradient(ellipse 200px 300px at 30% 80%, rgba(180, 120, 40, 0.03) 0%, transparent 50%);
+  }
 }
 
 /* ── 便箋カード ── */
+/* スマホ: 画面に近い、影は控えめ、角丸も小さめ */
 .letter-card {
   background-color: #f5f0e6;
   color: #3d2c1e;
-  border-radius: 0.375rem;
+  border-radius: 0.25rem;
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.4),
-    0 1px 3px rgba(0, 0, 0, 0.2),
-    inset 0 0 60px rgba(0, 0, 0, 0.02);
+    0 2px 12px rgba(0, 0, 0, 0.3),
+    inset 0 0 40px rgba(0, 0, 0, 0.02);
   position: relative;
+}
+/* PC: テーブルに置かれた手紙。浮遊感のある深い影 */
+@media (min-width: 768px) {
+  .letter-card {
+    border-radius: 0.375rem;
+    box-shadow:
+      0 8px 40px rgba(0, 0, 0, 0.5),
+      0 2px 8px rgba(0, 0, 0, 0.2),
+      inset 0 0 60px rgba(0, 0, 0, 0.02);
+  }
 }
 
 .letter-card::before {
