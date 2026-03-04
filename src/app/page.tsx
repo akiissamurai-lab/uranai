@@ -3,46 +3,64 @@ import TrackedLink from "@/components/TrackedLink";
 
 export default function LPPage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4">
-      <div className="max-w-md w-full text-center space-y-8">
-        <div className="space-y-3 animate-fade-in-up">
-          <h1 className="text-3xl font-bold text-amber-100">
-            Aira
+    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      {/* 便箋カード */}
+      <div className="letter-card max-w-sm w-full px-8 py-10 space-y-8 animate-fade-in-up">
+        {/* タイトル */}
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl tracking-wide" style={{ color: "#2c1e10" }}>
+            Aira<span className="text-base ml-1.5 opacity-50">|</span>
+            <span className="text-base ml-1.5 opacity-60">余白便り</span>
           </h1>
-          <p className="text-amber-200/60 text-sm">
-            あなたの余白に、小さな手紙を届けます。
+        </div>
+
+        {/* キャッチコピー */}
+        <div className="text-center">
+          <p className="letter-text text-lg leading-loose" style={{ color: "#3d2c1e" }}>
+            あなたの夜に、
+            <br />
+            そっと寄り添う、
+            <br />
+            最初の灯り。
           </p>
         </div>
 
-        <div className="space-y-4 animate-fade-in-up delay-2">
-          <TrackedLink
-            href="/daily"
-            event="lp_cta_daily"
-            className="block w-full py-3 px-6 bg-amber-600 hover:bg-amber-500
-                       text-white font-medium rounded-xl transition-colors text-center"
-          >
-            今日の余白便りを受け取る
-          </TrackedLink>
-          <p className="text-xs text-amber-200/40">
-            星座を選ぶだけ。ログイン不要です。
-          </p>
-          <Link
-            href="/login"
-            className="block w-full py-2.5 px-6 border border-amber-600/40 hover:border-amber-500/60
-                       text-amber-200/70 hover:text-amber-100 font-medium rounded-xl transition-colors text-center text-sm"
-          >
-            ログインして詳しく占う
-          </Link>
-        </div>
+        {/* 説明文 */}
+        <p className="text-sm leading-relaxed text-center" style={{ color: "#6b5744" }}>
+          昼間の役目を終えて、心が静まる深夜。
+          <br />
+          アイラは、あなたのための『余白』を届けます。
+          <br />
+          誰にも気付かれず、自分に還る場所。
+        </p>
 
-        <div className="pt-8 flex flex-wrap gap-4 justify-center text-xs text-amber-200/30 animate-fade-in delay-4">
-          <Link href="/privacy" className="hover:text-amber-200/60">
+        {/* CTA */}
+        <TrackedLink
+          href="/daily"
+          event="lp_cta_daily"
+          className="block w-full py-3.5 px-6 bg-amber-600 hover:bg-amber-500
+                     text-white font-medium rounded-full transition-colors text-center text-sm shadow-md"
+        >
+          今日の余白便りを開く
+        </TrackedLink>
+      </div>
+
+      {/* カード外のフッター */}
+      <div className="mt-8 space-y-4 text-center animate-fade-in delay-4">
+        <Link
+          href="/login"
+          className="text-sm text-amber-200/50 hover:text-amber-200/80 transition-colors underline underline-offset-4 decoration-amber-200/20"
+        >
+          ログインして詳しく占う
+        </Link>
+        <div className="flex flex-wrap gap-4 justify-center text-xs text-amber-200/25">
+          <Link href="/privacy" className="hover:text-amber-200/50 transition-colors">
             プライバシーポリシー
           </Link>
-          <Link href="/terms" className="hover:text-amber-200/60">
+          <Link href="/terms" className="hover:text-amber-200/50 transition-colors">
             利用規約
           </Link>
-          <Link href="/commercial" className="hover:text-amber-200/60">
+          <Link href="/commercial" className="hover:text-amber-200/50 transition-colors">
             特定商取引法
           </Link>
         </div>

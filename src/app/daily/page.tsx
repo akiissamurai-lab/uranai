@@ -11,35 +11,14 @@ const ZODIAC_ENTRIES = Object.entries(ZODIAC_LABELS) as [ZodiacKey, string][];
 
 function DailySkeleton() {
   return (
-    <div className="space-y-4 animate-fade-in">
-      {/* 星座ラベル */}
-      <div className="flex justify-center">
-        <div className="skeleton h-4 w-28" />
-      </div>
-      {/* メッセージ */}
-      <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-5 space-y-2.5">
-        <div className="skeleton h-3.5 w-full" />
-        <div className="skeleton h-3.5 w-11/12" />
-        <div className="skeleton h-3.5 w-9/12" />
-      </div>
-      {/* ひとこと */}
-      <div className="flex justify-center">
-        <div className="skeleton h-6 w-48" />
-      </div>
-      {/* 小さな一歩 */}
-      <div className="bg-amber-600/10 border border-amber-600/20 rounded-xl p-4 space-y-2">
-        <div className="skeleton h-3 w-24" />
-        <div className="skeleton h-3.5 w-40" />
-      </div>
-      {/* ラッキー */}
-      <div className="flex gap-4 justify-center">
-        <div className="text-center space-y-1">
-          <div className="skeleton h-2.5 w-20 mx-auto" />
-          <div className="skeleton h-3.5 w-12 mx-auto" />
-        </div>
-        <div className="text-center space-y-1">
-          <div className="skeleton h-2.5 w-24 mx-auto" />
-          <div className="skeleton h-3.5 w-16 mx-auto" />
+    <div className="animate-fade-in">
+      <div className="letter-card px-7 py-8 space-y-5">
+        <div className="skeleton-letter h-3.5 w-full" />
+        <div className="skeleton-letter h-3.5 w-11/12" />
+        <div className="skeleton-letter h-3.5 w-9/12" />
+        <div className="skeleton-letter h-3.5 w-10/12" />
+        <div className="flex justify-center pt-2">
+          <div className="skeleton-letter h-5 w-48" />
         </div>
       </div>
     </div>
@@ -81,16 +60,19 @@ export default function DailyPage() {
 
   return (
     <main className="min-h-screen px-4 py-8">
-      <div className="max-w-md mx-auto space-y-6">
+      <div className="max-w-sm mx-auto space-y-6">
         {/* ヘッダー */}
-        <div className="text-center space-y-2 animate-fade-in-up">
-          <Link href="/" className="text-xs text-amber-200/40 hover:text-amber-200/60">
+        <div className="text-center space-y-1 animate-fade-in-up">
+          <Link
+            href="/"
+            className="text-xs text-amber-200/30 hover:text-amber-200/50 transition-colors"
+          >
             &larr; Aira
           </Link>
-          <h1 className="text-2xl font-bold text-amber-100">
+          <h1 className="text-xl text-amber-100 tracking-wide">
             今日の余白便り
           </h1>
-          <p className="text-sm text-amber-200/50">
+          <p className="text-xs text-amber-200/40">
             星座を選んで、今日のひとことを受け取りましょう
           </p>
         </div>
@@ -103,10 +85,10 @@ export default function DailyPage() {
               type="button"
               onClick={() => handleSelect(key)}
               disabled={loading}
-              className={`py-2.5 rounded-xl text-xs font-medium transition-all ${
+              className={`py-2.5 rounded-lg text-xs font-medium transition-all ${
                 selected === key
-                  ? "bg-amber-600/80 text-amber-50"
-                  : "bg-amber-900/20 text-amber-200/50 hover:bg-amber-900/30"
+                  ? "bg-amber-600/80 text-amber-50 shadow-md shadow-amber-900/30"
+                  : "bg-amber-200/5 text-amber-200/50 hover:bg-amber-200/10 border border-amber-200/8"
               } disabled:opacity-40`}
             >
               {label}
@@ -133,19 +115,19 @@ export default function DailyPage() {
             />
 
             {/* ログイン導線 */}
-            <div className="pt-4 space-y-3 animate-fade-in-up delay-5">
-              <p className="text-xs text-amber-200/50 text-center">
+            <div className="pt-2 space-y-3 animate-fade-in-up delay-5">
+              <p className="text-xs text-amber-200/40 text-center">
                 恋愛・仕事・健康・対人・金運 — 5つの運勢を深く読み解きます
               </p>
               <Link
                 href="/login"
                 onClick={() => trackEvent("daily_cta_login")}
                 className="block w-full py-3 px-6 bg-amber-600 hover:bg-amber-500
-                           text-white font-medium rounded-xl transition-colors text-center"
+                           text-white font-medium rounded-full transition-colors text-center text-sm shadow-md shadow-amber-900/30"
               >
                 5つの運勢を詳しく見る
               </Link>
-              <p className="text-[10px] text-amber-200/30 text-center">
+              <p className="text-[10px] text-amber-200/25 text-center">
                 Googleで約10秒ではじめられます（無料）
               </p>
             </div>
@@ -153,19 +135,19 @@ export default function DailyPage() {
         )}
 
         {/* 免責 */}
-        <p className="text-xs text-amber-200/50 text-center pt-4 leading-relaxed">
+        <p className="text-xs text-amber-200/30 text-center pt-4 leading-relaxed">
           この占いは参考情報です。重大な判断は専門家にご相談ください。
         </p>
 
         {/* フッター */}
-        <div className="flex flex-wrap gap-4 justify-center text-xs text-amber-200/30">
-          <Link href="/privacy" className="hover:text-amber-200/60">
+        <div className="flex flex-wrap gap-4 justify-center text-xs text-amber-200/25">
+          <Link href="/privacy" className="hover:text-amber-200/50 transition-colors">
             プライバシーポリシー
           </Link>
-          <Link href="/terms" className="hover:text-amber-200/60">
+          <Link href="/terms" className="hover:text-amber-200/50 transition-colors">
             利用規約
           </Link>
-          <Link href="/commercial" className="hover:text-amber-200/60">
+          <Link href="/commercial" className="hover:text-amber-200/50 transition-colors">
             特定商取引法
           </Link>
         </div>
