@@ -33,10 +33,11 @@ export async function POST(req: NextRequest) {
       stripeCustomerId = customer.id;
     }
 
-    const appUrl =
+    const rawUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
       "https://uranai-ten.vercel.app";
+    const appUrl = rawUrl.replace(/\/+$/, ""); // 末尾スラッシュ除去
     console.log("[stripe/checkout] appUrl:", appUrl);
 
     const session = await stripe.checkout.sessions.create({
