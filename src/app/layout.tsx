@@ -54,7 +54,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        <div className="ambient-glow" aria-hidden="true" />
+        <div className="relative z-10">{children}</div>
+      </body>
     </html>
   );
 }

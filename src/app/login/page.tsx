@@ -37,23 +37,29 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-sm w-full space-y-6 text-center">
-        <div className="space-y-2 animate-fade-in-up">
+      <div className="letter-card max-w-sm w-full px-8 py-10 space-y-6 text-center animate-fade-in-up">
+        <div className="space-y-2">
           <Link
             href="/"
-            className="text-amber-400 text-sm hover:text-amber-300"
+            className="text-xs transition-colors"
+            style={{ color: "#9b7e5e" }}
           >
             &larr; Aira
           </Link>
-          <h1 className="text-2xl font-bold text-amber-100">ログイン</h1>
-          <p className="text-sm text-amber-200/60">
+          <h1
+            className="text-xl tracking-wide"
+            style={{ color: "#2c1e10" }}
+          >
+            ログイン
+          </h1>
+          <p className="text-sm" style={{ color: "#6b5744" }}>
             Googleアカウントで約10秒ではじめられます
           </p>
         </div>
 
         {/* 設定未完了の警告 */}
         {!isConfigured && (
-          <div className="bg-yellow-900/30 border border-yellow-700/50 rounded-xl p-3 text-sm text-yellow-300">
+          <div className="bg-yellow-100/80 border border-yellow-300/50 rounded-lg p-3 text-sm text-yellow-800">
             Supabase の設定が未完了です。.env.local に NEXT_PUBLIC_SUPABASE_URL
             と NEXT_PUBLIC_SUPABASE_ANON_KEY を設定してください。
           </div>
@@ -61,7 +67,7 @@ export default function LoginPage() {
 
         {/* エラー表示 */}
         {error && (
-          <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-3 text-sm text-red-300">
+          <div className="bg-red-50 border border-red-200/50 rounded-lg p-3 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -69,8 +75,8 @@ export default function LoginPage() {
         <button
           onClick={handleGoogleLogin}
           disabled={loading || !isConfigured}
-          className="animate-fade-in-up delay-2 w-full py-3 px-4 bg-white text-gray-800 font-medium
-                     rounded-xl hover:bg-gray-100 transition-colors
+          className="w-full py-3 px-4 bg-white border border-gray-200 text-gray-700 font-medium
+                     rounded-full hover:bg-gray-50 transition-colors shadow-sm
                      disabled:opacity-50 disabled:cursor-not-allowed
                      flex items-center justify-center gap-2"
         >
