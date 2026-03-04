@@ -4,8 +4,9 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Aira｜余白便り",
-  description: "星座を選ぶだけ。毎日届く、やさしい占い。",
+  title: "Aira｜余白便り — 寝る前に、心がほどける一通",
+  description:
+    "寝る前に、心がほどける一通。星座を選ぶだけで届く、やさしい手紙。答えじゃなく、余白がほしい夜に。",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ??
       (process.env.VERCEL_URL
@@ -16,9 +17,9 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Aira｜余白便り — 今日のあなたに、小さな手紙を",
+    title: "Aira｜余白便り — 寝る前に、心がほどける一通",
     description:
-      "星座を選ぶだけ。毎日届く、やさしい占い。ログイン不要で、今日の運勢がわかります。",
+      "星座を選ぶだけで届く、やさしい手紙。答えじゃなく、余白がほしい夜に。ログイン不要で、今日のあなたに小さな手紙が届きます。",
     siteName: "Aira｜余白便り",
     locale: "ja_JP",
     type: "website",
@@ -34,8 +35,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Aira｜余白便り",
-    description: "星座を選ぶだけ。毎日届く、やさしい占い。",
+    title: "Aira｜余白便り — 寝る前に、心がほどける一通",
+    description:
+      "星座を選ぶだけで届く、やさしい手紙。答えじゃなく、余白がほしい夜に。",
     images: [
       {
         url: "/og-image.jpg",

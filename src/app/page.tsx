@@ -56,12 +56,20 @@ export default function LPPage() {
 
       {/* カード外のフッター */}
       <div className="mt-6 md:mt-10 space-y-3 md:space-y-4 text-center animate-fade-in delay-4">
-        <Link
-          href="/login"
-          className="text-xs md:text-sm text-amber-200/50 hover:text-amber-200/80 transition-colors underline underline-offset-4 decoration-amber-200/20"
-        >
-          ログインして詳しく占う
-        </Link>
+        <div className="flex flex-wrap gap-4 justify-center">
+          <Link
+            href="/login"
+            className="text-xs md:text-sm text-amber-200/50 hover:text-amber-200/80 transition-colors underline underline-offset-4 decoration-amber-200/20"
+          >
+            ログインして詳しく占う
+          </Link>
+          <Link
+            href="/about"
+            className="text-xs md:text-sm text-amber-200/40 hover:text-amber-200/60 transition-colors underline underline-offset-4 decoration-amber-200/20"
+          >
+            Airaとは
+          </Link>
+        </div>
         <div className="flex flex-wrap gap-3 md:gap-4 justify-center text-[10px] md:text-xs text-amber-200/25">
           <Link href="/privacy" className="hover:text-amber-200/50 transition-colors">
             プライバシーポリシー

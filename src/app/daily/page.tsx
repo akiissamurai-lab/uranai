@@ -141,6 +141,9 @@ export default function DailyPage() {
 
         {/* フッター */}
         <div className="flex flex-wrap gap-3 md:gap-4 justify-center text-[10px] md:text-xs text-amber-200/25">
+          <Link href="/about" className="hover:text-amber-200/50 transition-colors">
+            Airaとは
+          </Link>
           <Link href="/privacy" className="hover:text-amber-200/50 transition-colors">
             プライバシーポリシー
           </Link>
