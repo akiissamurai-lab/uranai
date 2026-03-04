@@ -105,6 +105,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripeCustomerId: customerId,
       stripeSubId: subId,
       currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      ...(tosAccepted && { tosAcceptedAt: new Date() }),
     },
     create: {
       userId,
@@ -112,6 +113,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripeCustomerId: customerId,
       stripeSubId: subId,
       currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      ...(tosAccepted && { tosAcceptedAt: new Date() }),
     },
   });
 

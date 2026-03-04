@@ -30,9 +30,10 @@ model Subscription {
   status           String   // active | canceled | past_due | trialing
   stripeCustomerId String   @unique @map("stripe_customer_id")
   stripeSubId      String   @unique @map("stripe_sub_id")
-  currentPeriodEnd DateTime @map("current_period_end")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  currentPeriodEnd DateTime  @map("current_period_end")
+  tosAcceptedAt    DateTime? @map("tos_accepted_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
