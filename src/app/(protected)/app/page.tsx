@@ -22,6 +22,7 @@ export default function AppPage() {
 
   function handleFormSubmit(response: FortuneResponse) {
     setFortuneResult(response);
+    trackEvent("app_fortune_complete");
   }
 
   function handleBack() {

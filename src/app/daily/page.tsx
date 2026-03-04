@@ -34,6 +34,7 @@ export default function DailyPage() {
       }
       const data = await res.json();
       setResult(data.output as DailyOutput);
+      trackEvent("daily_draw");
     } catch {
       setError("通信エラーが発生しました。");
     } finally {
@@ -112,20 +113,17 @@ export default function DailyPage() {
                 className="block w-full py-3 px-6 bg-amber-600 hover:bg-amber-500
                            text-white font-medium rounded-xl transition-colors text-center"
               >
-                もっと詳しく相談する →
+                5つの運勢を詳しく見る
               </Link>
-              <p className="text-xs text-amber-200/40 text-center">
-                ログインして、5つの運勢を詳しく鑑定できます
-              </p>
               <p className="text-[10px] text-amber-200/30 text-center">
-                ※Googleで約10秒ではじめられます（無料）
+                Googleで約10秒ではじめられます（無料）
               </p>
             </div>
           </>
         )}
 
         {/* 免責 */}
-        <p className="text-[10px] text-amber-200/20 text-center pt-4">
+        <p className="text-xs text-amber-200/50 text-center pt-4 leading-relaxed">
           この占いは参考情報です。重大な判断は専門家にご相談ください。
         </p>
 
