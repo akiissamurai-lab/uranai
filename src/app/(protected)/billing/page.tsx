@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMe } from "@/lib/hooks/useMe";
 import { isBillingEnabled } from "@/lib/billing";
@@ -160,6 +161,41 @@ export default function BillingPage() {
             )}
           </div>
         )}
+
+        {/* 注意事項 */}
+        <div className="bg-gray-900/50 border border-amber-800/10 rounded-xl p-4 space-y-2">
+          <h2 className="text-xs font-bold text-amber-200/60">ご利用にあたって</h2>
+          <ul className="text-[11px] text-amber-200/40 space-y-1.5 list-disc list-inside">
+            <li>
+              プレミアムプランは月額¥{CONFIG.PRICE_JPY.toLocaleString()}
+              （税込）の自動更新です。解約しない限り毎月自動的に課金されます。
+            </li>
+            <li>
+              解約は上記「プランを管理・解約」ボタンからStripeカスタマーポータルでいつでも可能です。
+              解約後も次回更新日まではプレミアム機能をご利用いただけます。
+            </li>
+            <li>
+              デジタルコンテンツの特性上、お支払い後の返金には原則として応じかねます。
+              技術的障害等の場合は個別にご相談ください。
+            </li>
+            <li>
+              毎月{CONFIG.MONTHLY_CREDITS}
+              クレジットが付与されます。未使用分は翌月以降も有効ですが、
+              解約後は次回更新日を過ぎると失効します。クレジットの換金・返金はできません。
+            </li>
+          </ul>
+          <div className="pt-1 flex gap-3 text-[10px] text-amber-200/30">
+            <Link href="/commercial" className="hover:text-amber-200/50 underline">
+              特定商取引法に基づく表記
+            </Link>
+            <Link href="/terms" className="hover:text-amber-200/50 underline">
+              利用規約
+            </Link>
+            <Link href="/privacy" className="hover:text-amber-200/50 underline">
+              プライバシーポリシー
+            </Link>
+          </div>
+        </div>
       </div>
     </main>
   );

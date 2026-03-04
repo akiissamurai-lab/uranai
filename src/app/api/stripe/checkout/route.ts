@@ -46,6 +46,15 @@ export async function POST(req: NextRequest) {
       metadata: { appUserId: user.id },
       success_url: `${appUrl}/billing?success=1`,
       cancel_url: `${appUrl}/billing?canceled=1`,
+      // 利用規約への同意チェックボックスを表示
+      consent_collection: {
+        terms_of_service: "required",
+      },
+      custom_text: {
+        terms_of_service_acceptance: {
+          message: `[利用規約](${appUrl}/terms)・[プライバシーポリシー](${appUrl}/privacy)・[特定商取引法に基づく表記](${appUrl}/commercial) に同意のうえお申し込みください。月額¥${980}の自動更新です。`,
+        },
+      },
     });
 
     return NextResponse.json({ url: session.url });

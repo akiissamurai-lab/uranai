@@ -89,6 +89,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (!subId || !customerId) return;
 
+  // 利用規約同意ログ
+  const tosAccepted = session.consent?.terms_of_service === "accepted";
+  console.log(
+    `[webhook] checkout.session.completed: userId=${userId}, tosAccepted=${tosAccepted}`,
+  );
+
   // Stripe から subscription 詳細を取得
   const sub = await stripe.subscriptions.retrieve(subId);
 
