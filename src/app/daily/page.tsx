@@ -12,7 +12,7 @@ const ZODIAC_ENTRIES = Object.entries(ZODIAC_LABELS) as [ZodiacKey, string][];
 function DailySkeleton() {
   return (
     <div className="animate-fade-in">
-      <div className="letter-card px-7 py-8 space-y-5">
+      <div className="letter-card px-6 py-7 md:px-8 md:py-10 space-y-5">
         <div className="skeleton-letter h-3.5 w-full" />
         <div className="skeleton-letter h-3.5 w-11/12" />
         <div className="skeleton-letter h-3.5 w-9/12" />
@@ -59,8 +59,8 @@ export default function DailyPage() {
   }
 
   return (
-    <main className="min-h-screen px-4 py-8">
-      <div className="max-w-sm mx-auto space-y-6">
+    <main className="min-h-screen px-3 py-6 md:px-6 md:py-12">
+      <div className="max-w-[calc(100vw-1.5rem)] md:max-w-md mx-auto space-y-5 md:space-y-8">
         {/* ヘッダー */}
         <div className="text-center space-y-1 animate-fade-in-up">
           <Link
@@ -69,23 +69,23 @@ export default function DailyPage() {
           >
             &larr; Aira
           </Link>
-          <h1 className="text-xl text-amber-100 tracking-wide">
+          <h1 className="text-lg md:text-xl text-amber-100 tracking-wide">
             今日の余白便り
           </h1>
-          <p className="text-xs text-amber-200/40">
+          <p className="text-[11px] md:text-xs text-amber-200/40">
             星座を選んで、今日のひとことを受け取りましょう
           </p>
         </div>
 
-        {/* 星座ピッカー */}
-        <div className="grid grid-cols-4 gap-2 animate-fade-in-up delay-1">
+        {/* 星座ピッカー: スマホ4列コンパクト、PC4列ゆったり */}
+        <div className="grid grid-cols-4 gap-1.5 md:gap-2.5 animate-fade-in-up delay-1">
           {ZODIAC_ENTRIES.map(([key, label]) => (
             <button
               key={key}
               type="button"
               onClick={() => handleSelect(key)}
               disabled={loading}
-              className={`py-2.5 rounded-lg text-xs font-medium transition-all ${
+              className={`py-2 md:py-2.5 rounded-lg text-[11px] md:text-xs font-medium transition-all ${
                 selected === key
                   ? "bg-amber-600/80 text-amber-50 shadow-md shadow-amber-900/30"
                   : "bg-amber-200/5 text-amber-200/50 hover:bg-amber-200/10 border border-amber-200/8"
@@ -116,7 +116,7 @@ export default function DailyPage() {
 
             {/* ログイン導線 */}
             <div className="pt-2 space-y-3 animate-fade-in-up delay-5">
-              <p className="text-xs text-amber-200/40 text-center">
+              <p className="text-[11px] md:text-xs text-amber-200/40 text-center">
                 恋愛・仕事・健康・対人・金運 — 5つの運勢を深く読み解きます
               </p>
               <Link
@@ -135,12 +135,12 @@ export default function DailyPage() {
         )}
 
         {/* 免責 */}
-        <p className="text-xs text-amber-200/30 text-center pt-4 leading-relaxed">
+        <p className="text-[10px] md:text-xs text-amber-200/30 text-center pt-4 leading-relaxed">
           この占いは参考情報です。重大な判断は専門家にご相談ください。
         </p>
 
         {/* フッター */}
-        <div className="flex flex-wrap gap-4 justify-center text-xs text-amber-200/25">
+        <div className="flex flex-wrap gap-3 md:gap-4 justify-center text-[10px] md:text-xs text-amber-200/25">
           <Link href="/privacy" className="hover:text-amber-200/50 transition-colors">
             プライバシーポリシー
           </Link>
