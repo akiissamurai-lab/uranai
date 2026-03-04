@@ -122,3 +122,10 @@ model Event {
   @@index([ipHash, eventType, createdAt])
   @@map("events")
 }
+
+model StripeEvent {
+  id        String   @id // Stripe event ID (evt_xxx) をそのまま PK
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("stripe_events")
+}
