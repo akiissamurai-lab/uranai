@@ -18,13 +18,21 @@ const SECTION_ICONS: Record<string, string> = {
   general: "☆",
 };
 
+const DELAY_CLASSES = [
+  "delay-1",
+  "delay-2",
+  "delay-3",
+  "delay-4",
+  "delay-5",
+] as const;
+
 function ScoreDots({ score, max = 5 }: { score: number; max?: number }) {
   return (
     <span className="inline-flex gap-0.5">
       {Array.from({ length: max }, (_, i) => (
         <span
           key={i}
-          className={`inline-block w-2 h-2 rounded-full ${
+          className={`inline-block w-2 h-2 rounded-full transition-colors ${
             i < score ? "bg-amber-400" : "bg-amber-900/30"
           }`}
         />
@@ -33,9 +41,17 @@ function ScoreDots({ score, max = 5 }: { score: number; max?: number }) {
   );
 }
 
-function SectionCard({ section }: { section: FortuneSection }) {
+function SectionCard({
+  section,
+  delayClass,
+}: {
+  section: FortuneSection;
+  delayClass: string;
+}) {
   return (
-    <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-4 space-y-3">
+    <div
+      className={`bg-amber-900/10 border border-amber-800/20 rounded-xl p-4 space-y-3 animate-fade-in-up ${delayClass}`}
+    >
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-amber-100">
           {SECTION_ICONS[section.key] ?? "☆"}{" "}
@@ -94,14 +110,14 @@ export default function FortuneResult({ output, onBack }: FortuneResultProps) {
   return (
     <div className="space-y-5">
       {/* イントロ */}
-      <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-5">
+      <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-5 animate-fade-in-up">
         <p className="text-sm text-amber-200/80 leading-relaxed whitespace-pre-wrap">
           {output.intro}
         </p>
       </div>
 
       {/* サマリー */}
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-2 animate-fade-in-up delay-1">
         <h2 className="text-lg font-bold text-amber-100">
           {output.summary.title}
         </h2>
@@ -117,15 +133,19 @@ export default function FortuneResult({ output, onBack }: FortuneResultProps) {
         </p>
       </div>
 
-      {/* セクション */}
+      {/* セクション（スタッガー表示） */}
       <div className="space-y-3">
-        {output.sections.map((section) => (
-          <SectionCard key={section.key} section={section} />
+        {output.sections.map((section, i) => (
+          <SectionCard
+            key={section.key}
+            section={section}
+            delayClass={DELAY_CLASSES[i] ?? DELAY_CLASSES[4]}
+          />
         ))}
       </div>
 
       {/* 今日のアクション */}
-      <div className="bg-amber-600/10 border border-amber-600/20 rounded-xl p-4 space-y-2">
+      <div className="bg-amber-600/10 border border-amber-600/20 rounded-xl p-4 space-y-2 animate-fade-in-up delay-6">
         <h3 className="text-sm font-bold text-amber-200">
           今日のアクション
         </h3>
@@ -134,7 +154,7 @@ export default function FortuneResult({ output, onBack }: FortuneResultProps) {
       </div>
 
       {/* ラッキー */}
-      <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-4">
+      <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-4 animate-fade-in-up delay-7">
         <h3 className="text-sm font-bold text-amber-200 mb-3">
           ラッキーアイテム
         </h3>
@@ -154,7 +174,7 @@ export default function FortuneResult({ output, onBack }: FortuneResultProps) {
       </div>
 
       {/* 免責 */}
-      <p className="text-xs text-amber-200/50 text-center leading-relaxed">
+      <p className="text-xs text-amber-200/50 text-center leading-relaxed animate-fade-in delay-7">
         {output.disclaimer}
       </p>
 
@@ -163,9 +183,10 @@ export default function FortuneResult({ output, onBack }: FortuneResultProps) {
         type="button"
         onClick={onBack}
         className="w-full py-3 rounded-full font-bold text-sm transition-all
-          bg-amber-900/20 text-amber-200/60 hover:bg-amber-900/30 hover:text-amber-200"
+          bg-amber-900/20 text-amber-200/60 hover:bg-amber-900/30 hover:text-amber-200
+          animate-fade-in-up delay-7"
       >
-        ← もう一度占う
+        &larr; もう一度占う
       </button>
     </div>
   );

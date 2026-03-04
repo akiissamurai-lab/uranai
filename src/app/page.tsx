@@ -5,7 +5,7 @@ export default function LPPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4">
       <div className="max-w-md w-full text-center space-y-8">
-        <div className="space-y-3">
+        <div className="space-y-3 animate-fade-in-up">
           <h1 className="text-3xl font-bold text-amber-100">
             Aira
           </h1>
@@ -14,7 +14,7 @@ export default function LPPage() {
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 animate-fade-in-up delay-2">
           <TrackedLink
             href="/daily"
             event="lp_cta_daily"
@@ -35,7 +35,7 @@ export default function LPPage() {
           </Link>
         </div>
 
-        <div className="pt-8 flex flex-wrap gap-4 justify-center text-xs text-amber-200/30">
+        <div className="pt-8 flex flex-wrap gap-4 justify-center text-xs text-amber-200/30 animate-fade-in delay-4">
           <Link href="/privacy" className="hover:text-amber-200/60">
             プライバシーポリシー
           </Link>

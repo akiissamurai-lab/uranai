@@ -49,3 +49,55 @@ body {
 .form-input::-webkit-calendar-picker-indicator {
   filter: invert(0.8);
 }
+
+/* ── アニメーション ── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out both;
+}
+
+/* スタッガー遅延 */
+.delay-1 { animation-delay: 80ms; }
+.delay-2 { animation-delay: 160ms; }
+.delay-3 { animation-delay: 240ms; }
+.delay-4 { animation-delay: 320ms; }
+.delay-5 { animation-delay: 400ms; }
+.delay-6 { animation-delay: 480ms; }
+.delay-7 { animation-delay: 560ms; }
+
+/* スケルトンシマー */
+.skeleton {
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    90deg,
+    rgba(120, 53, 15, 0.1) 25%,
+    rgba(120, 53, 15, 0.25) 50%,
+    rgba(120, 53, 15, 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}

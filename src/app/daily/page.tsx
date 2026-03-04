@@ -9,6 +9,43 @@ import type { DailyOutput } from "@/lib/ai/dailySchema";
 
 const ZODIAC_ENTRIES = Object.entries(ZODIAC_LABELS) as [ZodiacKey, string][];
 
+function DailySkeleton() {
+  return (
+    <div className="space-y-4 animate-fade-in">
+      {/* 星座ラベル */}
+      <div className="flex justify-center">
+        <div className="skeleton h-4 w-28" />
+      </div>
+      {/* メッセージ */}
+      <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-5 space-y-2.5">
+        <div className="skeleton h-3.5 w-full" />
+        <div className="skeleton h-3.5 w-11/12" />
+        <div className="skeleton h-3.5 w-9/12" />
+      </div>
+      {/* ひとこと */}
+      <div className="flex justify-center">
+        <div className="skeleton h-6 w-48" />
+      </div>
+      {/* 小さな一歩 */}
+      <div className="bg-amber-600/10 border border-amber-600/20 rounded-xl p-4 space-y-2">
+        <div className="skeleton h-3 w-24" />
+        <div className="skeleton h-3.5 w-40" />
+      </div>
+      {/* ラッキー */}
+      <div className="flex gap-4 justify-center">
+        <div className="text-center space-y-1">
+          <div className="skeleton h-2.5 w-20 mx-auto" />
+          <div className="skeleton h-3.5 w-12 mx-auto" />
+        </div>
+        <div className="text-center space-y-1">
+          <div className="skeleton h-2.5 w-24 mx-auto" />
+          <div className="skeleton h-3.5 w-16 mx-auto" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DailyPage() {
   const [selected, setSelected] = useState<ZodiacKey | null>(null);
   const [result, setResult] = useState<DailyOutput | null>(null);
@@ -46,9 +83,9 @@ export default function DailyPage() {
     <main className="min-h-screen px-4 py-8">
       <div className="max-w-md mx-auto space-y-6">
         {/* ヘッダー */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-2 animate-fade-in-up">
           <Link href="/" className="text-xs text-amber-200/40 hover:text-amber-200/60">
-            ← Aira
+            &larr; Aira
           </Link>
           <h1 className="text-2xl font-bold text-amber-100">
             今日の余白便り
@@ -59,7 +96,7 @@ export default function DailyPage() {
         </div>
 
         {/* 星座ピッカー */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-2 animate-fade-in-up delay-1">
           {ZODIAC_ENTRIES.map(([key, label]) => (
             <button
               key={key}
@@ -77,19 +114,12 @@ export default function DailyPage() {
           ))}
         </div>
 
-        {/* ローディング */}
-        {loading && (
-          <div className="text-center py-8">
-            <span className="inline-block h-5 w-5 border-2 border-amber-200/40 border-t-amber-400 rounded-full animate-spin" />
-            <p className="text-xs text-amber-200/40 mt-2">
-              あなたへの手紙を書いています...
-            </p>
-          </div>
-        )}
+        {/* スケルトンローディング */}
+        {loading && <DailySkeleton />}
 
         {/* エラー */}
         {error && (
-          <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-3 text-sm text-red-300 text-center">
+          <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-3 text-sm text-red-300 text-center animate-fade-in">
             {error}
           </div>
         )}
@@ -103,7 +133,7 @@ export default function DailyPage() {
             />
 
             {/* ログイン導線 */}
-            <div className="pt-4 space-y-3">
+            <div className="pt-4 space-y-3 animate-fade-in-up delay-5">
               <p className="text-xs text-amber-200/50 text-center">
                 恋愛・仕事・健康・対人・金運 — 5つの運勢を深く読み解きます
               </p>

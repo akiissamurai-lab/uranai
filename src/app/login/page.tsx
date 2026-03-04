@@ -38,7 +38,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-sm w-full space-y-6 text-center">
-        <div className="space-y-2">
+        <div className="space-y-2 animate-fade-in-up">
           <Link
             href="/"
             className="text-amber-400 text-sm hover:text-amber-300"
@@ -69,7 +69,7 @@ export default function LoginPage() {
         <button
           onClick={handleGoogleLogin}
           disabled={loading || !isConfigured}
-          className="w-full py-3 px-4 bg-white text-gray-800 font-medium
+          className="animate-fade-in-up delay-2 w-full py-3 px-4 bg-white text-gray-800 font-medium
                      rounded-xl hover:bg-gray-100 transition-colors
                      disabled:opacity-50 disabled:cursor-not-allowed
                      flex items-center justify-center gap-2"
