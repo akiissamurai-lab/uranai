@@ -154,7 +154,7 @@ export default function FortuneResult({ output, onBack }: FortuneResultProps) {
       </div>
 
       {/* 免責 */}
-      <p className="text-[10px] text-amber-200/30 text-center">
+      <p className="text-xs text-amber-200/50 text-center leading-relaxed">
         {output.disclaimer}
       </p>
 

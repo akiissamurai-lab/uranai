@@ -12,6 +12,8 @@ import {
 import { fortuneInputSchema } from "@/lib/validators/fortuneInput";
 import { fortuneOutputSchema } from "@/lib/ai/schema";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/ai/prompts";
+import { detectCrisis } from "@/lib/safety/crisis";
+import { CRISIS_RESPONSE } from "@/lib/safety/crisisResponse";
 import { getModel, getModelId } from "@/lib/ai/provider";
 import { prisma } from "@/lib/prisma";
 import { CONFIG } from "@/lib/constants";
@@ -51,6 +53,16 @@ export async function POST(req: NextRequest) {
 
   const input = parsed.data;
   const mode = input.mode;
+
+  // 3.5. 危機キーワード検知（LLM 呼び出し前・回数消費前にブロック）
+  if (detectCrisis(input.freeText ?? "")) {
+    console.log("[/api/fortune] crisis detected — returning safe response");
+    return NextResponse.json({
+      id: "crisis",
+      output: CRISIS_RESPONSE,
+      cached: false,
+    });
+  }
 
   // 4. 日次使用量チェック
   const usage = await checkUsage(user.id, mode);
