@@ -96,6 +96,15 @@ export default function AboutPage() {
                 description="答えを押しつけません。考える余白、感じる余白を大切にしています。"
               />
             </ul>
+            <p className="pt-1">
+              <Link
+                href="/night-care"
+                className="text-sm transition-colors underline underline-offset-4"
+                style={{ color: "#9b7e5e", textDecorationColor: "rgba(120, 80, 40, 0.2)" }}
+              >
+                寝る前の小さな習慣について →
+              </Link>
+            </p>
           </section>
 
           {/* 区切り */}
