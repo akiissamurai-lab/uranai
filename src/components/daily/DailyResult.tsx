@@ -11,26 +11,26 @@ export default function DailyResult({ output, zodiacLabel }: DailyResultProps) {
   return (
     <div className="space-y-4">
       {/* 星座ラベル */}
-      <p className="text-center text-xs text-amber-200/50">
+      <p className="text-center text-xs text-amber-200/50 animate-fade-in">
         {zodiacLabel}のあなたへ
       </p>
 
       {/* メッセージ（手紙風） */}
-      <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-5">
+      <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-5 animate-fade-in-up delay-1">
         <p className="text-sm text-amber-200/80 leading-relaxed whitespace-pre-wrap">
           {output.message}
         </p>
       </div>
 
       {/* ひとこと */}
-      <div className="text-center">
+      <div className="text-center animate-fade-in-up delay-2">
         <p className="text-lg font-bold text-amber-100">
           {output.one_line}
         </p>
       </div>
 
       {/* 今日の小さな一歩 */}
-      <div className="bg-amber-600/10 border border-amber-600/20 rounded-xl p-4 space-y-1">
+      <div className="bg-amber-600/10 border border-amber-600/20 rounded-xl p-4 space-y-1 animate-fade-in-up delay-3">
         <p className="text-xs text-amber-300/60 font-medium">
           今日の小さな一歩
         </p>
@@ -38,7 +38,7 @@ export default function DailyResult({ output, zodiacLabel }: DailyResultProps) {
       </div>
 
       {/* ラッキー */}
-      <div className="flex gap-4 justify-center">
+      <div className="flex gap-4 justify-center animate-fade-in-up delay-4">
         <div className="text-center space-y-0.5">
           <p className="text-[10px] text-amber-200/40">ラッキーカラー</p>
           <p className="text-sm text-amber-200/80">{output.lucky_color}</p>

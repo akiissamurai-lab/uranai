@@ -65,7 +65,7 @@ export default function DailyCard({ initialZodiac }: DailyCardProps) {
 
       {/* 展開エリア */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-4">
+        <div className="px-4 pb-4 space-y-4 animate-fade-in">
           {/* 星座未選択 → ピッカー表示 */}
           {!selected && (
             <>

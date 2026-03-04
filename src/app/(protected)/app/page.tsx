@@ -8,6 +8,31 @@ import DailyCard from "@/components/daily/DailyCard";
 import { trackEvent } from "@/lib/trackEvent";
 import type { FortuneResponse } from "@/components/fortune/FortuneForm";
 
+function AppSkeleton() {
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* ステータスバー */}
+      <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-4 space-y-2">
+        <div className="skeleton h-3 w-48" />
+        <div className="skeleton h-3 w-36" />
+      </div>
+      {/* DailyCard */}
+      <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-4">
+        <div className="skeleton h-4 w-32" />
+      </div>
+      {/* フォーム */}
+      <div className="space-y-5">
+        <div className="skeleton h-6 w-40 mx-auto" />
+        <div className="skeleton h-10 w-full" />
+        <div className="skeleton h-10 w-full" />
+        <div className="skeleton h-10 w-full" />
+        <div className="skeleton h-20 w-full" />
+        <div className="skeleton h-12 w-full rounded-full" />
+      </div>
+    </div>
+  );
+}
+
 export default function AppPage() {
   const { data, loading, error, refresh } = useMe();
 
@@ -33,21 +58,17 @@ export default function AppPage() {
   return (
     <main className="min-h-screen px-4 py-6">
       <div className="max-w-lg mx-auto space-y-6">
-        {/* ユーザー状態表示 */}
-        {loading && (
-          <div className="text-center text-amber-200/40 text-sm animate-pulse">
-            読み込み中...
-          </div>
-        )}
+        {/* スケルトンローディング */}
+        {loading && <AppSkeleton />}
 
         {error && (
-          <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-3 text-sm text-red-300">
+          <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-3 text-sm text-red-300 animate-fade-in">
             {error}
           </div>
         )}
 
         {data && !fortuneResult && (
-          <>
+          <div className="space-y-6 animate-fade-in-up">
             {/* ステータスバー */}
             <div className="bg-amber-900/10 border border-amber-800/20 rounded-xl p-4 space-y-1">
               <p className="text-xs text-amber-200/50">
@@ -70,7 +91,7 @@ export default function AppPage() {
 
             {/* 入力フォーム */}
             <FortuneForm me={data} onSubmit={handleFormSubmit} />
-          </>
+          </div>
         )}
 
         {data && fortuneResult && (
