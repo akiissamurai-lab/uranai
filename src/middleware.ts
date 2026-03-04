@@ -1,7 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 
-const PUBLIC_PATHS = new Set(["/", "/login", "/privacy", "/terms", "/daily"]);
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/login",
+  "/privacy",
+  "/terms",
+  "/daily",
+  "/opengraph-image",
+  "/apple-icon",
+]);
 
 const PUBLIC_PREFIXES = ["/auth/", "/api/stripe/webhook", "/api/daily", "/api/event"];
 
