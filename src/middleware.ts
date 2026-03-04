@@ -7,7 +7,6 @@ const PUBLIC_PATHS = new Set([
   "/privacy",
   "/terms",
   "/daily",
-  "/opengraph-image",
   "/apple-icon",
 ]);
 
