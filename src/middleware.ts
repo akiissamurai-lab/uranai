@@ -6,6 +6,7 @@ const PUBLIC_PATHS = new Set([
   "/login",
   "/privacy",
   "/terms",
+  "/commercial",
   "/daily",
   "/apple-icon",
 ]);

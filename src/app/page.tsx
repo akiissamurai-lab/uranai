@@ -35,12 +35,15 @@ export default function LPPage() {
           </Link>
         </div>
 
-        <div className="pt-8 flex gap-4 justify-center text-xs text-amber-200/30">
+        <div className="pt-8 flex flex-wrap gap-4 justify-center text-xs text-amber-200/30">
           <Link href="/privacy" className="hover:text-amber-200/60">
             プライバシーポリシー
           </Link>
           <Link href="/terms" className="hover:text-amber-200/60">
             利用規約
+          </Link>
+          <Link href="/commercial" className="hover:text-amber-200/60">
+            特定商取引法
           </Link>
         </div>
       </div>

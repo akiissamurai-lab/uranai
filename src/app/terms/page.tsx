@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function TermsPage() {
   return (
     <main className="min-h-screen max-w-2xl mx-auto px-4 py-12">
@@ -41,6 +43,15 @@ export default function TermsPage() {
           本規約は予告なく変更する場合があります。
           変更後もサービスを利用した場合、変更に同意したものとみなします。
         </p>
+
+        <div className="pt-4 flex gap-4 text-xs text-amber-200/30">
+          <Link href="/commercial" className="hover:text-amber-200/60">
+            特定商取引法に基づく表記
+          </Link>
+          <Link href="/privacy" className="hover:text-amber-200/60">
+            プライバシーポリシー
+          </Link>
+        </div>
       </div>
     </main>
   );

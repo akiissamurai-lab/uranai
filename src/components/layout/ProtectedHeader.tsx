@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useState } from "react";
+import { isBillingEnabled } from "@/lib/billing";
 
 export function ProtectedHeader({ email }: { email: string }) {
   const router = useRouter();
@@ -51,13 +52,15 @@ export function ProtectedHeader({ email }: { email: string }) {
                 >
                   鑑定履歴
                 </Link>
-                <Link
-                  href="/billing"
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-3 py-2 text-xs text-amber-200/80 hover:bg-amber-900/20"
-                >
-                  プラン・課金
-                </Link>
+                {isBillingEnabled() && (
+                  <Link
+                    href="/billing"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-3 py-2 text-xs text-amber-200/80 hover:bg-amber-900/20"
+                  >
+                    プラン・課金
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="block w-full text-left px-3 py-2 text-xs text-red-400/80 hover:bg-red-900/20"
