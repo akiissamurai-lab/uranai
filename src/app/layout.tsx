@@ -20,11 +20,27 @@ export const metadata: Metadata = {
     locale: "ja_JP",
     type: "website",
     url: "/",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Aira｜余白便り",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Aira｜余白便り",
     description: "星座を選ぶだけ。毎日届く、やさしい占い。",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Aira｜余白便り",
+      },
+    ],
   },
 };
 
