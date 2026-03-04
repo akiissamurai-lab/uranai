@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { requireStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { CONFIG } from "@/lib/constants";
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
       },
       custom_text: {
         terms_of_service_acceptance: {
-          message: `[利用規約](${appUrl}/terms)・[プライバシーポリシー](${appUrl}/privacy)・[特定商取引法に基づく表記](${appUrl}/commercial) に同意のうえお申し込みください。月額¥${980}の自動更新です。`,
+          message: `[利用規約](${appUrl}/terms)・[プライバシーポリシー](${appUrl}/privacy)・[特定商取引法に基づく表記](${appUrl}/commercial) に同意のうえお申し込みください。月額¥${CONFIG.PRICE_JPY}の自動更新です。`,
         },
       },
     });

@@ -6,7 +6,7 @@ export const CONFIG = {
   FREE_PER_DAY: 3,
   PREMIUM_PER_DAY: 3,
   MONTHLY_CREDITS: 10,
-  PRICE_JPY: 980,
+  PRICE_JPY: 480,
 
   // === AI ===
   MAX_TOKENS_FREE: 2500,
