@@ -14,7 +14,13 @@ export default function CommercialPage() {
               <th className="py-3 pr-4 text-amber-100 font-medium align-top whitespace-nowrap w-1/3">
                 販売事業者
               </th>
-              <td className="py-3 text-amber-200/80">永山 暁</td>
+              <td className="py-3 text-amber-200/80">
+                Aira
+                <br />
+                <span className="text-amber-200/40 text-xs">
+                  ※請求があった場合、運営者の氏名を遅滞なく開示いたします
+                </span>
+              </td>
             </tr>
             <tr>
               <th className="py-3 pr-4 text-amber-100 font-medium align-top whitespace-nowrap">
