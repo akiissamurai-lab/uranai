@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateObject } from "ai";
+import { streamObject } from "ai";
 import { getAuthUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkUsage, incrementUsage } from "@/lib/usage";
@@ -109,71 +109,110 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // 7. AI 生成
-  try {
-    const maxTokens =
-      mode === "premium"
-        ? CONFIG.MAX_TOKENS_PREMIUM
-        : CONFIG.MAX_TOKENS_FREE;
+  // 7. AI ストリーミング生成
+  const maxTokens =
+    mode === "premium" ? CONFIG.MAX_TOKENS_PREMIUM : CONFIG.MAX_TOKENS_FREE;
 
-    const result = await generateObject({
-      model: getModel(),
-      schema: fortuneOutputSchema,
-      system: buildSystemPrompt(mode),
-      prompt: buildUserPrompt({ ...input, date: jstDate }),
-      maxTokens,
-      temperature: CONFIG.TEMPERATURE,
-    });
+  const result = streamObject({
+    model: getModel(),
+    schema: fortuneOutputSchema,
+    system: buildSystemPrompt(mode),
+    prompt: buildUserPrompt({ ...input, date: jstDate }),
+    maxTokens,
+    temperature: CONFIG.TEMPERATURE,
+    onFinish: async ({ object, usage: tokenUsage }) => {
+      // 8. ストリーム完了後に DB 保存 + 回数カウント
+      try {
+        await prisma.fortuneRequest.update({
+          where: { id: fortune.id },
+          data: {
+            outputJson: object as unknown as Prisma.InputJsonValue,
+            modelMeta: {
+              model: getModelId(),
+              usage: tokenUsage,
+            } as unknown as Prisma.InputJsonValue,
+            status: "completed",
+          },
+        });
+        await incrementUsage(user.id, mode);
+      } catch (err) {
+        console.error("[/api/fortune] DB save after stream failed:", err);
+        await prisma.fortuneRequest
+          .update({
+            where: { id: fortune.id },
+            data: { status: "failed" },
+          })
+          .catch(() => {});
+      }
+    },
+  });
 
-    // 8. DB に保存
-    await prisma.fortuneRequest.update({
-      where: { id: fortune.id },
-      data: {
-        outputJson: result.object as unknown as Prisma.InputJsonValue,
-        modelMeta: {
-          model: getModelId(),
-          usage: result.usage,
-        } as unknown as Prisma.InputJsonValue,
-        status: "completed",
-      },
-    });
+  // カスタム SSE ストリーム: partial → done/error
+  const encoder = new TextEncoder();
+  let lastSent = 0;
+  const THROTTLE_MS = 120;
 
-    // 9. 日次カウント +1
-    await incrementUsage(user.id, mode);
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const partial of result.partialObjectStream) {
+          const now = Date.now();
+          if (now - lastSent >= THROTTLE_MS) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(partial)}\n\n`),
+            );
+            lastSent = now;
+          }
+        }
 
-    return NextResponse.json({
-      id: fortune.id,
-      output: result.object,
-      cached: false,
-    });
-  } catch (err) {
-    // 生成失敗 → status を failed に（回数は消費しない）
-    await prisma.fortuneRequest.update({
-      where: { id: fortune.id },
-      data: { status: "failed" },
-    });
+        // 最後のパーシャルが送信されていない場合のため、完了オブジェクトを送信
+        const finalObject = await result.object;
+        controller.enqueue(
+          encoder.encode(
+            `event: done\ndata: ${JSON.stringify({
+              id: fortune.id,
+              output: finalObject,
+              cached: false,
+            })}\n\n`,
+          ),
+        );
+      } catch (err) {
+        const isIncomplete =
+          err instanceof Error &&
+          "finishReason" in err &&
+          (err as Record<string, unknown>).finishReason === "length";
 
-    // finishReason='length' → トークン上限で途中切断
-    const isIncomplete =
-      err instanceof Error &&
-      "finishReason" in err &&
-      (err as Record<string, unknown>).finishReason === "length";
+        const errorKey = isIncomplete
+          ? "generation_incomplete"
+          : "generation_failed";
 
-    if (isIncomplete) {
-      console.warn(
-        "[/api/fortune] AI generation incomplete (token limit reached)",
-      );
-      return NextResponse.json(
-        { error: "generation_incomplete" },
-        { status: 503 },
-      );
-    }
+        console.error(`[/api/fortune] stream error (${errorKey}):`, err);
 
-    console.error("[/api/fortune] AI generation failed:", err);
+        // DB を failed に更新
+        await prisma.fortuneRequest
+          .update({
+            where: { id: fortune.id },
+            data: { status: "failed" },
+          })
+          .catch(() => {});
 
-    return NextResponse.json(
-      { error: "generation_failed" },
-      { status: 500 },
-    );
-  }
+        controller.enqueue(
+          encoder.encode(
+            `event: error\ndata: ${JSON.stringify({ error: errorKey })}\n\n`,
+          ),
+        );
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Fortune-Id": fortune.id,
+    },
+  });
 }

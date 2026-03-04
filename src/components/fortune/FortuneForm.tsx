@@ -14,31 +14,17 @@ import { getAnimalKey, ANIMAL_LABELS } from "@/lib/fortune/animal";
 import { getZodiacKey, ZODIAC_LABELS } from "@/lib/fortune/zodiac";
 import type { MeResponse } from "@/types";
 
-// ── エラーマッピング ──
-const API_ERROR_MESSAGES: Record<string, string> = {
-  daily_limit_reached: "本日の占い回数が上限に達しました。明日またお越しください。",
-  premium_required: "この機能はプレミアムプランが必要です。",
-  rate_limited: "しばらく時間をおいてからお試しください。",
-  unauthorized: "ログインが必要です。",
-  generation_incomplete:
-    "鑑定がうまくいきませんでした。もう一度お試しください（回数は消費されていません）。",
-  generation_failed:
-    "鑑定中にエラーが発生しました。もう一度お試しください（回数は消費されていません）。",
-  internal_server_error: "サーバーエラーが発生しました。時間をおいてお試しください。",
-};
-
-export interface FortuneResponse {
-  id: string;
-  output: import("@/lib/ai/schema").FortuneOutput;
-  cached: boolean;
-}
-
 interface FortuneFormProps {
   me: MeResponse;
-  onSubmit: (response: FortuneResponse) => void;
+  submitting: boolean;
+  onSubmit: (input: FortuneInput) => void;
 }
 
-export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
+export default function FortuneForm({
+  me,
+  submitting,
+  onSubmit,
+}: FortuneFormProps) {
   // ── フォーム state ──
   const [birthdate, setBirthdate] = useState("");
   // ── 星座を自動算出 ──
@@ -57,8 +43,6 @@ export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
 
   // ── UI state ──
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [apiError, setApiError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   const mode = me.plan === "premium" ? "premium" : "free";
   const remaining =
@@ -66,10 +50,9 @@ export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
       ? me.todayUsage.premiumRemaining
       : me.todayUsage.freeRemaining;
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setFieldErrors({});
-    setApiError("");
 
     // ── Zod バリデーション ──
     const result = fortuneInputSchema.safeParse({
@@ -92,40 +75,8 @@ export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
       return;
     }
 
-    // ── 送信 ──
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/fortune", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(result.data),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "unknown" }));
-        const errorKey = body.error ?? "unknown";
-
-        // 403 premium_required は /billing への導線
-        if (errorKey === "premium_required") {
-          setApiError(API_ERROR_MESSAGES[errorKey]);
-          setSubmitting(false);
-          return;
-        }
-
-        setApiError(
-          API_ERROR_MESSAGES[errorKey] ??
-            `エラーが発生しました (${res.status})`,
-        );
-        setSubmitting(false);
-        return;
-      }
-
-      const data = await res.json();
-      onSubmit(data as FortuneResponse);
-    } catch {
-      setApiError("通信エラーが発生しました。ネットワークを確認してください。");
-      setSubmitting(false);
-    }
+    // バリデーション通過 → 親に validated input を渡す
+    onSubmit(result.data);
   }
 
   return (
@@ -182,7 +133,7 @@ export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
             </span>
           </div>
           <p className="text-[10px] text-amber-200/30 mt-1">
-            ※いまは"やさしい簡易版"でお届けしています
+            ※いまは&quot;やさしい簡易版&quot;でお届けしています
           </p>
         </div>
       )}
@@ -240,24 +191,10 @@ export default function FortuneForm({ me, onSubmit }: FortuneFormProps) {
           {freeText.length} / {CONFIG.MAX_FREETEXT_LENGTH}文字
         </p>
         <p className="text-[11px] text-amber-200/30 mt-1 leading-relaxed">
-          ※ この占いはエンターテインメントです。深刻なお悩みや心身の危機を感じている場合は、専門の相談窓口にご連絡ください。
+          ※
+          この占いはエンターテインメントです。深刻なお悩みや心身の危機を感じている場合は、専門の相談窓口にご連絡ください。
         </p>
       </Field>
-
-      {/* API エラー */}
-      {apiError && (
-        <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-3 text-sm text-red-300 text-center">
-          {apiError}
-          {apiError.includes("プレミアム") && (
-            <a
-              href="/billing"
-              className="block mt-1 text-amber-400 underline underline-offset-2"
-            >
-              プレミアムプランを見る
-            </a>
-          )}
-        </div>
-      )}
 
       {/* 送信ボタン */}
       <button
